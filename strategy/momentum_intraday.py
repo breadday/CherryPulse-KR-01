@@ -44,6 +44,7 @@ def generate_signal(self, tick, portfolio):
     )
 
 class MomentumIntradayStrategy:
+    
     def __init__(self, config=None):
         self.config = config or {}
 
@@ -67,6 +68,40 @@ class MomentumIntradayStrategy:
 
         self.last_entry_time = {}
 
+    def generate_signal(self, tick, portfolio):
+        symbol = tick.symbol
+        price = tick.price
+
+        # 이미 보유 중이면 진입 안함
+        pos = portfolio.get_position(symbol)
+        if pos.qty > 0:
+            return None
+
+        # market_data 구성
+        market_data = {
+            "price": price,
+            "price_change_pct": getattr(tick, "price_change_pct", 0.0),
+            "trade_strength": getattr(tick, "trade_strength", 0.0),
+            "volume_ratio": getattr(tick, "volume_ratio", 1.0),
+            "timestamp": getattr(tick, "ts", None),
+        }
+
+        ok, reason = self.can_enter(symbol, market_data, portfolio)
+        if not ok:
+            return None
+
+        # 테스트용 1주
+        qty = 1
+
+        return Signal(
+            symbol=symbol,
+            side=Side.BUY,
+            qty=qty,
+            price=0,
+            order_type=OrderType.MARKET,
+            reason=f"momentum_entry:{reason}",
+        )
+    
     def can_enter(self, symbol, market_data, portfolio=None):
         """
         진입 가능 여부 판단
