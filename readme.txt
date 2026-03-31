@@ -17,6 +17,11 @@ CherryPulse-KR-01/ 아래를 이렇게 가져가면 됩니다.
 
 CherryPulse-KR-01/
 │
+├─ backtest/
+│  ├─ runner.py
+│  ├─ metrics.py
+│  ├─ adapters.py
+│  └─ csv_feed.py
 ├─ main.py
 ├─ config.py
 ├─ engine.py
@@ -24,7 +29,10 @@ CherryPulse-KR-01/
 │  ├─ __init__.py
 │  ├─ base.py
 │  └─ kiwoom_stub.py
-│
+├─ data/
+│  ├─ csv_loader.py
+│  └─ sample/
+│     └─ 005930_1m.csv
 ├─ strategy/
 │  ├─ __init__.py
 │  └─ momentum_intraday.py
@@ -46,7 +54,7 @@ CherryPulse-KR-01/
 │  └─ logger.py
 │
 └─ logs/
-
+   run_backtest_csv.py
 
 3) 핵심 설계
 

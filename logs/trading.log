@@ -531,3 +531,33 @@ AttributeError: 'KiwoomBroker' object has no attribute 'get_deposit'
 2026-03-31 20:15:51,153 | INFO | 브로커 종료 완료
 2026-03-31 20:15:51,165 | INFO | 엔진 종료 완료
 2026-03-31 20:15:51,170 | INFO | 프로그램 종료
+2026-04-01 00:01:32,644 | INFO | 프로그램 시작
+2026-04-01 00:01:32,644 | INFO | 실행 모드 | DRY_RUN=True LIVE_MODE=True
+2026-04-01 00:01:32,645 | WARNING | 현재 DRY_RUN 모드입니다. 실제 주문은 전송되지 않습니다.
+2026-04-01 00:01:33,092 | ERROR | 계좌 동기화 실패 | 'KiwoomBroker' object has no attribute 'get_deposit'
+Traceback (most recent call last):
+  File "E:\prgm\python_open_api\CherryPulse-KR-01\engine.py", line 107, in sync_account
+    deposit = self.broker.get_deposit(password=password)
+AttributeError: 'KiwoomBroker' object has no attribute 'get_deposit'
+2026-04-01 00:01:33,095 | INFO | 키움 로그인 시도
+2026-04-01 00:01:33,328 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-01 00:01:33,328 | INFO | 로그인 이벤트 대기 시작
+2026-04-01 00:01:49,959 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-01 00:01:49,959 | INFO | 로그인 성공
+2026-04-01 00:01:49,962 | INFO | 로그인 이벤트 대기 종료
+2026-04-01 00:01:49,962 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-01 00:01:49,963 | INFO | 브로커 연결 완료
+2026-04-01 00:01:58,370 | INFO | 초기 잔고 동기화 시작
+2026-04-01 00:01:58,370 | INFO | 초기 잔고 동기화 완료
+2026-04-01 00:01:58,371 | INFO | 헬스체크 | 총 보유수량=0
+2026-04-01 00:01:58,377 | INFO | 실시간 등록 | codes=005930;000660 ret=0
+2026-04-01 00:01:58,377 | INFO | 실시간 구독 시작 | 005930,000660
+2026-04-01 00:01:58,378 | INFO | 실시간 엔진 시작
+2026-04-01 00:02:01,111 | INFO | 종료 신호 수신
+2026-04-01 00:02:01,112 | INFO | 실시간 구독 해제 완료
+2026-04-01 00:02:01,113 | INFO | 실시간 구독 해제 완료
+2026-04-01 00:02:01,114 | INFO | 엔진 종료 시작
+2026-04-01 00:02:01,114 | INFO | 브로커 종료 시작
+2026-04-01 00:02:01,116 | INFO | 브로커 종료 완료
+2026-04-01 00:02:01,116 | INFO | 엔진 종료 완료
+2026-04-01 00:02:01,117 | INFO | 프로그램 종료
