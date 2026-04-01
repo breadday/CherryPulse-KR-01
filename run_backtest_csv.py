@@ -40,6 +40,21 @@ def main():
     for k, v in result.items():
         print(f"{k}: {v}")
 
+    if runner.trades:
+        print("\n체결 로그")
+        for i, trade in enumerate(runner.trades, start=1):
+            print(
+                f"{i}. "
+                f"symbol={trade['symbol']} "
+                f"entry={trade['entry_price']} "
+                f"exit={trade['exit_price']} "
+                f"qty={trade['qty']} "
+                f"pnl={trade['pnl']} "
+                f"reason={trade['reason']} "
+                f"entry_ts={trade['entry_ts']} "
+                f"exit_ts={trade['exit_ts']}"
+            )
+
 
 if __name__ == "__main__":
     main()
