@@ -364,6 +364,18 @@ class KiwoomBroker(QObject):
 
         return result
     
+    def get_deposit(self, password: str = "") -> int:
+        """
+        예수금 조회 임시 버전
+        실제 키움 TR 연동 전까지 0 반환
+        """
+        try:
+            self.logger.info("get_deposit 호출")
+            return 0
+        except Exception as e:
+            self.logger.exception(f"예수금 조회 실패 | {e}")
+            return 0
+        
     # -------------------------
     # 유틸
     # -------------------------
