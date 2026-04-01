@@ -1,4 +1,6 @@
-# backtest/runner.py  백테스트 러너
+# backtest/runner.py
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Dict, List, Optional
@@ -13,12 +15,10 @@ class BacktestTick:
     price: float
     volume: float
     ts: object
-
     open: float = 0.0
     high: float = 0.0
     low: float = 0.0
     close: float = 0.0
-
     price_change_pct: float = 0.0
     trade_strength: float = 0.0
     volume_ratio: float = 1.0
@@ -52,26 +52,23 @@ class SimplePortfolio:
                 total += pos.qty * price_map.get(symbol, int(pos.avg_price))
         return total
 
-    def buy(self, symbol: str, qty: int, price: float):
+    def buy(self, symbol: str, qty: int, price: float) -> bool:
         amount = qty * price
         if qty <= 0 or self.cash < amount:
             return False
 
         pos = self.get_position(symbol)
-
         new_qty = pos.qty + qty
         if new_qty <= 0:
             return False
 
         pos.avg_price = ((pos.avg_price * pos.qty) + amount) / new_qty
         pos.qty = new_qty
-
         self.cash -= amount
         return True
 
     def sell(self, symbol: str, qty: int, price: float) -> float:
         pos = self.get_position(symbol)
-
         if qty <= 0 or pos.qty <= 0:
             return 0.0
 
@@ -91,8 +88,13 @@ class SimplePortfolio:
 
 
 class BacktestRunner:
-    def __init__(self, strategy_config=None, initial_cash=5_000_000):
-        self.strategy = MomentumIntradayStrategy(config=strategy_config or {})
+    def __init__(
+        self,
+        strategy: Optional[MomentumIntradayStrategy] = None,
+        strategy_config: Optional[dict] = None,
+        initial_cash: float = 5_000_000,
+    ):
+        self.strategy = strategy or MomentumIntradayStrategy(config=strategy_config or {})
         self.portfolio = SimplePortfolio(initial_cash=initial_cash)
         self.initial_cash = initial_cash
 
@@ -106,24 +108,19 @@ class BacktestRunner:
             current_price = tick.price if tick.price else tick.close
             self.price_map[tick.symbol] = current_price
 
-            # 1) 청산 먼저 체크
             self._check_exit(tick)
-
-            # 2) 진입 체크
             self._check_entry(tick)
 
-            # 3) 자산곡선 기록
             equity = self.portfolio.market_value(self.price_map)
             self.equity_curve.append(equity)
 
         final_cash = self.portfolio.market_value(self.price_map)
-        result = summarize_result(
+        return summarize_result(
             trades=self.trades,
             equity_curve=self.equity_curve,
             initial_cash=self.initial_cash,
             final_cash=final_cash,
         )
-        return result
 
     def _check_entry(self, tick: BacktestTick):
         signal = self.strategy.generate_signal(tick, self.portfolio)
@@ -138,9 +135,7 @@ class BacktestRunner:
             return
 
         current_price = tick.price if tick.price else tick.close
-
-        success = self.portfolio.buy(tick.symbol, qty, current_price)
-        if not success:
+        if not self.portfolio.buy(tick.symbol, qty, current_price):
             return
 
         self.strategy.mark_entry(tick.symbol, tick.ts)
@@ -157,7 +152,6 @@ class BacktestRunner:
             return
 
         current_price = tick.price if tick.price else tick.close
-
         position_data = {
             "symbol": tick.symbol,
             "avg_price": pos.avg_price,
@@ -165,7 +159,6 @@ class BacktestRunner:
             "highest_return_pct": pos.highest_return_pct,
             "partial_taken": pos.partial_taken,
         }
-
         market_data = {
             "price": current_price,
             "timestamp": tick.ts,
@@ -176,7 +169,6 @@ class BacktestRunner:
             return
 
         pos.highest_return_pct = position_data.get("highest_return_pct", pos.highest_return_pct)
-
         action = exit_signal["action"]
 
         if action == "PARTIAL_SELL":
@@ -200,7 +192,6 @@ class BacktestRunner:
             sell_qty = pos.qty
             entry_price = self.entry_log.get(tick.symbol, {}).get("entry_price", pos.avg_price)
             entry_ts = self.entry_log.get(tick.symbol, {}).get("entry_ts")
-
             pnl = self.portfolio.sell(tick.symbol, sell_qty, current_price)
 
             self.trades.append({
