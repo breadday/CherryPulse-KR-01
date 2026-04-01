@@ -2,7 +2,6 @@ from datetime import datetime
 from broker.kiwoom_stub import KiwoomStubBroker
 from strategy.momentum_intraday import MomentumIntradayStrategy
 from engine import TradingEngine
-from core.models import TickData
 from utils.logger import setup_logger
 from config import STRATEGY_CONFIG
 
@@ -14,16 +13,19 @@ def main():
 
     engine.start()
 
-    ticks = [
-        TickData(symbol="005930", price=70000, volume=1000, ts=datetime.now()),
-        TickData(symbol="005930", price=70800, volume=1500, ts=datetime.now()),
-        TickData(symbol="005930", price=71500, volume=1800, ts=datetime.now()),
-        TickData(symbol="005930", price=72000, volume=2000, ts=datetime.now()),
-        TickData(symbol="005930", price=70500, volume=2200, ts=datetime.now()),
+    # -------------------------
+    # 테스트용 샘플 틱 실행
+    # -------------------------
+    raw_ticks = [
+        {"symbol": "005930", "price": 70000, "trade_volume": 1000},
+        {"symbol": "005930", "price": 70800, "trade_volume": 1500},
+        {"symbol": "005930", "price": 71500, "trade_volume": 1800},
+        {"symbol": "005930", "price": 72000, "trade_volume": 2000},
+        {"symbol": "005930", "price": 70500, "trade_volume": 2200},
     ]
 
-    for tick in ticks:
-        engine.on_tick(tick)
+    for raw_tick in raw_ticks:
+        engine.on_real_tick(raw_tick)
 
 
 if __name__ == "__main__":

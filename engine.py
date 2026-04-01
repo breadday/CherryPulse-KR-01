@@ -133,8 +133,6 @@ class TradingEngine:
     # -------------------------
     def on_real_tick(self, raw_tick: dict):
 
-        self.logger.info(f"[TICK] {symbol} price={price} vol={volume}")
-
         if self.engine_protected:
             return
         
@@ -142,6 +140,8 @@ class TradingEngine:
             symbol = raw_tick["symbol"]
             price = int(raw_tick["price"])
             volume = int(raw_tick.get("trade_volume", 0))
+
+            self.logger.info(f"[TICK] {symbol} price={price} vol={volume}")
 
             if price <= 0:
                 return
@@ -309,6 +309,20 @@ class TradingEngine:
 
                 # 보호모드 체크
                 self._check_engine_protection()
+
+                if config.DRY_RUN:
+                    class StubFill:
+                        pass
+
+                    fill = StubFill()
+                    fill.order_id = order.order_id
+                    fill.symbol = order.symbol
+                    fill.side = order.side
+                    fill.fill_qty = qty
+                    fill.fill_price = self.last_price_map.get(symbol, 0)
+                    fill.unfilled_qty = 0
+
+                    self.on_fill(fill)
 
             self.logger.info(
                 f"자동매도 주문 등록 | symbol={symbol} qty={qty} "
@@ -630,14 +644,6 @@ class TradingEngine:
                 fill.unfilled_qty = 0
 
                 self.on_fill(fill)
-                
-            # ret=0 성공 기준으로 SUBMITTED 들어온 경우만 카운트
-            if order.status == OrderStatus.SUBMITTED:
-                self.last_order_time[signal.symbol] = time.time()
-                self.daily_order_count += 1
-
-                if signal.side.value == "BUY" and hasattr(self.strategy, "mark_entry"):
-                    self.strategy.mark_entry(signal.symbol, tick.ts)
 
             self.logger.info(
                 f"주문 등록 | id={order.order_id} symbol={order.symbol} "
@@ -759,7 +765,7 @@ class TradingEngine:
                 pass
 
             pos = self.portfolio.get_position("005930")
-            self.logger.info(f"[POS] 005930 qty={pos.qty} avg={pos.avg_price}")
+            # self.logger.info(f"[POS] 005930 qty={pos.qty} avg={pos.avg_price}")
 
             # 완전 체결 또는 포지션 정리 시 취소 플래그 해제
             try:
