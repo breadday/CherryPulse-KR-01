@@ -45,11 +45,11 @@ class SimplePortfolio:
             self.positions[symbol] = Position(symbol=symbol)
         return self.positions[symbol]
 
-    def market_value(self, price_map: Dict[str, int]) -> float:
+    def market_value(self, price_map: Dict[str, float]) -> float:
         total = self.cash
         for symbol, pos in self.positions.items():
             if pos.qty > 0:
-                total += pos.qty * price_map.get(symbol, int(pos.avg_price))
+                total += pos.qty * price_map.get(symbol, pos.avg_price)
         return total
 
     def buy(self, symbol: str, qty: int, price: float) -> bool:
@@ -98,21 +98,34 @@ class BacktestRunner:
         self.portfolio = SimplePortfolio(initial_cash=initial_cash)
         self.initial_cash = initial_cash
 
-        self.price_map: Dict[str, int] = {}
+        self.price_map: Dict[str, float] = {}
         self.equity_curve: List[float] = []
         self.trades: List[dict] = []
         self.entry_log: Dict[str, dict] = {}
 
     def run(self, ticks: List[BacktestTick]):
+        if not ticks:
+            return summarize_result(
+                trades=[],
+                equity_curve=[],
+                initial_cash=self.initial_cash,
+                final_cash=self.initial_cash,
+            )
+
+        last_tick_by_symbol: Dict[str, BacktestTick] = {}
+
         for tick in ticks:
             current_price = tick.price if tick.price else tick.close
             self.price_map[tick.symbol] = current_price
+            last_tick_by_symbol[tick.symbol] = tick
 
             self._check_exit(tick)
             self._check_entry(tick)
 
             equity = self.portfolio.market_value(self.price_map)
             self.equity_curve.append(equity)
+
+        self._force_close_all(last_tick_by_symbol)
 
         final_cash = self.portfolio.market_value(self.price_map)
         return summarize_result(
@@ -152,6 +165,9 @@ class BacktestRunner:
             return
 
         current_price = tick.price if tick.price else tick.close
+        current_return_pct = ((current_price - pos.avg_price) / pos.avg_price) * 100.0
+        pos.highest_return_pct = max(pos.highest_return_pct, current_return_pct)
+
         position_data = {
             "symbol": tick.symbol,
             "avg_price": pos.avg_price,
@@ -168,7 +184,6 @@ class BacktestRunner:
         if not exit_signal:
             return
 
-        pos.highest_return_pct = position_data.get("highest_return_pct", pos.highest_return_pct)
         action = exit_signal["action"]
 
         if action == "PARTIAL_SELL":
@@ -207,3 +222,34 @@ class BacktestRunner:
 
             if self.portfolio.get_position(tick.symbol).qty == 0:
                 self.entry_log.pop(tick.symbol, None)
+
+    def _force_close_all(self, last_tick_by_symbol: Dict[str, BacktestTick]):
+        for symbol, pos in list(self.portfolio.positions.items()):
+            if pos.qty <= 0:
+                continue
+
+            last_tick = last_tick_by_symbol.get(symbol)
+            if last_tick is None:
+                continue
+
+            current_price = last_tick.price if last_tick.price else last_tick.close
+            sell_qty = pos.qty
+            entry_price = self.entry_log.get(symbol, {}).get("entry_price", pos.avg_price)
+            entry_ts = self.entry_log.get(symbol, {}).get("entry_ts")
+
+            pnl = self.portfolio.sell(symbol, sell_qty, current_price)
+
+            self.trades.append({
+                "symbol": symbol,
+                "entry_price": entry_price,
+                "exit_price": current_price,
+                "qty": sell_qty,
+                "pnl": pnl,
+                "reason": "force_close_end_of_backtest",
+                "entry_ts": entry_ts,
+                "exit_ts": last_tick.ts,
+            })
+
+            self.entry_log.pop(symbol, None)
+            self.price_map[symbol] = current_price
+            self.equity_curve.append(self.portfolio.market_value(self.price_map))
