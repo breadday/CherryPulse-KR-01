@@ -19,8 +19,14 @@ class KiwoomStubBroker(BaseBroker):
     def set_msg_callback(self, callback):
         self.msg_callback = callback
 
-    def get_deposit(self, password: str = "") -> int:
-        return 0
+    def get_deposit(self, password: str = ""):
+        return {"available_cash": 0}
+
+    def get_positions(self, password: str = ""):
+        return {"positions": []}
+
+    def get_balance(self):
+        return {}
 
     def connect(self):
         self.connected = True
@@ -28,8 +34,16 @@ class KiwoomStubBroker(BaseBroker):
     def disconnect(self):
         self.connected = False
 
+    def shutdown(self):
+        self.connected = False
+
     def is_connected(self) -> bool:
         return self.connected
+
+    def cancel_order(self, symbol: str, order_no: str, qty: int):
+        if self.msg_callback is not None:
+            self.msg_callback(f"[STUB] 주문 취소: {symbol} order_no={order_no} qty={qty}")
+        return 0
 
     def place_order(self, signal: Signal) -> Order:
         order = Order(

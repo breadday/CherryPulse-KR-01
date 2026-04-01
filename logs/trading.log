@@ -675,3 +675,62 @@ AttributeError: 'Order' object has no attribute 'fill_price'
 2026-04-01 22:37:13,675 | INFO | [CHECK] 005930 price=71500
 2026-04-01 22:37:13,675 | INFO | [CHECK] 005930 price=72000
 2026-04-01 22:37:13,676 | INFO | [CHECK] 005930 price=70500
+2026-04-01 22:53:09,342 | INFO | 브로커 연결 완료
+2026-04-01 22:53:09,343 | INFO | [CHECK] 005930 price=70000
+2026-04-01 22:53:09,343 | INFO | [SIGNAL] 005930 side=BUY qty=1
+2026-04-01 22:53:09,349 | INFO | [STUB] 주문 접수: 005930 BUY 1주
+2026-04-01 22:53:09,349 | INFO | 체결 반영 | broker_id=44d4bf8b local_id=44d4bf8b symbol=005930 side=BUY fill_qty=1 fill_price=70000 cum_filled=1/1 status=FILLED
+2026-04-01 22:53:09,349 | INFO | 잔고 상태 | cash=4930000 realized_pnl=0
+2026-04-01 22:53:09,349 | INFO | [POS] 005930 qty=1 avg=70000.0
+2026-04-01 22:53:09,351 | INFO | 주문 등록 | id=44d4bf8b symbol=005930 side=BUY qty=1 count=1/20
+2026-04-01 22:53:09,351 | INFO | [CHECK] 005930 price=70800
+2026-04-01 22:53:09,351 | INFO | [CHECK] 005930 price=71500
+2026-04-01 22:53:09,351 | INFO | [CHECK] 005930 price=72000
+2026-04-01 22:53:09,352 | INFO | [CHECK] 005930 price=70500
+2026-04-01 22:59:08,531 | INFO | 브로커 연결 완료
+2026-04-01 23:03:25,396 | INFO | 브로커 연결 완료
+2026-04-01 23:03:25,397 | INFO | [TICK] 005930 price=70000 vol=1000
+2026-04-01 23:03:25,397 | INFO | [CHECK] 005930 price=70000
+2026-04-01 23:03:25,397 | INFO | [SIGNAL] 005930 side=BUY qty=1
+2026-04-01 23:03:25,403 | INFO | [STUB] 주문 접수: 005930 BUY 1주
+2026-04-01 23:03:25,403 | INFO | 체결 반영 | broker_id=ab1a94e3 local_id=ab1a94e3 symbol=005930 side=BUY fill_qty=1 fill_price=70000 cum_filled=1/1 status=FILLED
+2026-04-01 23:03:25,403 | INFO | 잔고 상태 | cash=4930000 realized_pnl=0
+2026-04-01 23:03:25,404 | INFO | [POS] 005930 qty=1 avg=70000.0
+2026-04-01 23:03:25,404 | INFO | 주문 등록 | id=ab1a94e3 symbol=005930 side=BUY qty=1 count=1/20
+2026-04-01 23:03:25,404 | INFO | [TICK] 005930 price=70800 vol=1500
+2026-04-01 23:03:25,404 | INFO | [CHECK] 005930 price=70800
+2026-04-01 23:03:25,406 | INFO | [TICK] 005930 price=71500 vol=1800
+2026-04-01 23:03:25,406 | INFO | 부분익절 발생 | symbol=005930 qty=1 pnl=2.14%
+2026-04-01 23:03:25,406 | INFO | [STUB] 주문 접수: 005930 SELL 1주
+2026-04-01 23:03:25,407 | INFO | 자동매도 주문 등록 | symbol=005930 qty=1 order_id=06cce010 reason=부분익절 status=SUBMITTED
+2026-04-01 23:03:25,407 | INFO | 재진입 제한 설정 | symbol=005930 reason=부분익절 block_sec=300 until_ts=1775052505.4071326
+2026-04-01 23:03:25,407 | INFO | [CHECK] 005930 price=71500
+2026-04-01 23:03:25,407 | INFO | [TICK] 005930 price=72000 vol=2000
+2026-04-01 23:03:25,407 | INFO | [CHECK] 005930 price=72000
+2026-04-01 23:03:25,407 | INFO | [TICK] 005930 price=70500 vol=2200
+2026-04-01 23:03:25,408 | INFO | [CHECK] 005930 price=70500
+2026-04-01 23:06:58,673 | INFO | 브로커 연결 완료
+2026-04-01 23:06:58,673 | INFO | [TICK] 005930 price=70000 vol=1000
+2026-04-01 23:06:58,674 | INFO | [CHECK] 005930 price=70000
+2026-04-01 23:06:58,674 | INFO | [SIGNAL] 005930 side=BUY qty=1
+2026-04-01 23:06:58,682 | INFO | [STUB] 주문 접수: 005930 BUY 1주
+2026-04-01 23:06:58,682 | INFO | 체결 반영 | broker_id=7e54905b local_id=7e54905b symbol=005930 side=BUY fill_qty=1 fill_price=70000 cum_filled=1/1 status=FILLED
+2026-04-01 23:06:58,683 | INFO | 잔고 상태 | cash=4930000 realized_pnl=0
+2026-04-01 23:06:58,683 | INFO | [POS] 005930 qty=1 avg=70000.0
+2026-04-01 23:06:58,683 | INFO | 주문 등록 | id=7e54905b symbol=005930 side=BUY qty=1 count=1/20
+2026-04-01 23:06:58,683 | INFO | [TICK] 005930 price=70800 vol=1500
+2026-04-01 23:06:58,683 | INFO | [CHECK] 005930 price=70800
+2026-04-01 23:06:58,683 | INFO | [TICK] 005930 price=71500 vol=1800
+2026-04-01 23:06:58,683 | INFO | 부분익절 발생 | symbol=005930 qty=1 pnl=2.14%
+2026-04-01 23:06:58,684 | INFO | [STUB] 주문 접수: 005930 SELL 1주
+2026-04-01 23:06:58,684 | INFO | 체결 반영 | broker_id=64cc2dc5 local_id=64cc2dc5 symbol=005930 side=SELL fill_qty=1 fill_price=71500 cum_filled=1/1 status=FILLED
+2026-04-01 23:06:58,685 | INFO | 잔고 상태 | cash=5001500 realized_pnl=1500
+2026-04-01 23:06:58,685 | INFO | 매도 체결 완료 | symbol=005930 reentry_reason=
+2026-04-01 23:06:58,685 | INFO | 청산 상태 초기화 | symbol=005930
+2026-04-01 23:06:58,685 | INFO | [POS] 005930 qty=0 avg=0.0
+2026-04-01 23:06:58,685 | INFO | 자동매도 주문 등록 | symbol=005930 qty=1 order_id=64cc2dc5 reason=부분익절 status=FILLED
+2026-04-01 23:06:58,686 | INFO | [CHECK] 005930 price=71500
+2026-04-01 23:06:58,686 | INFO | [TICK] 005930 price=72000 vol=2000
+2026-04-01 23:06:58,686 | INFO | [CHECK] 005930 price=72000
+2026-04-01 23:06:58,686 | INFO | [TICK] 005930 price=70500 vol=2200
+2026-04-01 23:06:58,686 | INFO | [CHECK] 005930 price=70500
