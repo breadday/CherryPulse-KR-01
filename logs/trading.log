@@ -561,3 +561,117 @@ AttributeError: 'KiwoomBroker' object has no attribute 'get_deposit'
 2026-04-01 00:02:01,116 | INFO | 브로커 종료 완료
 2026-04-01 00:02:01,116 | INFO | 엔진 종료 완료
 2026-04-01 00:02:01,117 | INFO | 프로그램 종료
+2026-04-01 06:46:47,880 | INFO | 프로그램 시작
+2026-04-01 06:46:47,881 | INFO | 실행 모드 | DRY_RUN=True LIVE_MODE=True
+2026-04-01 06:46:47,881 | WARNING | 현재 DRY_RUN 모드입니다. 실제 주문은 전송되지 않습니다.
+2026-04-01 06:46:48,279 | ERROR | 계좌 동기화 실패 | 'KiwoomBroker' object has no attribute 'get_deposit'
+Traceback (most recent call last):
+  File "E:\prgm\python_open_api\CherryPulse-KR-01\engine.py", line 107, in sync_account
+    deposit = self.broker.get_deposit(password=password)
+AttributeError: 'KiwoomBroker' object has no attribute 'get_deposit'
+2026-04-01 06:46:48,282 | INFO | 키움 로그인 시도
+2026-04-01 06:46:48,417 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-01 06:46:48,417 | INFO | 로그인 이벤트 대기 시작
+2026-04-01 06:47:05,455 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-01 06:47:05,456 | INFO | 로그인 성공
+2026-04-01 06:47:05,457 | INFO | 로그인 이벤트 대기 종료
+2026-04-01 06:47:05,458 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-01 06:47:05,458 | INFO | 브로커 연결 완료
+2026-04-01 06:50:42,786 | INFO | OnEventConnect 호출 | err_code=-106
+2026-04-01 06:50:42,786 | ERROR | 로그인 실패
+2026-04-01 19:45:08,054 | INFO | 🛑 장 종료 시간 도달 → 자동 종료
+2026-04-01 19:45:08,056 | INFO | 종료 신호 수신
+2026-04-01 19:45:08,059 | INFO | 실시간 구독 해제 완료
+2026-04-01 19:45:08,059 | INFO | 실시간 구독 해제 완료
+2026-04-01 19:45:08,059 | INFO | 엔진 종료 시작
+2026-04-01 19:45:08,060 | INFO | 브로커 종료 시작
+2026-04-01 19:45:08,060 | INFO | 브로커 종료 완료
+2026-04-01 19:45:08,060 | INFO | 엔진 종료 완료
+2026-04-01 19:45:08,061 | INFO | 프로그램 종료
+2026-04-01 22:02:21,578 | INFO | 프로그램 시작
+2026-04-01 22:02:21,580 | INFO | 실행 모드 | DRY_RUN=True LIVE_MODE=True
+2026-04-01 22:02:21,581 | WARNING | 현재 DRY_RUN 모드입니다. 실제 주문은 전송되지 않습니다.
+2026-04-01 22:02:22,011 | INFO | get_deposit 호출
+2026-04-01 22:02:22,012 | ERROR | 계좌 동기화 실패 | 'KiwoomBroker' object has no attribute 'get_positions'
+Traceback (most recent call last):
+  File "E:\prgm\python_open_api\CherryPulse-KR-01\engine.py", line 113, in sync_account
+    positions = self.broker.get_positions(password=password)
+AttributeError: 'KiwoomBroker' object has no attribute 'get_positions'
+2026-04-01 22:02:22,013 | INFO | 키움 로그인 시도
+2026-04-01 22:02:22,218 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-01 22:02:22,220 | INFO | 로그인 이벤트 대기 시작
+2026-04-01 22:02:45,866 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-01 22:02:45,866 | INFO | 로그인 성공
+2026-04-01 22:02:45,869 | INFO | 로그인 이벤트 대기 종료
+2026-04-01 22:02:45,870 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-01 22:02:45,870 | INFO | 브로커 연결 완료
+2026-04-01 22:02:51,876 | INFO | 초기 잔고 동기화 시작
+2026-04-01 22:02:51,876 | INFO | 초기 잔고 동기화 완료
+2026-04-01 22:02:51,876 | INFO | 헬스체크 | 총 보유수량=0
+2026-04-01 22:02:51,879 | INFO | 실시간 등록 | codes=005930;000660 ret=0
+2026-04-01 22:02:51,879 | INFO | 실시간 구독 시작 | 005930,000660
+2026-04-01 22:02:51,879 | INFO | 실시간 엔진 시작
+2026-04-01 22:02:54,597 | INFO | 종료 신호 수신
+2026-04-01 22:02:54,598 | INFO | 실시간 구독 해제 완료
+2026-04-01 22:02:54,598 | INFO | 실시간 구독 해제 완료
+2026-04-01 22:02:54,599 | INFO | 엔진 종료 시작
+2026-04-01 22:02:54,599 | INFO | 브로커 종료 시작
+2026-04-01 22:02:54,600 | INFO | 브로커 종료 완료
+2026-04-01 22:02:54,600 | INFO | 엔진 종료 완료
+2026-04-01 22:02:54,600 | INFO | 프로그램 종료
+2026-04-01 22:14:18,658 | INFO | 브로커 연결 완료
+2026-04-01 22:14:18,658 | INFO | [CHECK] 005930 price=70000
+2026-04-01 22:25:48,080 | INFO | 브로커 연결 완료
+2026-04-01 22:25:48,081 | INFO | [CHECK] 005930 price=70000
+2026-04-01 22:25:48,081 | INFO | [SIGNAL] 005930 side=BUY qty=1
+2026-04-01 22:25:48,088 | INFO | [005930] 주문 차단 | 장외 시간
+2026-04-01 22:25:48,089 | INFO | [CHECK] 005930 price=70800
+2026-04-01 22:25:48,089 | INFO | [SIGNAL] 005930 side=BUY qty=1
+2026-04-01 22:25:48,089 | INFO | [005930] 주문 차단 | 장외 시간
+2026-04-01 22:25:48,089 | INFO | [CHECK] 005930 price=71500
+2026-04-01 22:25:48,089 | INFO | [SIGNAL] 005930 side=BUY qty=1
+2026-04-01 22:25:48,090 | INFO | [005930] 주문 차단 | 장외 시간
+2026-04-01 22:25:48,090 | INFO | [CHECK] 005930 price=72000
+2026-04-01 22:25:48,090 | INFO | [SIGNAL] 005930 side=BUY qty=1
+2026-04-01 22:25:48,090 | INFO | [005930] 주문 차단 | 장외 시간
+2026-04-01 22:25:48,091 | INFO | [CHECK] 005930 price=70500
+2026-04-01 22:25:48,091 | INFO | [SIGNAL] 005930 side=BUY qty=1
+2026-04-01 22:25:48,091 | INFO | [005930] 주문 차단 | 장외 시간
+2026-04-01 22:29:04,086 | INFO | 브로커 연결 완료
+2026-04-01 22:29:04,087 | INFO | [CHECK] 005930 price=70000
+2026-04-01 22:29:04,087 | INFO | [SIGNAL] 005930 side=BUY qty=1
+2026-04-01 22:29:04,092 | INFO | [STUB] 주문 접수: 005930 BUY 1주
+2026-04-01 22:29:04,092 | ERROR | 체결 반영 실패 | 'Order' object has no attribute 'fill_price'
+Traceback (most recent call last):
+  File "E:\prgm\python_open_api\CherryPulse-KR-01\engine.py", line 664, in on_fill
+    self.portfolio.update_fill(fill)
+  File "E:\prgm\python_open_api\CherryPulse-KR-01\core\portfolio.py", line 29, in update_fill
+    total_cost = (pos.avg_price * pos.qty) + (fill.fill_price * fill.fill_qty)
+AttributeError: 'Order' object has no attribute 'fill_price'
+2026-04-01 22:29:04,093 | INFO | 주문 등록 | id=cbea61c6 symbol=005930 side=BUY qty=1 count=1/20
+2026-04-01 22:29:04,094 | INFO | [CHECK] 005930 price=70800
+2026-04-01 22:29:04,094 | INFO | [CHECK] 005930 price=71500
+2026-04-01 22:29:04,094 | INFO | [CHECK] 005930 price=72000
+2026-04-01 22:29:04,094 | INFO | [CHECK] 005930 price=70500
+2026-04-01 22:33:47,975 | INFO | 브로커 연결 완료
+2026-04-01 22:33:47,976 | INFO | [CHECK] 005930 price=70000
+2026-04-01 22:33:47,976 | INFO | [SIGNAL] 005930 side=BUY qty=1
+2026-04-01 22:33:47,981 | INFO | [STUB] 주문 접수: 005930 BUY 1주
+2026-04-01 22:33:47,981 | INFO | 체결 반영 | broker_id=8152390f local_id=8152390f symbol=005930 side=BUY fill_qty=1 fill_price=70000 cum_filled=1/1 status=FILLED
+2026-04-01 22:33:47,981 | INFO | 잔고 상태 | cash=4930000 realized_pnl=0
+2026-04-01 22:33:47,982 | INFO | 주문 등록 | id=8152390f symbol=005930 side=BUY qty=1 count=0/20
+2026-04-01 22:33:47,982 | INFO | [CHECK] 005930 price=70800
+2026-04-01 22:33:47,982 | INFO | [CHECK] 005930 price=71500
+2026-04-01 22:33:47,982 | INFO | [CHECK] 005930 price=72000
+2026-04-01 22:33:47,983 | INFO | [CHECK] 005930 price=70500
+2026-04-01 22:37:13,670 | INFO | 브로커 연결 완료
+2026-04-01 22:37:13,671 | INFO | [CHECK] 005930 price=70000
+2026-04-01 22:37:13,671 | INFO | [SIGNAL] 005930 side=BUY qty=1
+2026-04-01 22:37:13,675 | INFO | [STUB] 주문 접수: 005930 BUY 1주
+2026-04-01 22:37:13,675 | INFO | 체결 반영 | broker_id=9a00268a local_id=9a00268a symbol=005930 side=BUY fill_qty=1 fill_price=70000 cum_filled=1/1 status=FILLED
+2026-04-01 22:37:13,675 | INFO | 잔고 상태 | cash=4930000 realized_pnl=0
+2026-04-01 22:37:13,675 | INFO | 주문 등록 | id=9a00268a symbol=005930 side=BUY qty=1 count=1/20
+2026-04-01 22:37:13,675 | INFO | [CHECK] 005930 price=70800
+2026-04-01 22:37:13,675 | INFO | [CHECK] 005930 price=71500
+2026-04-01 22:37:13,675 | INFO | [CHECK] 005930 price=72000
+2026-04-01 22:37:13,676 | INFO | [CHECK] 005930 price=70500

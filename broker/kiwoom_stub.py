@@ -6,9 +6,27 @@ from broker.base import BaseBroker
 class KiwoomStubBroker(BaseBroker):
     def __init__(self):
         self.connected = False
+        self.real_tick_callback = None
+        self.fill_callback = None
+        self.msg_callback = None
+
+    def set_real_tick_callback(self, callback):
+        self.real_tick_callback = callback
+
+    def set_fill_callback(self, callback):
+        self.fill_callback = callback
+
+    def set_msg_callback(self, callback):
+        self.msg_callback = callback
+
+    def get_deposit(self, password: str = "") -> int:
+        return 0
 
     def connect(self):
         self.connected = True
+
+    def disconnect(self):
+        self.connected = False
 
     def is_connected(self) -> bool:
         return self.connected
@@ -24,4 +42,8 @@ class KiwoomStubBroker(BaseBroker):
             status=OrderStatus.SUBMITTED,
             reason=signal.reason,
         )
+
+        if self.msg_callback is not None:
+            self.msg_callback(f"[STUB] 주문 접수: {signal.symbol} {signal.side} {signal.qty}주")
+
         return order

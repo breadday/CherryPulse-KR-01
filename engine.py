@@ -104,7 +104,12 @@ class TradingEngine:
     # -------------------------
     def sync_account(self, password: str = ""):
         try:
-            deposit = self.broker.get_deposit(password=password)
+            try:
+                deposit = self.broker.get_deposit(password=password)
+            except Exception as e:
+                self.logger.exception(f"예수금 조회 실패 | {e}")
+                deposit = 0
+                
             positions = self.broker.get_positions(password=password)
 
             if deposit.get("available_cash", 0) > 0:
@@ -545,7 +550,8 @@ class TradingEngine:
             return False, "엔진 비실행 상태"
 
         if not self.is_market_open():
-            return False, "장외 시간"
+            if not config.DRY_RUN:
+                return False, "장외 시간"
 
         if self.daily_order_count >= self.max_daily_orders:
             return False, "일일 최대 주문 횟수 초과"
@@ -587,12 +593,11 @@ class TradingEngine:
         if not self.is_running:
             return
 
-        if signal:
-            self.logger.info(f"[SIGNAL] {signal.symbol} side={signal.side} qty={signal.qty}")
-            
         signal = self.strategy.generate_signal(tick, self.portfolio)
         if signal is None:
             return
+
+        self.logger.info(f"[SIGNAL] {signal.symbol} side={signal.side} qty={signal.qty}")
 
         ok, reason = self.can_send_order(signal, tick)
         if not ok:
@@ -603,6 +608,29 @@ class TradingEngine:
             order = self.broker.place_order(signal)
             self.order_manager.register(order)
 
+
+            # 주문 접수 시점에 먼저 카운트
+            if order.status == OrderStatus.SUBMITTED:
+                self.last_order_time[signal.symbol] = time.time()
+                self.daily_order_count += 1
+
+                if signal.side.value == "BUY" and hasattr(self.strategy, "mark_entry"):
+                    self.strategy.mark_entry(signal.symbol, tick.ts)
+
+            if config.DRY_RUN:
+                class StubFill:
+                    pass
+
+                fill = StubFill()
+                fill.order_id = order.order_id
+                fill.symbol = order.symbol
+                fill.side = order.side
+                fill.fill_qty = order.qty
+                fill.fill_price = tick.price
+                fill.unfilled_qty = 0
+
+                self.on_fill(fill)
+                
             # ret=0 성공 기준으로 SUBMITTED 들어온 경우만 카운트
             if order.status == OrderStatus.SUBMITTED:
                 self.last_order_time[signal.symbol] = time.time()
@@ -729,6 +757,9 @@ class TradingEngine:
                     self.last_cancel_request_time.pop(fill.symbol, None)
             except Exception:
                 pass
+
+            pos = self.portfolio.get_position("005930")
+            self.logger.info(f"[POS] 005930 qty={pos.qty} avg={pos.avg_price}")
 
             # 완전 체결 또는 포지션 정리 시 취소 플래그 해제
             try:
