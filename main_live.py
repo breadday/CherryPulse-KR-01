@@ -243,6 +243,7 @@ def main():
 
     # 로그인 완료 후 계좌 동기화
     engine.sync_account(password=ACCOUNT_PASSWORD)
+    engine.sync_pending_orders(password=ACCOUNT_PASSWORD)
 
     engine.health_check()
 
