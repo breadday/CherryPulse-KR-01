@@ -104,29 +104,44 @@ class TradingEngine:
     # -------------------------
     def sync_account(self, password: str = ""):
         try:
-            try:
-                deposit = self.broker.get_deposit(password=password)
-            except Exception as e:
-                self.logger.exception(f"예수금 조회 실패 | {e}")
-                deposit = 0
-                
+            deposit = self.broker.get_deposit(password=password)
             positions = self.broker.get_positions(password=password)
 
-            if deposit.get("available_cash", 0) > 0:
-                self.portfolio.cash = float(deposit["available_cash"])
+            self.logger.info(f"예수금 동기화 완료 | deposit={deposit}")
+            self.logger.info(f"보유종목 동기화 완료 | count={len(positions)}")
 
-            for row in positions.get("positions", []):
-                pos = self.portfolio.get_position(row["symbol"])
-                pos.qty = row["qty"]
-                pos.avg_price = row["avg_price"]
-                self.portfolio.positions[row["symbol"]] = pos
+            # 포트폴리오 현금 반영
+            if hasattr(self, "portfolio"):
+                self.portfolio.cash = deposit
 
-            self.logger.info(
-                f"계좌 동기화 완료 | cash={self.portfolio.cash:.0f} "
-                f"positions={len([p for p in self.portfolio.positions.values() if p.qty > 0])}"
-            )
+            # 보유종목 반영
+            if hasattr(self, "portfolio"):
+                for item in positions:
+                    symbol = item["symbol"]
+                    qty = int(item["qty"])
+                    avg_price = float(item["avg_price"])
+
+                    pos = self.portfolio.get_position(symbol)
+                    pos.qty = qty
+                    pos.avg_price = avg_price
+                    pos.partial_taken = False
+                    pos.highest_return_pct = 0.0
+
+                    self.logger.info(
+                        f"포지션 반영 | symbol={symbol} qty={qty} avg_price={avg_price}"
+                    )
+
+            return {
+                "deposit": deposit,
+                "positions": positions,
+            }
+
         except Exception as e:
             self.logger.exception(f"계좌 동기화 실패 | {e}")
+            return {
+                "deposit": 0,
+                "positions": [],
+            }
 
     # -------------------------
     # 실시간 틱 수신
