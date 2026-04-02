@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 
 import config
-from core.models import TickData, OrderStatus, Signal, Side, OrderType
+from core.models import Order, TickData, OrderStatus, Signal, Side, OrderType
 from core.order_manager import OrderManager
 from core.portfolio import Portfolio
 from core.risk_manager import RiskManager
@@ -143,6 +143,67 @@ class TradingEngine:
                 "positions": [],
             }
 
+    def sync_pending_orders(self, password: str = ""):
+        try:
+            pending_orders = self.broker.get_pending_orders(password=password)
+            self.logger.info(f"미체결 주문 동기화 시작 | count={len(pending_orders)}")
+
+            restored = 0
+
+            for item in pending_orders:
+                symbol = item["symbol"]
+                order_no = item["order_no"]
+                side = item["side"]
+                order_qty = int(item["order_qty"])
+                unfilled_qty = int(item["unfilled_qty"])
+                filled_qty = int(item["filled_qty"])
+                order_price = float(item["order_price"])
+                order_status = str(item["order_status"])
+
+                if unfilled_qty <= 0:
+                    continue
+
+                local_id = f"RESTORE_{order_no}"
+
+                if self.order_manager.get_order(local_id) is not None:
+                    continue
+
+                order_type = OrderType.LIMIT if order_price > 0 else OrderType.MARKET
+                status = OrderStatus.PARTIAL if filled_qty > 0 else OrderStatus.SUBMITTED
+
+                restored_order = Order(
+                    order_id=local_id,
+                    symbol=symbol,
+                    side=side,
+                    qty=order_qty,
+                    price=order_price,
+                    order_type=order_type,
+                    status=status,
+                    filled_qty=filled_qty,
+                    avg_fill_price=order_price if filled_qty > 0 else 0.0,
+                    reason=f"restored_pending:{order_status}",
+                )
+
+                self.order_manager.register(restored_order)
+                self.order_manager.broker_to_local_id[order_no] = local_id
+
+                restored += 1
+
+                self.logger.info(
+                    f"미체결 주문 복원 | symbol={symbol} "
+                    f"broker_order_no={order_no} local_id={local_id} "
+                    f"side={side} qty={order_qty} filled={filled_qty} "
+                    f"remain={unfilled_qty} price={order_price} status={status}"
+                )
+
+            self.logger.info(f"미체결 주문 동기화 완료 | restored={restored}")
+
+            return pending_orders
+
+        except Exception as e:
+            self.logger.exception(f"미체결 주문 동기화 실패 | {e}")
+            return []
+        
     # -------------------------
     # 실시간 틱 수신
     # -------------------------

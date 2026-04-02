@@ -26,6 +26,7 @@ class KiwoomBroker(QObject):
         self.order_screen_no = "6000"
         self.deposit_screen_no = "7000"
         self.balance_screen_no = "7100"
+        self.pending_screen_no = "7200"
 
         self.on_real_tick_callback = None
         self.on_fill_callback = None
@@ -34,6 +35,9 @@ class KiwoomBroker(QObject):
         self._deposit_result = 0
         self._positions_result = []
         self._positions_password = ""
+
+        self._pending_orders_result = []
+        self._pending_orders_password = ""
 
         self._set_signal_slots()
 
@@ -131,6 +135,10 @@ class KiwoomBroker(QObject):
                 self._handle_opw00018(sTrCode, sRQName, sPrevNext)
                 return
 
+            if sRQName == "opt10075_req":
+                self._handle_opt10075(sTrCode, sRQName, sPrevNext)
+                return
+            
         except Exception as e:
             self.logger.exception(f"TR 처리 오류 | rq={sRQName} tr={sTrCode} err={e}")
             if self.tr_loop and self.tr_loop.isRunning():
@@ -242,19 +250,6 @@ class KiwoomBroker(QObject):
     def get_positions(self, password: str = "") -> list[dict]:
         """
         보유 종목 조회 (opw00018)
-        반환 예:
-        [
-            {
-                "symbol": "005930",
-                "name": "삼성전자",
-                "qty": 2,
-                "available_qty": 2,
-                "avg_price": 70100.0,
-                "current_price": 71500.0,
-                "eval_pnl": 2800,
-                "return_pct": 2.0,
-            }
-        ]
         """
         self.logger.info("get_positions 호출")
 
@@ -266,11 +261,227 @@ class KiwoomBroker(QObject):
         self.tr_loop = QEventLoop()
 
         self._request_positions(prev_next="0", password=password)
-
         self.tr_loop.exec_()
 
         self.logger.info(f"get_positions 완료 | count={len(self._positions_result)}")
         return self._positions_result
+
+    def _request_positions(self, prev_next: str = "0", password: str = ""):
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호", password)
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호입력매체구분", "00")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "조회구분", "1")
+
+        self.logger.info(f"계좌평가잔고내역요청 호출 | prev_next={prev_next}")
+        ret = self.ocx.dynamicCall(
+            "CommRqData(QString, QString, int, QString)",
+            "opw00018_req",
+            "opw00018",
+            int(prev_next),
+            self.balance_screen_no,
+        )
+        self.logger.info(f"CommRqData(opw00018) 완료 | ret={ret}")
+
+    def _handle_opw00018(self, sTrCode: str, sRQName: str, sPrevNext: str):
+        count = self.ocx.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
+        self.logger.info(f"opw00018 수신 | rows={count} | sPrevNext={sPrevNext}")
+
+        for i in range(count):
+            code = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "종목번호"
+            ).strip()
+            name = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "종목명"
+            ).strip()
+            qty = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "보유수량"
+            ).strip()
+            available_qty = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "매매가능수량"
+            ).strip()
+            avg_price = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "매입가"
+            ).strip()
+            current_price = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "현재가"
+            ).strip()
+            eval_pnl = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "평가손익"
+            ).strip()
+            return_pct = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "수익률(%)"
+            ).strip()
+
+            item = {
+                "symbol": self._clean_code(code),
+                "name": name,
+                "qty": self._to_int(qty),
+                "available_qty": self._to_int(available_qty),
+                "avg_price": float(abs(self._to_int(avg_price))),
+                "current_price": float(abs(self._to_int(current_price))),
+                "eval_pnl": self._to_int(eval_pnl),
+                "return_pct": self._to_float(return_pct),
+            }
+
+            if item["symbol"] and item["qty"] > 0:
+                self._positions_result.append(item)
+
+        if str(sPrevNext).strip() == "2":
+            self._request_positions(prev_next="2", password=self._positions_password)
+            return
+
+        self.logger.info(f"보유종목 조회 완료 | count={len(self._positions_result)}")
+
+        if self.tr_loop and self.tr_loop.isRunning():
+            self.tr_loop.quit()
+            
+    def get_pending_orders(self, password: str = "") -> list[dict]:
+        """
+        미체결 주문 조회 (opt10075)
+        반환 예:
+        [
+            {
+                "order_no": "1234567",
+                "symbol": "005930",
+                "name": "삼성전자",
+                "side": Side.BUY,
+                "order_price": 70000,
+                "order_qty": 2,
+                "unfilled_qty": 1,
+                "filled_qty": 1,
+                "order_status": "접수",
+            }
+        ]
+        """
+        self.logger.info("get_pending_orders 호출")
+
+        if not self.account_no:
+            raise RuntimeError("계좌번호(account_no)가 설정되지 않았습니다.")
+
+        self._pending_orders_result = []
+        self._pending_orders_password = password
+        self.tr_loop = QEventLoop()
+
+        self._request_pending_orders(prev_next="0", password=password)
+        self.tr_loop.exec_()
+
+        self.logger.info(f"get_pending_orders 완료 | count={len(self._pending_orders_result)}")
+        return self._pending_orders_result
+
+    def _request_pending_orders(self, prev_next: str = "0", password: str = ""):
+        """
+        opt10075 미체결 주문 조회
+        입력값:
+        - 계좌번호
+        - 전체종목구분: 0 전체 / 1 종목
+        - 매매구분: 0 전체 / 1 매도 / 2 매수
+        - 종목코드: 전체면 공백
+        - 체결구분: 1 미체결 / 2 체결 / 0 전체
+        """
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "전체종목구분", "0")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "매매구분", "0")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "종목코드", "")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "체결구분", "1")
+
+        self.logger.info(f"미체결주문요청 호출 | prev_next={prev_next}")
+        ret = self.ocx.dynamicCall(
+            "CommRqData(QString, QString, int, QString)",
+            "opt10075_req",
+            "opt10075",
+            int(prev_next),
+            self.pending_screen_no,
+        )
+        self.logger.info(f"CommRqData(opt10075) 완료 | ret={ret}")
+
+    def _handle_opt10075(self, sTrCode: str, sRQName: str, sPrevNext: str):
+        count = self.ocx.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
+        self.logger.info(f"opt10075 수신 | rows={count} | sPrevNext={sPrevNext}")
+
+        for i in range(count):
+            order_no = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "주문번호"
+            ).strip()
+
+            code = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "종목코드"
+            ).strip()
+
+            name = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "종목명"
+            ).strip()
+
+            order_gubun = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "주문구분"
+            ).strip()
+
+            order_price = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "주문가격"
+            ).strip()
+
+            order_qty = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "주문수량"
+            ).strip()
+
+            unfilled_qty = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "미체결수량"
+            ).strip()
+
+            filled_qty = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "체결량"
+            ).strip()
+
+            order_status = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "주문상태"
+            ).strip()
+
+            item = {
+                "order_no": order_no,
+                "symbol": self._clean_code(code),
+                "name": name,
+                "side": self._parse_order_side(order_gubun),
+                "order_gubun": order_gubun,
+                "order_price": abs(self._to_int(order_price)),
+                "order_qty": self._to_int(order_qty),
+                "unfilled_qty": self._to_int(unfilled_qty),
+                "filled_qty": self._to_int(filled_qty),
+                "order_status": order_status,
+            }
+
+            if item["order_no"] and item["symbol"] and item["unfilled_qty"] > 0:
+                self._pending_orders_result.append(item)
+
+        if str(sPrevNext).strip() == "2":
+            self._request_pending_orders(prev_next="2", password=self._pending_orders_password)
+            return
+
+        self.logger.info(f"미체결 주문 조회 완료 | count={len(self._pending_orders_result)}")
+
+        if self.tr_loop and self.tr_loop.isRunning():
+            self.tr_loop.quit()
+
+    def _parse_order_side(self, order_gubun: str):
+        text = str(order_gubun).strip().replace("+", "").replace("-", "")
+        if "매도" in text:
+            return Side.SELL
+        return Side.BUY
 
     def _request_positions(self, prev_next: str = "0", password: str = ""):
         self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
