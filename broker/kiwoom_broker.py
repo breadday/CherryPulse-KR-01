@@ -1,3 +1,5 @@
+# broker/kiwoom_broker.py
+
 from PyQt5.QtCore import QObject, QEventLoop
 from PyQt5.QAxContainer import QAxWidget
 import time
@@ -22,10 +24,16 @@ class KiwoomBroker(QObject):
 
         self.real_screen_no = "5000"
         self.order_screen_no = "6000"
+        self.deposit_screen_no = "7000"
+        self.balance_screen_no = "7100"
 
         self.on_real_tick_callback = None
         self.on_fill_callback = None
         self.on_msg_callback = None
+
+        self._deposit_result = 0
+        self._positions_result = []
+        self._positions_password = ""
 
         self._set_signal_slots()
 
@@ -37,6 +45,7 @@ class KiwoomBroker(QObject):
         self.ocx.OnReceiveRealData.connect(self._on_receive_real_data)
         self.ocx.OnReceiveChejanData.connect(self._on_receive_chejan_data)
         self.ocx.OnReceiveMsg.connect(self._on_receive_msg)
+        self.ocx.OnReceiveTrData.connect(self._on_receive_tr_data)
 
     # -------------------------
     # 로그인
@@ -61,13 +70,19 @@ class KiwoomBroker(QObject):
             raise RuntimeError("로그인 실패")
 
         accounts = self.ocx.dynamicCall("GetLoginInfo(QString)", "ACCNO")
-        account_list = [x for x in accounts.split(";") if x.strip()]
+        account_list = [x for x in str(accounts).split(";") if x.strip()]
 
         if self.account_no is None:
+            if not account_list:
+                raise RuntimeError("로그인 계좌정보 조회 실패")
             self.account_no = account_list[0]
 
         self.logger.info(f"키움 연결 완료 | 계좌={self.account_no}")
 
+    def show_account_window(self):
+        self.logger.info("계좌비밀번호 입력창 호출")
+        self.ocx.dynamicCall('KOA_Functions(QString, QString)', "ShowAccountWindow", "")
+        
     def _on_event_connect(self, err_code):
         self.logger.info(f"OnEventConnect 호출 | err_code={err_code}")
 
@@ -87,6 +102,207 @@ class KiwoomBroker(QObject):
         if self.login_loop:
             self.login_loop.exit()
             self.login_loop = None
+
+    # -------------------------
+    # TR 데이터 수신
+    # -------------------------
+    def _on_receive_tr_data(
+        self,
+        sScrNo,
+        sRQName,
+        sTrCode,
+        sRecordName,
+        sPrevNext,
+        nDataLength,
+        sErrorCode,
+        sMessage,
+        sSplmMsg,
+    ):
+        self.logger.info(
+            f"OnReceiveTrData | rq={sRQName} tr={sTrCode} prev_next={sPrevNext}"
+        )
+
+        try:
+            if sRQName == "deposit_req":
+                self._handle_deposit(sTrCode, sRQName)
+                return
+
+            if sRQName == "opw00018_req":
+                self._handle_opw00018(sTrCode, sRQName, sPrevNext)
+                return
+
+        except Exception as e:
+            self.logger.exception(f"TR 처리 오류 | rq={sRQName} tr={sTrCode} err={e}")
+            if self.tr_loop and self.tr_loop.isRunning():
+                self.tr_loop.quit()
+
+    def _handle_deposit(self, sTrCode: str, sRQName: str):
+        raw_deposit = self.ocx.dynamicCall(
+            "GetCommData(QString, QString, int, QString)",
+            sTrCode, sRQName, 0, "예수금"
+        )
+        deposit = self._to_int(raw_deposit)
+        self._deposit_result = deposit
+
+        self.logger.info(f"예수금 조회 완료 | deposit={deposit}")
+
+        if self.tr_loop and self.tr_loop.isRunning():
+            self.tr_loop.quit()
+
+    def _handle_opw00018(self, sTrCode: str, sRQName: str, sPrevNext: str):
+        count = self.ocx.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
+        self.logger.info(f"opw00018 수신 | rows={count} | sPrevNext={sPrevNext}")
+
+        for i in range(count):
+            code = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "종목번호"
+            ).strip()
+            name = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "종목명"
+            ).strip()
+            qty = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "보유수량"
+            ).strip()
+            available_qty = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "매매가능수량"
+            ).strip()
+            avg_price = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "매입가"
+            ).strip()
+            current_price = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "현재가"
+            ).strip()
+            eval_pnl = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "평가손익"
+            ).strip()
+            return_pct = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "수익률(%)"
+            ).strip()
+
+            item = {
+                "symbol": self._clean_code(code),
+                "name": name,
+                "qty": self._to_int(qty),
+                "available_qty": self._to_int(available_qty),
+                "avg_price": float(abs(self._to_int(avg_price))),
+                "current_price": float(abs(self._to_int(current_price))),
+                "eval_pnl": self._to_int(eval_pnl),
+                "return_pct": self._to_float(return_pct),
+            }
+
+            if item["symbol"] and item["qty"] > 0:
+                self._positions_result.append(item)
+
+        if str(sPrevNext).strip() == "2":
+            self._request_positions(prev_next="2", password=self._positions_password)
+            return
+
+        self.logger.info(f"보유종목 조회 완료 | count={len(self._positions_result)}")
+
+        if self.tr_loop and self.tr_loop.isRunning():
+            self.tr_loop.quit()
+
+    # -------------------------
+    # 계좌 조회
+    # -------------------------
+    def get_deposit(self, password: str = "") -> int:
+        self.logger.info("get_deposit 호출")
+
+        if not self.account_no:
+            raise RuntimeError("계좌번호(account_no)가 설정되지 않았습니다.")
+
+        self._deposit_result = 0
+        self.tr_loop = QEventLoop()
+
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호", password)
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호입력매체구분", "00")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "조회구분", "2")
+
+        ret = self.ocx.dynamicCall(
+            "CommRqData(QString, QString, int, QString)",
+            "deposit_req",
+            "opw00001",
+            0,
+            self.deposit_screen_no,
+        )
+        self.logger.info(f"CommRqData(opw00001) 완료 | ret={ret}")
+
+        self.tr_loop.exec_()
+        return self._deposit_result
+
+    def get_positions(self, password: str = "") -> list[dict]:
+        """
+        보유 종목 조회 (opw00018)
+        반환 예:
+        [
+            {
+                "symbol": "005930",
+                "name": "삼성전자",
+                "qty": 2,
+                "available_qty": 2,
+                "avg_price": 70100.0,
+                "current_price": 71500.0,
+                "eval_pnl": 2800,
+                "return_pct": 2.0,
+            }
+        ]
+        """
+        self.logger.info("get_positions 호출")
+
+        if not self.account_no:
+            raise RuntimeError("계좌번호(account_no)가 설정되지 않았습니다.")
+
+        self._positions_result = []
+        self._positions_password = password
+        self.tr_loop = QEventLoop()
+
+        self._request_positions(prev_next="0", password=password)
+
+        self.tr_loop.exec_()
+
+        self.logger.info(f"get_positions 완료 | count={len(self._positions_result)}")
+        return self._positions_result
+
+    def _request_positions(self, prev_next: str = "0", password: str = ""):
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호", password)
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호입력매체구분", "00")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "조회구분", "1")
+
+        self.logger.info(f"계좌평가잔고내역요청 호출 | prev_next={prev_next}")
+        ret = self.ocx.dynamicCall(
+            "CommRqData(QString, QString, int, QString)",
+            "opw00018_req",
+            "opw00018",
+            int(prev_next),
+            self.balance_screen_no,
+        )
+        self.logger.info(f"CommRqData(opw00018) 완료 | ret={ret}")
+
+    def get_balance(self):
+        """
+        기존 호환용.
+        내부적으로 get_positions() 결과를 dict 형태로 변환.
+        """
+        result = {}
+        positions = self.get_positions(password="")
+
+        for item in positions:
+            result[item["symbol"]] = {
+                "qty": item["qty"],
+                "avg_price": item["avg_price"],
+            }
+
+        return result
 
     # -------------------------
     # 실시간
@@ -122,7 +338,6 @@ class KiwoomBroker(QObject):
             price = abs(self._to_int(raw_price))
             volume = abs(self._to_int(raw_volume))
 
-            # 값이 이상하면 스킵
             if price <= 0:
                 return
 
@@ -155,9 +370,6 @@ class KiwoomBroker(QObject):
 
         local_id = f"ORD_{int(time.time() * 1000)}"
 
-        # -------------------------
-        # DRY RUN / LIVE MODE 체크
-        # -------------------------
         if config.DRY_RUN or not config.LIVE_MODE:
             self.logger.warning(
                 f"[DRY_RUN] 주문 모의 처리 | symbol={signal.symbol} side={signal.side} "
@@ -175,9 +387,6 @@ class KiwoomBroker(QObject):
                 reason=signal.reason,
             )
 
-        # -------------------------
-        # 실주문
-        # -------------------------
         ret = self.ocx.dynamicCall(
             "SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
             "주문요청",
@@ -221,7 +430,7 @@ class KiwoomBroker(QObject):
                     f"[DRY_RUN] 취소 모의 처리 | symbol={symbol} order_no={order_no} qty={qty}"
                 )
                 return 0
-        
+
             if not order_no:
                 self.logger.warning(f"취소 실패 | 주문번호 없음 | symbol={symbol}")
                 return -1
@@ -231,7 +440,7 @@ class KiwoomBroker(QObject):
                 "주문취소",
                 self.order_screen_no,
                 self.account_no,
-                4,              # 4: 매도취소, 3: 매수취소
+                4,
                 symbol,
                 int(qty),
                 0,
@@ -255,21 +464,23 @@ class KiwoomBroker(QObject):
                 f"취소 주문 예외 | symbol={symbol} order_no={order_no} qty={qty} err={e}"
             )
             return -1
-        
+
+    # -------------------------
+    # 체잔
+    # -------------------------
     def _on_receive_chejan_data(self, gubun, item_cnt, fid_list):
         try:
-            # 주문/체결 구분만 우선 처리
             if str(gubun).strip() != "0":
                 return
 
             code = self._chejan(9001).replace("A", "").strip()
             order_no = self._chejan(9203).strip()
 
-            order_status = self._chejan(913).strip()     # 접수 / 확인 / 체결
+            order_status = self._chejan(913).strip()
             unfilled_qty = self._to_int(self._chejan(902))
-            fill_qty = self._to_int(self._chejan(911))   # 이번 체결량
+            fill_qty = self._to_int(self._chejan(911))
             fill_price = self._to_int(self._chejan(910))
-            side_raw = self._chejan(907).strip()         # 1:매도, 2:매수
+            side_raw = self._chejan(907).strip()
 
             side = Side.BUY if side_raw == "2" else Side.SELL if side_raw == "1" else Side.BUY
 
@@ -279,7 +490,6 @@ class KiwoomBroker(QObject):
                 f"fill_price={fill_price} unfilled_qty={unfilled_qty}"
             )
 
-            # 실제 체결분만 엔진으로 넘김
             if order_status == "체결" and fill_qty > 0 and fill_price > 0:
                 fill = Fill(
                     order_id=order_no,
@@ -289,7 +499,6 @@ class KiwoomBroker(QObject):
                     fill_price=fill_price
                 )
 
-                # engine.py에서 getattr(fill, "unfilled_qty", None)로 읽도록 추가 부착
                 fill.unfilled_qty = unfilled_qty
 
                 if self.on_fill_callback:
@@ -304,92 +513,8 @@ class KiwoomBroker(QObject):
     def _on_receive_msg(self, screen_no, rqname, trcode, msg):
         self.logger.info(f"서버메시지 | {msg}")
 
-    # -------------------------
-    # 종료
-    # -------------------------
-    def shutdown(self):
-        self.logger.info("브로커 종료 시작")
-        self.is_shutting_down = True
-
-        try:
-            self.remove_real("ALL")
-        except:
-            pass
-
-        try:
-            if self.login_loop:
-                self.login_loop.exit()
-        except:
-            pass
-
-        self.connected = False
-        self.logger.info("브로커 종료 완료")
-
-    # -------------------------
-    # 계좌 잔고 조회
-    # -------------------------
-    def get_balance(self):
-        result = {}
-
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호", "0000")
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호입력매체구분", "00")
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "조회구분", "2")
-
-        self.ocx.dynamicCall(
-            "CommRqData(QString, QString, int, QString)",
-            "잔고조회",
-            "opw00018",
-            0,
-            "2000"
-        )
-
-        # 👉 여기선 간단 버전 (동기 대기 없이 sleep)
-        time.sleep(1)
-
-        cnt = int(self.ocx.dynamicCall("GetRepeatCnt(QString, QString)", "opw00018", "잔고조회"))
-
-        for i in range(cnt):
-            code = self.ocx.dynamicCall("GetCommData(QString, QString, int, QString)",
-                                        "opw00018", "잔고조회", i, "종목번호").strip()[1:]
-            qty = int(self.ocx.dynamicCall("GetCommData(QString, QString, int, QString)",
-                                           "opw00018", "잔고조회", i, "보유수량").strip())
-            avg_price = float(self.ocx.dynamicCall("GetCommData(QString, QString, int, QString)",
-                                                   "opw00018", "잔고조회", i, "평균단가").strip())
-
-            result[code] = {
-                "qty": qty,
-                "avg_price": avg_price
-            }
-
-        return result
-    
-    def get_deposit(self, password: str = "") -> int:
-        """
-        예수금 조회 임시 버전
-        실제 키움 TR 연동 전까지 0 반환
-        """
-        try:
-            self.logger.info("get_deposit 호출")
-            return 0
-        except Exception as e:
-            self.logger.exception(f"예수금 조회 실패 | {e}")
-            return 0
-        
-    # -------------------------
-    # 유틸
-    # -------------------------
-    def _chejan(self, fid):
-        return str(self.ocx.dynamicCall("GetChejanData(int)", fid)).strip()
-
-    def _to_int(self, val):
-        try:
-            s = str(val).replace(",", "").strip()
-            if s == "":
-                return 0
-            return int(s)
-        except:
-            return 0
+        if self.on_msg_callback:
+            self.on_msg_callback(msg)
 
     # -------------------------
     # 콜백 등록
@@ -402,3 +527,60 @@ class KiwoomBroker(QObject):
 
     def set_msg_callback(self, cb):
         self.on_msg_callback = cb
+
+    # -------------------------
+    # 종료
+    # -------------------------
+    def shutdown(self):
+        self.logger.info("브로커 종료 시작")
+        self.is_shutting_down = True
+
+        try:
+            self.remove_real("ALL")
+        except Exception:
+            pass
+
+        try:
+            if self.login_loop:
+                self.login_loop.exit()
+        except Exception:
+            pass
+
+        try:
+            if self.tr_loop and self.tr_loop.isRunning():
+                self.tr_loop.quit()
+        except Exception:
+            pass
+
+        self.connected = False
+        self.logger.info("브로커 종료 완료")
+
+    # -------------------------
+    # 유틸
+    # -------------------------
+    def _chejan(self, fid):
+        return str(self.ocx.dynamicCall("GetChejanData(int)", fid)).strip()
+
+    def _to_int(self, val):
+        try:
+            s = str(val).replace(",", "").strip()
+            if s == "":
+                return 0
+            return int(float(s))
+        except Exception:
+            return 0
+
+    def _to_float(self, value: str) -> float:
+        try:
+            s = str(value).replace(",", "").strip()
+            if s == "":
+                return 0.0
+            return float(s)
+        except Exception:
+            return 0.0
+
+    def _clean_code(self, code: str) -> str:
+        code = str(code).strip()
+        if code.startswith("A"):
+            return code[1:]
+        return code

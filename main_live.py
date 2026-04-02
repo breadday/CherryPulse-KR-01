@@ -1,3 +1,5 @@
+# main_live.py
+
 import sys
 import os
 import signal
@@ -20,6 +22,7 @@ telegram = None
 
 if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
     telegram = TelegramNotifier(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)
+
 
 # -------------------------
 # 장 시간 체크
@@ -56,22 +59,19 @@ def main():
     else:
         logger.warning("실주문 모드입니다. 실제 주문이 전송됩니다.")
 
-    # 반드시 모의계좌 번호 입력
     broker = KiwoomBroker(
         logger=logger,
-        account_no="8122731511" # 모의계좌
+        account_no="8122731511"  # 모의계좌
     )
 
-    # strategy = MomentumIntradayStrategy()
     strategy = MomentumIntradayStrategy(config=STRATEGY_CONFIG)
-    
+
     engine = TradingEngine(
         broker,
         strategy,
         logger,
-        telegram=telegram   # 👈 추가
+        telegram=telegram
     )
-    engine.sync_account(password=config.ACCOUNT_PASSWORD)   # 모의투자 비밀번호
 
     stream = MarketStream(broker, logger)
 
@@ -101,8 +101,8 @@ def main():
         logger.info("프로그램 종료")
         if telegram:
             telegram.send("🔥 테스트 주문 실행")
-        
-        os._exit(0)  # 강제 종료 (중요)
+
+        os._exit(0)
 
     # -------------------------
     # 테스트 주문
@@ -143,9 +143,9 @@ def main():
                 f"수량: {signal_obj.qty}\n"
                 f"상태: {order.status}"
             )
-        
+
     # -------------------------
-    # 자동 종료 (핵심)
+    # 자동 종료
     # -------------------------
     def auto_shutdown():
         if shutting_down["flag"]:
@@ -164,12 +164,10 @@ def main():
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    # Ctrl+C 안정화용 타이머
     heartbeat = QTimer()
     heartbeat.start(200)
     heartbeat.timeout.connect(lambda: None)
 
-    # 자동 종료 타이머 (1분마다 체크)
     shutdown_timer = QTimer()
     shutdown_timer.start(60000)
     shutdown_timer.timeout.connect(auto_shutdown)
@@ -179,8 +177,14 @@ def main():
     # -------------------------
     engine.start()
 
-    # 시작 직후 계좌/포지션 동기화
-    engine.sync_portfolio()
+    # 로그인 완료 후 계좌 비밀번호 창
+    broker.show_account_window()
+    logger.info("계좌비밀번호 창에서 저장 후 사용하세요.")
+
+    # 로그인 완료 후 계좌 동기화
+    engine.sync_account(password=ACCOUNT_PASSWORD)
+
+    # health check만 유지
     engine.health_check()
 
     stream.subscribe(["005930", "000660"])
