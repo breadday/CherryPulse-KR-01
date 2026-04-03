@@ -81,4 +81,5 @@ STRATEGY_CONFIG = {
 
     "entry_cooldown_sec": 60,
     "allow_reentry": False,
+    "min_entry_score": 2,
 }
