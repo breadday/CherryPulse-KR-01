@@ -95,5 +95,15 @@ STRATEGY_CONFIG = {
 
     # 점수 필터
     "use_score_filter": True,
-    "min_entry_score": 40,
+    "min_entry_score": 50,
+
+    "entry_volume_ratio_min": 1.2,
+    "news_weight": 1.5,
+    "hot_move_price_change_pct": 2.5,
+    "hot_move_trade_strength": 150,
+    "max_chase_price_change_pct": 4.5,
+    "max_chase_volume_ratio": 3.5,
+    "min_news_score_for_hot_move": 3.0,
+    "min_theme_score_for_entry": 0.0,
+    "min_leader_score_for_entry": 0.0,    
 }

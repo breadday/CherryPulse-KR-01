@@ -17,9 +17,11 @@ class MomentumIntradayStrategy:
         self.min_price_change_pct = self.config.get("min_price_change_pct", 0.5)
 
         # volume_ratio 정교화 반영
-        # 기존 1.5 -> 새 broker 기준에서는 너무 빡셀 수 있어서 1.1 권장
         self.min_volume_ratio = self.config.get("min_volume_ratio", 1.1)
         self.volume_ratio_hard_floor = self.config.get("volume_ratio_hard_floor", 0.7)
+
+        # 일반 진입용 추가 거래량 필터
+        self.entry_volume_ratio_min = self.config.get("entry_volume_ratio_min", 1.2)
 
         # 강한 종목은 거래량비 기준을 조금 완화
         self.strong_momentum_trade_strength = self.config.get("strong_momentum_trade_strength", 160)
@@ -33,6 +35,23 @@ class MomentumIntradayStrategy:
         # -------------------------
         self.use_score_filter = self.config.get("use_score_filter", True)
         self.min_entry_score = self.config.get("min_entry_score", 40)
+
+        # 뉴스 가중치
+        self.news_weight = self.config.get("news_weight", 1.5)
+
+        # -------------------------
+        # [다음 업그레이드]
+        # 추격매수 방지 / 뉴스 없는 급등 배제
+        # -------------------------
+        self.hot_move_price_change_pct = self.config.get("hot_move_price_change_pct", 2.5)
+        self.hot_move_trade_strength = self.config.get("hot_move_trade_strength", 150)
+
+        self.max_chase_price_change_pct = self.config.get("max_chase_price_change_pct", 4.5)
+        self.max_chase_volume_ratio = self.config.get("max_chase_volume_ratio", 3.5)
+
+        self.min_news_score_for_hot_move = self.config.get("min_news_score_for_hot_move", 3.0)
+        self.min_theme_score_for_entry = self.config.get("min_theme_score_for_entry", 0.0)
+        self.min_leader_score_for_entry = self.config.get("min_leader_score_for_entry", 0.0)
 
         # -------------------------
         # 청산 조건
@@ -78,12 +97,9 @@ class MomentumIntradayStrategy:
             "trade_strength": getattr(tick, "trade_strength", 0.0),
             "volume_ratio": getattr(tick, "volume_ratio", 1.0),
             "trade_volume": getattr(tick, "volume", getattr(tick, "trade_volume", 0)),
-
-            # Step 20 외부 점수
             "news_score": getattr(tick, "news_score", 0.0),
             "theme_score": getattr(tick, "theme_score", 0.0),
             "leader_score": getattr(tick, "leader_score", 0.0),
-
             "timestamp": self._safe_now(getattr(tick, "ts", None)),
         }
 
@@ -100,7 +116,14 @@ class MomentumIntradayStrategy:
             "leader_score": market_data.get("leader_score", 0.0),
             "timestamp": market_data.get("timestamp"),
         }
-        return calculate_score(score_data)
+
+        base_score = calculate_score(score_data)
+
+        # 뉴스 점수 가중 반영
+        news_score = float(market_data.get("news_score", 0.0) or 0.0)
+        weighted_news_bonus = news_score * (self.news_weight - 1.0)
+
+        return round(base_score + weighted_news_bonus, 2)
 
     def _is_strong_momentum(self, market_data):
         trade_strength = float(market_data.get("trade_strength", 0.0) or 0.0)
@@ -109,6 +132,15 @@ class MomentumIntradayStrategy:
         return (
             trade_strength >= self.strong_momentum_trade_strength
             and price_change_pct >= self.strong_momentum_price_change_pct
+        )
+
+    def _is_hot_move(self, market_data):
+        trade_strength = float(market_data.get("trade_strength", 0.0) or 0.0)
+        price_change_pct = float(market_data.get("price_change_pct", 0.0) or 0.0)
+
+        return (
+            price_change_pct >= self.hot_move_price_change_pct
+            or trade_strength >= self.hot_move_trade_strength
         )
 
     # -------------------------
@@ -160,6 +192,9 @@ class MomentumIntradayStrategy:
         price_change_pct = float(market_data.get("price_change_pct", 0.0) or 0.0)
         trade_strength = float(market_data.get("trade_strength", 0.0) or 0.0)
         volume_ratio = float(market_data.get("volume_ratio", 0.0) or 0.0)
+        news_score = float(market_data.get("news_score", 0.0) or 0.0)
+        theme_score = float(market_data.get("theme_score", 0.0) or 0.0)
+        leader_score = float(market_data.get("leader_score", 0.0) or 0.0)
         now = self._safe_now(market_data.get("timestamp"))
 
         # 재진입 제한
@@ -180,9 +215,22 @@ class MomentumIntradayStrategy:
         if price_change_pct < self.min_price_change_pct:
             return False, "price_change_pct"
 
+        # 테마 / 주도 최소 기준
+        if theme_score < self.min_theme_score_for_entry:
+            return False, "theme_score"
+
+        if leader_score < self.min_leader_score_for_entry:
+            return False, "leader_score"
+
         # 너무 약한 거래량 흐름은 무조건 차단
         if volume_ratio < self.volume_ratio_hard_floor:
             return False, "volume_ratio_hard_floor"
+
+        # 일반 진입은 entry_volume_ratio_min 이상이어야 함
+        # 다만 강한 모멘텀 종목은 아래 strong_momentum 조건으로 완화
+        if not self._is_strong_momentum(market_data):
+            if volume_ratio < self.entry_volume_ratio_min:
+                return False, "entry_volume_ratio_min"
 
         # 강한 모멘텀 종목은 volume_ratio 기준을 소폭 완화
         if self._is_strong_momentum(market_data):
@@ -191,6 +239,24 @@ class MomentumIntradayStrategy:
         else:
             if volume_ratio < self.min_volume_ratio:
                 return False, "volume_ratio"
+
+        # -------------------------
+        # [업그레이드]
+        # 뉴스 없는 급등주 배제
+        # -------------------------
+        if self._is_hot_move(market_data):
+            if news_score < self.min_news_score_for_hot_move:
+                return False, "hot_move_without_news"
+
+        # -------------------------
+        # [업그레이드]
+        # 과열 추격 방지
+        # -------------------------
+        if price_change_pct >= self.max_chase_price_change_pct:
+            return False, "overheat_price_chase"
+
+        if volume_ratio >= self.max_chase_volume_ratio and news_score <= 0:
+            return False, "overheat_volume_chase"
 
         return True, "ok"
 

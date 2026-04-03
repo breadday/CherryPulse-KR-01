@@ -175,27 +175,61 @@ def score_leader_status(leader_texts=None, market_rank=None, is_upper_limit=Fals
 
 
 def build_external_scores(
-    news_items=None,
-    theme_texts=None,
-    leader_texts=None,
-    market_rank=None,
+    news_items,
+    theme_texts,
+    leader_texts,
+    market_rank,
     is_upper_limit=False,
     is_new_high=False,
 ):
-    news_score = score_news_items(news_items or [])
-    theme_score = score_theme(theme_texts or [])
-    leader_score = score_leader_status(
-        leader_texts=leader_texts or [],
-        market_rank=market_rank,
-        is_upper_limit=is_upper_limit,
-        is_new_high=is_new_high,
-    )
+    news_score = 0.0
 
-    total_external_score = round(news_score + theme_score + leader_score, 2)
+    # -------------------------
+    # 뉴스 점수 (완화 버전)
+    # -------------------------
+    for item in news_items:
+        title = (item.get("title") or "").lower()
+        summary = (item.get("summary") or "").lower()
+
+        text = title + " " + summary
+
+        # 🔥 핵심 키워드 (완화)
+        if "ai" in text:
+            news_score += 2
+
+        if "반도체" in text:
+            news_score += 2
+
+        if "hbm" in text:
+            news_score += 2
+
+        if "수요" in text or "확대" in text:
+            news_score += 1
+
+        if "증가" in text or "성장" in text:
+            news_score += 1
+
+    # -------------------------
+    # 테마 점수
+    # -------------------------
+    theme_score = len(theme_texts) * 6
+
+    # -------------------------
+    # 주도주 점수
+    # -------------------------
+    leader_score = len(leader_texts) * 6
+
+    # -------------------------
+    # 시총 보너스
+    # -------------------------
+    if market_rank:
+        leader_score += min(market_rank, 5)
+
+    total = news_score + theme_score + leader_score
 
     return {
-        "news_score": news_score,
-        "theme_score": theme_score,
-        "leader_score": leader_score,
-        "total_external_score": total_external_score,
+        "news_score": round(news_score, 2),
+        "theme_score": round(theme_score, 2),
+        "leader_score": round(leader_score, 2),
+        "total_external_score": round(total, 2),
     }
