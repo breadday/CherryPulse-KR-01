@@ -300,3 +300,434 @@
 2026-04-04 00:44:32,291 | INFO | 브로커 종료 완료
 2026-04-04 00:44:32,291 | INFO | 엔진 종료 완료
 2026-04-04 00:44:32,291 | INFO | 프로그램 종료
+2026-04-04 07:28:32,375 | INFO | 프로그램 시작
+2026-04-04 07:28:32,375 | INFO | 실행 모드 | DRY_RUN=True LIVE_MODE=False
+2026-04-04 07:28:32,375 | WARNING | 현재 DRY_RUN 모드입니다. 실제 주문은 전송되지 않습니다.
+2026-04-04 07:28:32,814 | INFO | 키움 로그인 시도
+2026-04-04 07:28:32,988 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-04 07:28:32,990 | INFO | 로그인 이벤트 대기 시작
+2026-04-04 07:28:44,126 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-04 07:28:44,126 | INFO | 로그인 성공
+2026-04-04 07:28:44,127 | INFO | 로그인 이벤트 대기 종료
+2026-04-04 07:28:44,128 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-04 07:28:44,129 | INFO | 브로커 연결 완료
+2026-04-04 07:28:44,129 | INFO | 계좌비밀번호 입력창 호출
+2026-04-04 07:28:55,427 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-04 07:28:55,428 | INFO | 계좌 동기화 시작
+2026-04-04 07:28:56,934 | INFO | get_deposit 호출
+2026-04-04 07:28:56,940 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-04 07:28:56,967 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-04 07:28:56,967 | INFO | [100000] 모의투자 조회완료
+2026-04-04 07:28:56,968 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-04 07:28:56,968 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-04 07:28:57,980 | INFO | get_positions 호출
+2026-04-04 07:28:57,981 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-04 07:28:57,984 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-04 07:28:57,996 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-04 07:28:57,996 | INFO | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-04 07:28:57,999 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-04 07:28:58,000 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-04 07:28:58,000 | INFO | 보유종목 조회 완료 | count=0
+2026-04-04 07:28:58,000 | INFO | get_positions 완료 | count=0
+2026-04-04 07:28:58,001 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-04 07:28:58,001 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-04 07:28:59,003 | INFO | get_pending_orders 호출
+2026-04-04 07:28:59,004 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-04 07:28:59,031 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-04 07:28:59,050 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-04 07:28:59,050 | INFO |  조회가 완료되었습니다.
+2026-04-04 07:28:59,051 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-04 07:28:59,052 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-04 07:28:59,053 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-04 07:28:59,053 | INFO | get_pending_orders 완료 | count=0
+2026-04-04 07:28:59,053 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-04 07:28:59,053 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-04 07:28:59,053 | INFO | 헬스체크 | 총 보유수량=0
+2026-04-04 07:28:59,056 | INFO | 실시간 등록 | codes=005930;000660 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-04 07:28:59,056 | INFO | 실시간 구독 시작 | 005930,000660
+2026-04-04 07:28:59,059 | INFO | 실시간 엔진 시작
+2026-04-04 07:29:02,060 | INFO | 🧪 DRY_RUN 테스트 틱 주입 시작
+2026-04-04 07:29:02,062 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95
+2026-04-04 07:29:02,065 | INFO | [TICK] 005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:02,066 | INFO | [CHECK] 005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:02,067 | INFO | [SIGNAL] 005930 side=BUY qty=1 score=43.9 reason=momentum_entry:ok:score=43.9:news=0.0:theme=18.0:leader=12.0:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 07:29:02,071 | INFO | [ORDER_READY] 005930 side=BUY qty=1 score=43.9 reason=momentum_entry:ok:score=43.9:news=0.0:theme=18.0:leader=12.0:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 07:29:02,072 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=BUY qty=1 price=0 order_type=MARKET reason=momentum_entry:ok:score=43.9:news=0.0:theme=18.0:leader=12.0:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 07:29:02,072 | INFO | 체결 반영 | broker_id=ORD_1775255342071 local_id=ORD_1775255342071 symbol=005930 side=BUY fill_qty=1 fill_price=70000 cum_filled=1/1 status=FILLED
+2026-04-04 07:29:02,072 | INFO | 잔고 상태 | cash=9930000 realized_pnl=0
+2026-04-04 07:29:03,372 | INFO | 주문 등록 | id=ORD_1775255342071 symbol=005930 side=BUY qty=1 count=1/20 score=43.9
+2026-04-04 07:29:05,653 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15
+2026-04-04 07:29:05,654 | INFO | [TICK] 005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:05,655 | INFO | [CHECK] 005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:06,655 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35
+2026-04-04 07:29:06,656 | INFO | [TICK] 005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:06,657 | INFO | 부분익절 발생 | symbol=005930 qty=1 pnl=2.14%
+2026-04-04 07:29:06,658 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=부분익절
+2026-04-04 07:29:06,658 | INFO | 자동매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775255346658 reason=부분익절 status=SUBMITTED
+2026-04-04 07:29:06,658 | INFO | 재진입 제한 설정 | symbol=005930 reason=부분익절 block_sec=300 until_ts=1775255646.6588144
+2026-04-04 07:29:07,993 | INFO | [CHECK] 005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:08,994 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5
+2026-04-04 07:29:08,996 | INFO | [TICK] 005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:08,996 | INFO | [CHECK] 005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:09,997 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85
+2026-04-04 07:29:09,997 | INFO | [TICK] 005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:09,999 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775255346658 broker_id=ORD_1775255346658 elapsed=3.3s remain_qty=1
+2026-04-04 07:29:09,999 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775255346658 qty=1 side=SELL
+2026-04-04 07:29:11,316 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=취소후재매도_1
+2026-04-04 07:29:11,316 | WARNING | 취소 후 재매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775255351316 retry=1
+2026-04-04 07:29:12,610 | INFO | [CHECK] 005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:13,611 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55
+2026-04-04 07:29:13,612 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:13,613 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:14,614 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5
+2026-04-04 07:29:14,615 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:14,616 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775255351316 broker_id=ORD_1775255351316 elapsed=3.3s remain_qty=1
+2026-04-04 07:29:14,616 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775255351316 qty=1 side=SELL
+2026-04-04 07:29:15,929 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=취소후재매도_2
+2026-04-04 07:29:15,929 | WARNING | 취소 후 재매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775255355929 retry=2
+2026-04-04 07:29:17,230 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:18,231 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45
+2026-04-04 07:29:18,232 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:18,232 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:19,116 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775255355929 broker_id=ORD_1775255355929 elapsed=3.2s remain_qty=1
+2026-04-04 07:29:19,117 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775255355929 qty=1 side=SELL
+2026-04-04 07:29:20,431 | WARNING | 재매도 최대 횟수 초과 | symbol=005930 retry_count=2
+2026-04-04 07:29:20,432 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4
+2026-04-04 07:29:20,432 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:20,433 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:21,434 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35
+2026-04-04 07:29:21,435 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:21,435 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:29:22,436 | INFO | 🧪 DRY_RUN 테스트 틱 주입 종료
+2026-04-04 07:33:32,174 | INFO | 종료 신호 수신
+2026-04-04 07:33:32,175 | INFO | 실시간 구독 해제 완료
+2026-04-04 07:33:32,175 | INFO | 실시간 구독 해제 완료
+2026-04-04 07:33:32,175 | INFO | 엔진 종료 시작
+2026-04-04 07:33:32,175 | INFO | 브로커 종료 시작
+2026-04-04 07:33:32,177 | INFO | 브로커 종료 완료
+2026-04-04 07:33:32,177 | INFO | 엔진 종료 완료
+2026-04-04 07:33:32,177 | INFO | 프로그램 종료
+2026-04-04 07:50:00,167 | INFO | 프로그램 시작
+2026-04-04 07:50:00,168 | INFO | 실행 모드 | DRY_RUN=True LIVE_MODE=False
+2026-04-04 07:50:00,168 | WARNING | 현재 DRY_RUN 모드입니다. 실제 주문은 전송되지 않습니다.
+2026-04-04 07:50:00,464 | INFO | 키움 로그인 시도
+2026-04-04 07:50:00,614 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-04 07:50:00,614 | INFO | 로그인 이벤트 대기 시작
+2026-04-04 07:50:04,651 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-04 07:50:04,652 | INFO | 로그인 성공
+2026-04-04 07:50:04,652 | INFO | 로그인 이벤트 대기 종료
+2026-04-04 07:50:04,652 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-04 07:50:04,653 | INFO | 브로커 연결 완료
+2026-04-04 07:50:04,653 | INFO | 계좌비밀번호 입력창 호출
+2026-04-04 07:50:12,212 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-04 07:50:12,213 | INFO | 계좌 동기화 시작
+2026-04-04 07:50:13,720 | INFO | get_deposit 호출
+2026-04-04 07:50:13,724 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-04 07:50:13,736 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-04 07:50:13,736 | INFO | [100000] 모의투자 조회완료
+2026-04-04 07:50:13,738 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-04 07:50:13,739 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-04 07:50:14,746 | INFO | get_positions 호출
+2026-04-04 07:50:14,748 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-04 07:50:14,749 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-04 07:50:14,762 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-04 07:50:14,762 | INFO | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-04 07:50:14,764 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-04 07:50:14,764 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-04 07:50:14,764 | INFO | 보유종목 조회 완료 | count=0
+2026-04-04 07:50:14,765 | INFO | get_positions 완료 | count=0
+2026-04-04 07:50:14,765 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-04 07:50:14,765 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-04 07:50:15,774 | INFO | get_pending_orders 호출
+2026-04-04 07:50:15,775 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-04 07:50:15,788 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-04 07:50:15,806 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-04 07:50:15,806 | INFO |  조회가 완료되었습니다.
+2026-04-04 07:50:15,807 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-04 07:50:15,808 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-04 07:50:15,808 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-04 07:50:15,809 | INFO | get_pending_orders 완료 | count=0
+2026-04-04 07:50:15,809 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-04 07:50:15,809 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-04 07:50:15,809 | INFO | 헬스체크 | 총 보유수량=0
+2026-04-04 07:50:15,812 | INFO | 실시간 등록 | codes=005930;000660 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-04 07:50:15,812 | INFO | 실시간 구독 시작 | 005930,000660
+2026-04-04 07:50:15,813 | INFO | 실시간 엔진 시작
+2026-04-04 07:50:18,830 | INFO | 🧪 DRY_RUN 테스트 틱 주입 시작
+2026-04-04 07:50:18,831 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95
+2026-04-04 07:50:18,832 | INFO | [NEWS_PROVIDER] symbol=005930 news_items=1 news_score=0.0 theme_score=18.0 leader_score=12.0
+2026-04-04 07:50:18,833 | INFO | [TICK] 005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:18,833 | INFO | [CHECK] 005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:18,834 | INFO | [SIGNAL] 005930 side=BUY qty=1 score=43.9 reason=momentum_entry:ok:score=43.9:news=0.0:theme=18.0:leader=12.0:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 07:50:18,840 | INFO | [ORDER_READY] 005930 side=BUY qty=1 score=43.9 reason=momentum_entry:ok:score=43.9:news=0.0:theme=18.0:leader=12.0:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 07:50:18,841 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=BUY qty=1 price=0 order_type=MARKET reason=momentum_entry:ok:score=43.9:news=0.0:theme=18.0:leader=12.0:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 07:50:18,841 | INFO | 체결 반영 | broker_id=ORD_1775256618841 local_id=ORD_1775256618841 symbol=005930 side=BUY fill_qty=1 fill_price=70000 cum_filled=1/1 status=FILLED
+2026-04-04 07:50:18,841 | INFO | 잔고 상태 | cash=9930000 realized_pnl=0
+2026-04-04 07:50:20,381 | INFO | 주문 등록 | id=ORD_1775256618841 symbol=005930 side=BUY qty=1 count=1/20 score=43.9
+2026-04-04 07:50:22,713 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15
+2026-04-04 07:50:22,714 | INFO | [TICK] 005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:22,714 | INFO | [CHECK] 005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:23,715 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35
+2026-04-04 07:50:23,717 | INFO | [TICK] 005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:23,717 | INFO | 부분익절 발생 | symbol=005930 qty=1 pnl=2.14%
+2026-04-04 07:50:23,718 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=부분익절
+2026-04-04 07:50:23,718 | INFO | 자동매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775256623718 reason=부분익절 status=SUBMITTED
+2026-04-04 07:50:23,719 | INFO | 재진입 제한 설정 | symbol=005930 reason=부분익절 block_sec=300 until_ts=1775256923.7194374
+2026-04-04 07:50:25,044 | INFO | [CHECK] 005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:26,046 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5
+2026-04-04 07:50:26,047 | INFO | [TICK] 005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:26,048 | INFO | [CHECK] 005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:27,048 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85
+2026-04-04 07:50:27,049 | INFO | [TICK] 005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:27,049 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775256623718 broker_id=ORD_1775256623718 elapsed=3.3s remain_qty=1
+2026-04-04 07:50:27,050 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775256623718 qty=1 side=SELL
+2026-04-04 07:50:28,361 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=취소후재매도_1
+2026-04-04 07:50:28,363 | WARNING | 취소 후 재매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775256628361 retry=1
+2026-04-04 07:50:29,666 | INFO | [CHECK] 005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:30,667 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55
+2026-04-04 07:50:30,668 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:30,669 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:31,613 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775256628361 broker_id=ORD_1775256628361 elapsed=3.3s remain_qty=1
+2026-04-04 07:50:31,613 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775256628361 qty=1 side=SELL
+2026-04-04 07:50:32,908 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=취소후재매도_2
+2026-04-04 07:50:32,909 | WARNING | 취소 후 재매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775256632908 retry=2
+2026-04-04 07:50:34,274 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5
+2026-04-04 07:50:34,275 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:34,275 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:35,276 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45
+2026-04-04 07:50:35,277 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:35,277 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:36,277 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4
+2026-04-04 07:50:36,278 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:36,278 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775256632908 broker_id=ORD_1775256632908 elapsed=3.4s remain_qty=1
+2026-04-04 07:50:36,280 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775256632908 qty=1 side=SELL
+2026-04-04 07:50:37,578 | WARNING | 재매도 최대 횟수 초과 | symbol=005930 retry_count=2
+2026-04-04 07:50:37,578 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:38,579 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35
+2026-04-04 07:50:38,579 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:38,581 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35 news=0.0 theme=18.0 leader=12.0
+2026-04-04 07:50:39,581 | INFO | 🧪 DRY_RUN 테스트 틱 주입 종료
+2026-04-04 07:56:18,156 | INFO | 종료 신호 수신
+2026-04-04 07:56:18,159 | INFO | 실시간 구독 해제 완료
+2026-04-04 07:56:18,160 | INFO | 실시간 구독 해제 완료
+2026-04-04 07:56:18,160 | INFO | 엔진 종료 시작
+2026-04-04 07:56:18,161 | INFO | 브로커 종료 시작
+2026-04-04 07:56:18,162 | INFO | 브로커 종료 완료
+2026-04-04 07:56:18,163 | INFO | 엔진 종료 완료
+2026-04-04 07:56:18,163 | INFO | 프로그램 종료
+2026-04-04 07:56:39,106 | INFO | 프로그램 시작
+2026-04-04 07:56:39,106 | INFO | 실행 모드 | DRY_RUN=True LIVE_MODE=False
+2026-04-04 07:56:39,107 | WARNING | 현재 DRY_RUN 모드입니다. 실제 주문은 전송되지 않습니다.
+2026-04-04 07:56:39,186 | INFO | 키움 로그인 시도
+2026-04-04 07:56:39,290 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-04 07:56:39,290 | INFO | 로그인 이벤트 대기 시작
+2026-04-04 07:56:42,978 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-04 07:56:42,978 | INFO | 로그인 성공
+2026-04-04 07:56:42,978 | INFO | 로그인 이벤트 대기 종료
+2026-04-04 07:56:42,978 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-04 07:56:42,979 | INFO | 브로커 연결 완료
+2026-04-04 07:56:42,979 | INFO | 계좌비밀번호 입력창 호출
+2026-04-04 07:56:56,964 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-04 07:56:56,966 | INFO | 계좌 동기화 시작
+2026-04-04 07:56:58,476 | INFO | get_deposit 호출
+2026-04-04 07:56:58,477 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-04 07:56:58,491 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-04 07:56:58,491 | INFO | [100000] 모의투자 조회완료
+2026-04-04 07:56:58,493 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-04 07:56:58,494 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-04 07:56:59,497 | INFO | get_positions 호출
+2026-04-04 07:56:59,498 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-04 07:56:59,500 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-04 07:56:59,513 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-04 07:56:59,514 | INFO | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-04 07:56:59,516 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-04 07:56:59,517 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-04 07:56:59,517 | INFO | 보유종목 조회 완료 | count=0
+2026-04-04 07:56:59,518 | INFO | get_positions 완료 | count=0
+2026-04-04 07:56:59,518 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-04 07:56:59,518 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-04 07:57:00,526 | INFO | get_pending_orders 호출
+2026-04-04 07:57:00,526 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-04 07:57:00,533 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-04 07:57:00,541 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-04 07:57:00,541 | INFO |  조회가 완료되었습니다.
+2026-04-04 07:57:00,542 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-04 07:57:00,542 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-04 07:57:00,542 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-04 07:57:00,544 | INFO | get_pending_orders 완료 | count=0
+2026-04-04 07:57:00,544 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-04 07:57:00,544 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-04 07:57:00,544 | INFO | 헬스체크 | 총 보유수량=0
+2026-04-04 07:57:00,547 | INFO | 실시간 등록 | codes=005930;000660 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-04 07:57:00,547 | INFO | 실시간 구독 시작 | 005930,000660
+2026-04-04 07:57:00,549 | INFO | 실시간 엔진 시작
+2026-04-04 07:57:03,549 | INFO | 🧪 DRY_RUN 테스트 틱 주입 시작
+2026-04-04 07:57:03,550 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95
+2026-04-04 07:57:03,551 | INFO | [NEWS_PROVIDER] symbol=005930 news_items=1 news_score=7.0 theme_score=18 leader_score=17
+2026-04-04 07:57:03,551 | INFO | [TICK] 005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95 news=7.0 theme=18 leader=17
+2026-04-04 07:57:03,552 | INFO | [CHECK] 005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95 news=7.0 theme=18 leader=17
+2026-04-04 07:57:03,553 | INFO | [SIGNAL] 005930 side=BUY qty=1 score=55.9 reason=momentum_entry:ok:score=55.9:news=7.0:theme=18:leader=17:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 07:57:03,558 | INFO | [ORDER_READY] 005930 side=BUY qty=1 score=55.9 reason=momentum_entry:ok:score=55.9:news=7.0:theme=18:leader=17:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 07:57:03,559 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=BUY qty=1 price=0 order_type=MARKET reason=momentum_entry:ok:score=55.9:news=7.0:theme=18:leader=17:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 07:57:03,559 | INFO | 체결 반영 | broker_id=ORD_1775257023559 local_id=ORD_1775257023559 symbol=005930 side=BUY fill_qty=1 fill_price=70000 cum_filled=1/1 status=FILLED
+2026-04-04 07:57:03,559 | INFO | 잔고 상태 | cash=9930000 realized_pnl=0
+2026-04-04 07:57:04,874 | INFO | 주문 등록 | id=ORD_1775257023559 symbol=005930 side=BUY qty=1 count=1/20 score=55.9
+2026-04-04 07:57:07,191 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15
+2026-04-04 07:57:07,192 | INFO | [TICK] 005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15 news=7.0 theme=18 leader=17
+2026-04-04 07:57:07,193 | INFO | [CHECK] 005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15 news=7.0 theme=18 leader=17
+2026-04-04 07:57:08,193 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35
+2026-04-04 07:57:08,193 | INFO | [TICK] 005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35 news=7.0 theme=18 leader=17
+2026-04-04 07:57:08,193 | INFO | 부분익절 발생 | symbol=005930 qty=1 pnl=2.14%
+2026-04-04 07:57:08,194 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=부분익절
+2026-04-04 07:57:08,194 | INFO | 자동매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775257028194 reason=부분익절 status=SUBMITTED
+2026-04-04 07:57:08,194 | INFO | 재진입 제한 설정 | symbol=005930 reason=부분익절 block_sec=300 until_ts=1775257328.1944292
+2026-04-04 07:57:09,490 | INFO | [CHECK] 005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35 news=7.0 theme=18 leader=17
+2026-04-04 07:57:10,490 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5
+2026-04-04 07:57:10,491 | INFO | [TICK] 005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5 news=7.0 theme=18 leader=17
+2026-04-04 07:57:10,491 | INFO | [CHECK] 005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5 news=7.0 theme=18 leader=17
+2026-04-04 07:57:11,367 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775257028194 broker_id=ORD_1775257028194 elapsed=3.2s remain_qty=1
+2026-04-04 07:57:11,368 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775257028194 qty=1 side=SELL
+2026-04-04 07:57:12,664 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=취소후재매도_1
+2026-04-04 07:57:12,664 | WARNING | 취소 후 재매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775257032664 retry=1
+2026-04-04 07:57:13,963 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85
+2026-04-04 07:57:13,963 | INFO | [TICK] 005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85 news=7.0 theme=18 leader=17
+2026-04-04 07:57:13,964 | INFO | [CHECK] 005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85 news=7.0 theme=18 leader=17
+2026-04-04 07:57:14,965 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55
+2026-04-04 07:57:14,966 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55 news=7.0 theme=18 leader=17
+2026-04-04 07:57:14,968 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55 news=7.0 theme=18 leader=17
+2026-04-04 07:57:15,968 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5
+2026-04-04 07:57:15,969 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5 news=7.0 theme=18 leader=17
+2026-04-04 07:57:15,969 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775257032664 broker_id=ORD_1775257032664 elapsed=3.3s remain_qty=1
+2026-04-04 07:57:15,970 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775257032664 qty=1 side=SELL
+2026-04-04 07:57:17,304 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=취소후재매도_2
+2026-04-04 07:57:17,304 | WARNING | 취소 후 재매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775257037304 retry=2
+2026-04-04 07:57:18,592 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5 news=7.0 theme=18 leader=17
+2026-04-04 07:57:19,593 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45
+2026-04-04 07:57:19,595 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45 news=7.0 theme=18 leader=17
+2026-04-04 07:57:19,595 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45 news=7.0 theme=18 leader=17
+2026-04-04 07:57:20,417 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775257037304 broker_id=ORD_1775257037304 elapsed=3.1s remain_qty=1
+2026-04-04 07:57:20,419 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775257037304 qty=1 side=SELL
+2026-04-04 07:57:21,740 | WARNING | 재매도 최대 횟수 초과 | symbol=005930 retry_count=2
+2026-04-04 07:57:21,741 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4
+2026-04-04 07:57:21,741 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4 news=7.0 theme=18 leader=17
+2026-04-04 07:57:21,741 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4 news=7.0 theme=18 leader=17
+2026-04-04 07:57:22,743 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35
+2026-04-04 07:57:22,743 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35 news=7.0 theme=18 leader=17
+2026-04-04 07:57:22,743 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35 news=7.0 theme=18 leader=17
+2026-04-04 07:57:23,745 | INFO | 🧪 DRY_RUN 테스트 틱 주입 종료
+2026-04-04 08:06:26,255 | INFO | 종료 신호 수신
+2026-04-04 08:06:26,256 | INFO | 실시간 구독 해제 완료
+2026-04-04 08:06:26,256 | INFO | 실시간 구독 해제 완료
+2026-04-04 08:06:26,257 | INFO | 엔진 종료 시작
+2026-04-04 08:06:26,257 | INFO | 브로커 종료 시작
+2026-04-04 08:06:26,258 | INFO | 브로커 종료 완료
+2026-04-04 08:06:26,258 | INFO | 엔진 종료 완료
+2026-04-04 08:06:26,258 | INFO | 프로그램 종료
+2026-04-04 08:20:46,694 | INFO | 프로그램 시작
+2026-04-04 08:20:46,694 | INFO | 실행 모드 | DRY_RUN=True LIVE_MODE=False
+2026-04-04 08:20:46,694 | WARNING | 현재 DRY_RUN 모드입니다. 실제 주문은 전송되지 않습니다.
+2026-04-04 08:20:46,779 | INFO | 키움 로그인 시도
+2026-04-04 08:20:46,911 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-04 08:20:46,912 | INFO | 로그인 이벤트 대기 시작
+2026-04-04 08:20:50,470 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-04 08:20:50,471 | INFO | 로그인 성공
+2026-04-04 08:20:50,471 | INFO | 로그인 이벤트 대기 종료
+2026-04-04 08:20:50,471 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-04 08:20:50,471 | INFO | 브로커 연결 완료
+2026-04-04 08:20:50,471 | INFO | 계좌비밀번호 입력창 호출
+2026-04-04 08:20:55,716 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-04 08:20:55,716 | INFO | 계좌 동기화 시작
+2026-04-04 08:20:57,224 | INFO | get_deposit 호출
+2026-04-04 08:20:57,226 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-04 08:20:57,239 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-04 08:20:57,240 | INFO | [100000] 모의투자 조회완료
+2026-04-04 08:20:57,241 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-04 08:20:57,241 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-04 08:20:58,250 | INFO | get_positions 호출
+2026-04-04 08:20:58,250 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-04 08:20:58,253 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-04 08:20:58,265 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-04 08:20:58,267 | INFO | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-04 08:20:58,268 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-04 08:20:58,268 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-04 08:20:58,269 | INFO | 보유종목 조회 완료 | count=0
+2026-04-04 08:20:58,270 | INFO | get_positions 완료 | count=0
+2026-04-04 08:20:58,270 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-04 08:20:58,270 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-04 08:20:59,275 | INFO | get_pending_orders 호출
+2026-04-04 08:20:59,276 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-04 08:20:59,286 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-04 08:20:59,305 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-04 08:20:59,305 | INFO |  조회가 완료되었습니다.
+2026-04-04 08:20:59,307 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-04 08:20:59,307 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-04 08:20:59,307 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-04 08:20:59,308 | INFO | get_pending_orders 완료 | count=0
+2026-04-04 08:20:59,308 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-04 08:20:59,309 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-04 08:20:59,309 | INFO | 헬스체크 | 총 보유수량=0
+2026-04-04 08:20:59,312 | INFO | 실시간 등록 | codes=005930;000660 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-04 08:20:59,312 | INFO | 실시간 구독 시작 | 005930,000660
+2026-04-04 08:20:59,312 | INFO | 실시간 엔진 시작
+2026-04-04 08:21:02,312 | INFO | 🧪 DRY_RUN 테스트 틱 주입 시작
+2026-04-04 08:21:02,313 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95
+2026-04-04 08:21:02,313 | INFO | [NEWS_PROVIDER] symbol=005930 news_items=1 news_score=7.0 theme_score=18 leader_score=17
+2026-04-04 08:21:02,314 | INFO | [TICK] 005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95 news=7.0 theme=18 leader=17
+2026-04-04 08:21:02,315 | INFO | [CHECK] 005930 price=70000 vol=1000 chg=0.8 strength=130.0 vr=0.95 news=7.0 theme=18 leader=17
+2026-04-04 08:21:02,315 | INFO | [SIGNAL] 005930 side=BUY qty=1 score=58.0 reason=momentum_entry:ok:score=58.0:news=7.0:theme=18:leader=17:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 08:21:02,320 | INFO | [ORDER_READY] 005930 side=BUY qty=1 score=58.0 reason=momentum_entry:ok:score=58.0:news=7.0:theme=18:leader=17:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 08:21:02,321 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=BUY qty=1 price=0 order_type=MARKET reason=momentum_entry:ok:score=58.0:news=7.0:theme=18:leader=17:chg=0.8:strength=130.0:vr=0.95
+2026-04-04 08:21:02,321 | INFO | 체결 반영 | broker_id=ORD_1775258462321 local_id=ORD_1775258462321 symbol=005930 side=BUY fill_qty=1 fill_price=70000 cum_filled=1/1 status=FILLED
+2026-04-04 08:21:02,322 | INFO | 잔고 상태 | cash=9930000 realized_pnl=0
+2026-04-04 08:21:03,625 | INFO | 주문 등록 | id=ORD_1775258462321 symbol=005930 side=BUY qty=1 count=1/20 score=58.0
+2026-04-04 08:21:05,941 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15
+2026-04-04 08:21:05,942 | INFO | [TICK] 005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15 news=7.0 theme=18 leader=17
+2026-04-04 08:21:05,944 | INFO | [CHECK] 005930 price=70800 vol=1500 chg=1.1 strength=155.0 vr=1.15 news=7.0 theme=18 leader=17
+2026-04-04 08:21:06,944 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35
+2026-04-04 08:21:06,945 | INFO | [TICK] 005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35 news=7.0 theme=18 leader=17
+2026-04-04 08:21:06,945 | INFO | 부분익절 발생 | symbol=005930 qty=1 pnl=2.14%
+2026-04-04 08:21:06,946 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=부분익절
+2026-04-04 08:21:06,946 | INFO | 자동매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775258466946 reason=부분익절 status=SUBMITTED
+2026-04-04 08:21:06,947 | INFO | 재진입 제한 설정 | symbol=005930 reason=부분익절 block_sec=300 until_ts=1775258766.9478471
+2026-04-04 08:21:08,299 | INFO | [CHECK] 005930 price=71500 vol=1800 chg=1.5 strength=170.0 vr=1.35 news=7.0 theme=18 leader=17
+2026-04-04 08:21:09,300 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5
+2026-04-04 08:21:09,302 | INFO | [TICK] 005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5 news=7.0 theme=18 leader=17
+2026-04-04 08:21:09,302 | INFO | [CHECK] 005930 price=72000 vol=2000 chg=1.8 strength=180.0 vr=1.5 news=7.0 theme=18 leader=17
+2026-04-04 08:21:10,304 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85
+2026-04-04 08:21:10,305 | INFO | [TICK] 005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85 news=7.0 theme=18 leader=17
+2026-04-04 08:21:10,305 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775258466946 broker_id=ORD_1775258466946 elapsed=3.4s remain_qty=1
+2026-04-04 08:21:10,306 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775258466946 qty=1 side=SELL
+2026-04-04 08:21:11,637 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=취소후재매도_1
+2026-04-04 08:21:11,639 | WARNING | 취소 후 재매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775258471637 retry=1
+2026-04-04 08:21:13,102 | INFO | [CHECK] 005930 price=70500 vol=2200 chg=0.7 strength=110.0 vr=0.85 news=7.0 theme=18 leader=17
+2026-04-04 08:21:14,104 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55
+2026-04-04 08:21:14,105 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55 news=7.0 theme=18 leader=17
+2026-04-04 08:21:14,106 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.4 strength=85.0 vr=0.55 news=7.0 theme=18 leader=17
+2026-04-04 08:21:14,960 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775258471637 broker_id=ORD_1775258471637 elapsed=3.3s remain_qty=1
+2026-04-04 08:21:14,960 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775258471637 qty=1 side=SELL
+2026-04-04 08:21:16,312 | WARNING | [DRY_RUN] 주문 모의 처리 | symbol=005930 side=SELL qty=1 price=0 order_type=MARKET reason=취소후재매도_2
+2026-04-04 08:21:16,313 | WARNING | 취소 후 재매도 주문 등록 | symbol=005930 qty=1 order_id=ORD_1775258476312 retry=2
+2026-04-04 08:21:17,673 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5
+2026-04-04 08:21:17,674 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5 news=7.0 theme=18 leader=17
+2026-04-04 08:21:17,674 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.3 strength=80.0 vr=0.5 news=7.0 theme=18 leader=17
+2026-04-04 08:21:18,675 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45
+2026-04-04 08:21:18,676 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45 news=7.0 theme=18 leader=17
+2026-04-04 08:21:18,677 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.2 strength=75.0 vr=0.45 news=7.0 theme=18 leader=17
+2026-04-04 08:21:19,678 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4
+2026-04-04 08:21:19,679 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4 news=7.0 theme=18 leader=17
+2026-04-04 08:21:19,679 | WARNING | 매도 미체결 타임아웃 | symbol=005930 local_id=ORD_1775258476312 broker_id=ORD_1775258476312 elapsed=3.4s remain_qty=1
+2026-04-04 08:21:19,680 | WARNING | [DRY_RUN] 취소 모의 처리 | symbol=005930 order_no=ORD_1775258476312 qty=1 side=SELL
+2026-04-04 08:21:20,968 | WARNING | 재매도 최대 횟수 초과 | symbol=005930 retry_count=2
+2026-04-04 08:21:20,968 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.1 strength=70.0 vr=0.4 news=7.0 theme=18 leader=17
+2026-04-04 08:21:21,969 | INFO | 🧪 테스트틱 주입 | symbol=005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35
+2026-04-04 08:21:21,970 | INFO | [TICK] 005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35 news=7.0 theme=18 leader=17
+2026-04-04 08:21:21,970 | INFO | [CHECK] 005930 price=70500 vol=100 chg=0.0 strength=65.0 vr=0.35 news=7.0 theme=18 leader=17
+2026-04-04 08:21:22,970 | INFO | 🧪 DRY_RUN 테스트 틱 주입 종료
+2026-04-04 08:25:49,278 | INFO | 종료 신호 수신
+2026-04-04 08:25:49,279 | INFO | 실시간 구독 해제 완료
+2026-04-04 08:25:49,279 | INFO | 실시간 구독 해제 완료
+2026-04-04 08:25:49,279 | INFO | 엔진 종료 시작
+2026-04-04 08:25:49,279 | INFO | 브로커 종료 시작
+2026-04-04 08:25:49,281 | INFO | 브로커 종료 완료
+2026-04-04 08:25:49,281 | INFO | 엔진 종료 완료
+2026-04-04 08:25:49,282 | INFO | 프로그램 종료

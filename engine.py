@@ -6,7 +6,7 @@ from core.models import Order, TickData, OrderStatus, Signal, Side, OrderType
 from core.order_manager import OrderManager
 from core.portfolio import Portfolio
 from core.risk_manager import RiskManager
-from utils.news_theme_score import build_external_scores
+from data.news_provider import NewsProvider
 
 
 class TradingEngine:
@@ -21,6 +21,11 @@ class TradingEngine:
         self.order_manager = OrderManager()
 
         self.is_running = False
+
+        # -------------------------
+        # 외부 점수 공급기
+        # -------------------------
+        self.news_provider = NewsProvider(logger=logger)
 
         # -------------------------
         # 주문 방어 설정
@@ -78,10 +83,6 @@ class TradingEngine:
             return default
 
     def _extract_score_from_reason(self, reason: str):
-        """
-        reason 예:
-        momentum_entry:ok:score=52.3:news=8.0:theme=6.0:leader=10.0
-        """
         try:
             if not reason:
                 return None
@@ -95,14 +96,9 @@ class TradingEngine:
         return None
 
     def _build_external_scores(self, raw_tick: dict):
-        """
-        Step 21 1차 버전:
-        - 실시간 뉴스 크롤링 연결 전까지는 raw_tick 안에 값이 있으면 사용
-        - 없으면 symbol 기반 간단 테마/주도 점수만 부여
-        """
         symbol = str(raw_tick.get("symbol", ""))
 
-        # 1) raw_tick에 이미 점수가 들어오면 우선 사용
+        # raw_tick에 이미 외부 점수가 있으면 우선 사용
         news_score = self._safe_float(raw_tick.get("news_score", 0.0), 0.0)
         theme_score = self._safe_float(raw_tick.get("theme_score", 0.0), 0.0)
         leader_score = self._safe_float(raw_tick.get("leader_score", 0.0), 0.0)
@@ -115,32 +111,8 @@ class TradingEngine:
                 "total_external_score": round(news_score + theme_score + leader_score, 2),
             }
 
-        # 2) 임시 수동 매핑
-        theme_map = {
-            "005930": ["반도체", "AI", "HBM"],
-            "000660": ["반도체", "AI", "HBM"],
-        }
-
-        leader_map = {
-            "005930": ["반도체 대장", "시총상위"],
-            "000660": ["HBM 대장", "강세"],
-        }
-
-        market_rank_map = {
-            "005930": 5,
-            "000660": 3,
-        }
-
-        scores = build_external_scores(
-            news_items=[],
-            theme_texts=theme_map.get(symbol, []),
-            leader_texts=leader_map.get(symbol, []),
-            market_rank=market_rank_map.get(symbol),
-            is_upper_limit=False,
-            is_new_high=False,
-        )
-
-        return scores
+        # 없으면 RSS 기반 provider 사용
+        return self.news_provider.get_scores(symbol)
 
     # -------------------------
     # 장 시간 체크
@@ -498,9 +470,6 @@ class TradingEngine:
                     self.consecutive_loss_count = 0
 
                 self._check_engine_protection()
-
-                if config.DRY_RUN:
-                    pass
 
             self.logger.info(
                 f"자동매도 주문 등록 | symbol={symbol} qty={qty} "
