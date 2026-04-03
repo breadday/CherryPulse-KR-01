@@ -117,18 +117,97 @@ def main():
         logger.info("🧪 DRY_RUN 테스트 틱 주입 시작")
 
         test_ticks = [
-            {"symbol": "005930", "price": 70000, "trade_volume": 1000},
-            {"symbol": "005930", "price": 70800, "trade_volume": 1500},
-            {"symbol": "005930", "price": 71500, "trade_volume": 1800},
-            {"symbol": "005930", "price": 72000, "trade_volume": 2000},
-            {"symbol": "005930", "price": 70500, "trade_volume": 2200},
+            # -------------------------
+            # 진입 유도 구간
+            # -------------------------
+            {
+                "symbol": "005930",
+                "price": 70000,
+                "trade_volume": 1000,
+                "price_change_pct": 0.8,
+                "trade_strength": 130.0,
+                "volume_ratio": 0.95,
+            },
+            {
+                "symbol": "005930",
+                "price": 70800,
+                "trade_volume": 1500,
+                "price_change_pct": 1.1,
+                "trade_strength": 155.0,
+                "volume_ratio": 1.15,
+            },
+            {
+                "symbol": "005930",
+                "price": 71500,
+                "trade_volume": 1800,
+                "price_change_pct": 1.5,
+                "trade_strength": 170.0,
+                "volume_ratio": 1.35,
+            },
+            {
+                "symbol": "005930",
+                "price": 72000,
+                "trade_volume": 2000,
+                "price_change_pct": 1.8,
+                "trade_strength": 180.0,
+                "volume_ratio": 1.50,
+            },
 
-            # 🔥 timeout 확인용 대기 틱 추가
-            {"symbol": "005930", "price": 70500, "trade_volume": 100},
-            {"symbol": "005930", "price": 70500, "trade_volume": 100},
-            {"symbol": "005930", "price": 70500, "trade_volume": 100},
-            {"symbol": "005930", "price": 70500, "trade_volume": 100},
-            {"symbol": "005930", "price": 70500, "trade_volume": 100},
+            # -------------------------
+            # 약화 구간
+            # -------------------------
+            {
+                "symbol": "005930",
+                "price": 70500,
+                "trade_volume": 2200,
+                "price_change_pct": 0.7,
+                "trade_strength": 110.0,
+                "volume_ratio": 0.85,
+            },
+
+            # -------------------------
+            # timeout / 미체결 테스트용 약한 틱
+            # -------------------------
+            {
+                "symbol": "005930",
+                "price": 70500,
+                "trade_volume": 100,
+                "price_change_pct": 0.4,
+                "trade_strength": 85.0,
+                "volume_ratio": 0.55,
+            },
+            {
+                "symbol": "005930",
+                "price": 70500,
+                "trade_volume": 100,
+                "price_change_pct": 0.3,
+                "trade_strength": 80.0,
+                "volume_ratio": 0.50,
+            },
+            {
+                "symbol": "005930",
+                "price": 70500,
+                "trade_volume": 100,
+                "price_change_pct": 0.2,
+                "trade_strength": 75.0,
+                "volume_ratio": 0.45,
+            },
+            {
+                "symbol": "005930",
+                "price": 70500,
+                "trade_volume": 100,
+                "price_change_pct": 0.1,
+                "trade_strength": 70.0,
+                "volume_ratio": 0.40,
+            },
+            {
+                "symbol": "005930",
+                "price": 70500,
+                "trade_volume": 100,
+                "price_change_pct": 0.0,
+                "trade_strength": 65.0,
+                "volume_ratio": 0.35,
+            },
         ]
 
         interval_ms = 1000
@@ -144,7 +223,10 @@ def main():
             tick = test_ticks[index]
             logger.info(
                 f"🧪 테스트틱 주입 | symbol={tick['symbol']} "
-                f"price={tick['price']} vol={tick['trade_volume']}"
+                f"price={tick['price']} vol={tick['trade_volume']} "
+                f"chg={tick.get('price_change_pct', 0.0)} "
+                f"strength={tick.get('trade_strength', 0.0)} "
+                f"vr={tick.get('volume_ratio', 0.0)}"
             )
 
             try:

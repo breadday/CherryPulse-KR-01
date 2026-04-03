@@ -1,3 +1,4 @@
+from collections import defaultdict, deque
 from PyQt5.QtCore import QObject, QEventLoop
 from PyQt5.QAxContainer import QAxWidget
 import time
@@ -52,6 +53,18 @@ class KiwoomBroker(QObject):
         self.order_retry_wait_sec = 1.0
         self.max_order_retry = 3
         self.last_order_request_ts = 0.0
+
+        # -------------------------
+        # 실시간 보조 캐시
+        # -------------------------
+        self.last_tick_volume_map = {}
+        self.last_total_volume_map = {}
+
+        # volume_ratio 정교화용
+        self.tick_volume_history = defaultdict(lambda: deque(maxlen=120))
+        self.real_tick_time_history = defaultdict(lambda: deque(maxlen=120))
+        self.symbol_first_seen_at = {}
+        self.symbol_last_seen_at = {}
 
         self._set_signal_slots()
 
@@ -560,15 +573,25 @@ class KiwoomBroker(QObject):
     def register_real(self, codes):
         code_str = ";".join(codes)
 
+        # 10: 현재가
+        # 12: 등락율
+        # 13: 누적거래량
+        # 15: 거래량(체결량 계열)
+        # 16: 시가
+        # 17: 고가
+        # 18: 저가
+        # 228: 체결강도
+        fid_list = "10;12;13;15;16;17;18;228"
+
         ret = self.ocx.dynamicCall(
             "SetRealReg(QString, QString, QString, QString)",
             self.real_screen_no,
             code_str,
-            "10;15;13",
+            fid_list,
             "0"
         )
 
-        self.logger.info(f"실시간 등록 | codes={code_str} ret={ret}")
+        self.logger.info(f"실시간 등록 | codes={code_str} fids={fid_list} ret={ret}")
 
     def remove_real(self, code="ALL"):
         self.ocx.dynamicCall(
@@ -577,25 +600,106 @@ class KiwoomBroker(QObject):
             code
         )
 
+    def _avg(self, values):
+        if not values:
+            return 0.0
+        return sum(values) / len(values)
+
+    def _estimate_volume_ratio(self, symbol: str, total_volume: int, tick_volume: int) -> float:
+        """
+        정교화 버전:
+        - 최근 5틱 평균 / 직전 30틱 평균
+        - 데이터가 부족하면 최근 3틱 / 전체 평균 fallback
+        - 너무 초반에는 직전 tick 기반 fallback
+        """
+        if total_volume <= 0 and tick_volume <= 0:
+            return 0.0
+
+        hist = self.tick_volume_history[symbol]
+        non_zero_hist = [v for v in hist if v > 0]
+
+        if len(non_zero_hist) < 2:
+            last_tick_volume = self.last_tick_volume_map.get(symbol, 0)
+            base = max(last_tick_volume, 1)
+            ratio = tick_volume / base if tick_volume > 0 else 0.0
+            return round(min(max(ratio, 0.0), 10.0), 2)
+
+        recent_window = [v for v in list(hist)[-5:] if v > 0]
+        baseline_source = list(hist)[-35:-5]
+        baseline_window = [v for v in baseline_source if v > 0]
+
+        if len(recent_window) >= 3 and len(baseline_window) >= 10:
+            recent_avg = self._avg(recent_window)
+            baseline_avg = max(self._avg(baseline_window), 1.0)
+            ratio = recent_avg / baseline_avg
+            return round(min(max(ratio, 0.0), 10.0), 2)
+
+        recent_small = [v for v in list(hist)[-3:] if v > 0]
+        full_avg = max(self._avg(non_zero_hist), 1.0)
+
+        if recent_small:
+            ratio = self._avg(recent_small) / full_avg
+            return round(min(max(ratio, 0.0), 10.0), 2)
+
+        return 0.0
+
     def _on_receive_real_data(self, code, real_type, real_data):
         if self.on_real_tick_callback is None:
             return
 
         try:
             raw_price = self.ocx.dynamicCall("GetCommRealData(QString, int)", code, 10)
-            raw_volume = self.ocx.dynamicCall("GetCommRealData(QString, int)", code, 15)
+            raw_change_rate = self.ocx.dynamicCall("GetCommRealData(QString, int)", code, 12)
+            raw_total_volume = self.ocx.dynamicCall("GetCommRealData(QString, int)", code, 13)
+            raw_tick_volume = self.ocx.dynamicCall("GetCommRealData(QString, int)", code, 15)
+            raw_open = self.ocx.dynamicCall("GetCommRealData(QString, int)", code, 16)
+            raw_high = self.ocx.dynamicCall("GetCommRealData(QString, int)", code, 17)
+            raw_low = self.ocx.dynamicCall("GetCommRealData(QString, int)", code, 18)
+            raw_trade_strength = self.ocx.dynamicCall("GetCommRealData(QString, int)", code, 228)
 
             price = abs(self._to_int(raw_price))
-            volume = abs(self._to_int(raw_volume))
+            price_change_pct = self._to_float(raw_change_rate)
+            total_volume = abs(self._to_int(raw_total_volume))
+            tick_volume = abs(self._to_int(raw_tick_volume))
+            trade_strength = self._to_float(raw_trade_strength)
+
+            open_price = abs(self._to_int(raw_open))
+            high_price = abs(self._to_int(raw_high))
+            low_price = abs(self._to_int(raw_low))
 
             if price <= 0:
                 return
 
+            now_ts = time.time()
+
+            if code not in self.symbol_first_seen_at:
+                self.symbol_first_seen_at[code] = now_ts
+            self.symbol_last_seen_at[code] = now_ts
+
+            self.tick_volume_history[code].append(tick_volume)
+            self.real_tick_time_history[code].append(now_ts)
+
+            volume_ratio = self._estimate_volume_ratio(
+                symbol=code,
+                total_volume=total_volume,
+                tick_volume=tick_volume,
+            )
+
             tick = {
                 "symbol": code,
                 "price": price,
-                "trade_volume": volume
+                "trade_volume": tick_volume,
+                "total_volume": total_volume,
+                "price_change_pct": price_change_pct,
+                "trade_strength": trade_strength,
+                "volume_ratio": volume_ratio,
+                "open": open_price,
+                "high": high_price,
+                "low": low_price,
             }
+
+            self.last_tick_volume_map[code] = tick_volume
+            self.last_total_volume_map[code] = total_volume
 
             self.on_real_tick_callback(tick)
 
@@ -626,11 +730,8 @@ class KiwoomBroker(QObject):
                 f"qty={signal.qty} price={price} order_type={signal.order_type} reason={signal.reason}"
             )
 
-            # -------------------------
-            # 🔥 핵심: BUY만 즉시 체결 / SELL은 미체결 유지
-            # -------------------------
             if signal.side == Side.BUY:
-                order = Order(
+                return Order(
                     order_id=local_id,
                     symbol=signal.symbol,
                     side=signal.side,
@@ -641,35 +742,17 @@ class KiwoomBroker(QObject):
                     reason=signal.reason,
                 )
 
-                # 즉시 체결 시뮬레이션
-                class StubFill:
-                    pass
+            return Order(
+                order_id=local_id,
+                symbol=signal.symbol,
+                side=signal.side,
+                qty=signal.qty,
+                price=price,
+                order_type=signal.order_type,
+                status=OrderStatus.SUBMITTED,
+                reason="DRY_RUN_미체결",
+            )
 
-                fill = StubFill()
-                fill.order_id = local_id
-                fill.symbol = signal.symbol
-                fill.side = signal.side
-                fill.fill_qty = signal.qty
-                fill.fill_price = price if price > 0 else 70000
-                fill.unfilled_qty = 0
-
-                if self.on_fill_callback:
-                    self.on_fill_callback(fill)
-
-                return order
-
-            else:
-                # SELL은 일부러 체결 안됨 → 미체결 유지
-                return Order(
-                    order_id=local_id,
-                    symbol=signal.symbol,
-                    side=signal.side,
-                    qty=signal.qty,
-                    price=price,
-                    order_type=signal.order_type,
-                    status=OrderStatus.SUBMITTED,
-                    reason="DRY_RUN_미체결",
-                )
         try:
             ret = self._send_order_with_retry(
                 rqname="주문요청",

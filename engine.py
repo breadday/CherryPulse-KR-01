@@ -6,6 +6,7 @@ from core.models import Order, TickData, OrderStatus, Signal, Side, OrderType
 from core.order_manager import OrderManager
 from core.portfolio import Portfolio
 from core.risk_manager import RiskManager
+from utils.news_theme_score import build_external_scores
 
 
 class TradingEngine:
@@ -52,6 +53,94 @@ class TradingEngine:
         self.consecutive_loss_count = 0
         self.error_count = 0
         self.engine_protected = False
+
+    # -------------------------
+    # 안전 변환 유틸
+    # -------------------------
+    def _safe_int(self, value, default=0):
+        try:
+            if value in ("", None):
+                return default
+            if isinstance(value, str):
+                value = value.replace(",", "").strip()
+            return int(float(value))
+        except Exception:
+            return default
+
+    def _safe_float(self, value, default=0.0):
+        try:
+            if value in ("", None):
+                return default
+            if isinstance(value, str):
+                value = value.replace(",", "").strip()
+            return float(value)
+        except Exception:
+            return default
+
+    def _extract_score_from_reason(self, reason: str):
+        """
+        reason 예:
+        momentum_entry:ok:score=52.3:news=8.0:theme=6.0:leader=10.0
+        """
+        try:
+            if not reason:
+                return None
+
+            for token in str(reason).split(":"):
+                if token.startswith("score="):
+                    return float(token.split("=", 1)[1])
+        except Exception:
+            return None
+
+        return None
+
+    def _build_external_scores(self, raw_tick: dict):
+        """
+        Step 21 1차 버전:
+        - 실시간 뉴스 크롤링 연결 전까지는 raw_tick 안에 값이 있으면 사용
+        - 없으면 symbol 기반 간단 테마/주도 점수만 부여
+        """
+        symbol = str(raw_tick.get("symbol", ""))
+
+        # 1) raw_tick에 이미 점수가 들어오면 우선 사용
+        news_score = self._safe_float(raw_tick.get("news_score", 0.0), 0.0)
+        theme_score = self._safe_float(raw_tick.get("theme_score", 0.0), 0.0)
+        leader_score = self._safe_float(raw_tick.get("leader_score", 0.0), 0.0)
+
+        if news_score != 0.0 or theme_score != 0.0 or leader_score != 0.0:
+            return {
+                "news_score": news_score,
+                "theme_score": theme_score,
+                "leader_score": leader_score,
+                "total_external_score": round(news_score + theme_score + leader_score, 2),
+            }
+
+        # 2) 임시 수동 매핑
+        theme_map = {
+            "005930": ["반도체", "AI", "HBM"],
+            "000660": ["반도체", "AI", "HBM"],
+        }
+
+        leader_map = {
+            "005930": ["반도체 대장", "시총상위"],
+            "000660": ["HBM 대장", "강세"],
+        }
+
+        market_rank_map = {
+            "005930": 5,
+            "000660": 3,
+        }
+
+        scores = build_external_scores(
+            news_items=[],
+            theme_texts=theme_map.get(symbol, []),
+            leader_texts=leader_map.get(symbol, []),
+            market_rank=market_rank_map.get(symbol),
+            is_upper_limit=False,
+            is_new_high=False,
+        )
+
+        return scores
 
     # -------------------------
     # 장 시간 체크
@@ -235,11 +324,26 @@ class TradingEngine:
             return
 
         try:
-            symbol = raw_tick["symbol"]
-            price = int(raw_tick["price"])
-            volume = int(raw_tick.get("trade_volume", 0))
+            symbol = str(raw_tick["symbol"])
+            price = self._safe_int(raw_tick.get("price", 0), 0)
+            volume = self._safe_int(raw_tick.get("trade_volume", raw_tick.get("volume", 0)), 0)
 
-            self.logger.info(f"[TICK] {symbol} price={price} vol={volume}")
+            price_change_pct = self._safe_float(
+                raw_tick.get("price_change_pct", raw_tick.get("change_rate", 0.0)),
+                0.0,
+            )
+            trade_strength = self._safe_float(raw_tick.get("trade_strength", 0.0), 0.0)
+            volume_ratio = self._safe_float(raw_tick.get("volume_ratio", 0.0), 0.0)
+
+            external_scores = self._build_external_scores(raw_tick)
+
+            self.logger.info(
+                f"[TICK] {symbol} price={price} vol={volume} "
+                f"chg={price_change_pct} strength={trade_strength} vr={volume_ratio} "
+                f"news={external_scores['news_score']} "
+                f"theme={external_scores['theme_score']} "
+                f"leader={external_scores['leader_score']}"
+            )
 
             if price <= 0:
                 return
@@ -254,7 +358,13 @@ class TradingEngine:
                 symbol=symbol,
                 price=price,
                 volume=volume,
-                ts=datetime.now()
+                ts=datetime.now(),
+                price_change_pct=price_change_pct,
+                trade_strength=trade_strength,
+                volume_ratio=volume_ratio,
+                news_score=external_scores["news_score"],
+                theme_score=external_scores["theme_score"],
+                leader_score=external_scores["leader_score"],
             )
             self.on_tick(tick)
 
@@ -275,15 +385,12 @@ class TradingEngine:
             if qty <= 0 or avg_price <= 0:
                 return
 
-            # 재매도 포기한 종목은 추가 자동매도 금지
             if symbol in self.abandon_resell_symbols:
                 return
 
-            # 미체결 재매도 루프 중이면 추가 자동매도 금지
             if symbol in self.pending_resell:
                 return
 
-            # 취소 진행 중이어도 추가 자동매도 금지
             if symbol in self.cancel_in_progress:
                 return
 
@@ -295,7 +402,6 @@ class TradingEngine:
 
             pnl_pct = (price - avg_price) / avg_price
 
-            # 1차 부분 익절
             if (
                 symbol not in self.partial_exit_done
                 and pnl_pct >= config.PARTIAL_TAKE_PROFIT_PCT
@@ -317,13 +423,11 @@ class TradingEngine:
                 self._submit_auto_sell(symbol, sell_qty, "부분익절")
                 return
 
-            # 부분익절 이후 최고가 갱신
             if symbol in self.partial_exit_done and config.TRAILING_STOP_ENABLED:
                 prev_high = self.trailing_high_price.get(symbol, 0)
                 if price > prev_high:
                     self.trailing_high_price[symbol] = price
 
-            # 본절 손절
             if symbol in self.breakeven_active:
                 if price <= avg_price:
                     self.logger.info(
@@ -332,7 +436,6 @@ class TradingEngine:
                     self._submit_auto_sell(symbol, qty, "본절청산")
                     return
 
-            # 트레일링 스탑
             if symbol in self.partial_exit_done and config.TRAILING_STOP_ENABLED:
                 high_price = self.trailing_high_price.get(symbol, 0)
                 if high_price > 0:
@@ -346,7 +449,6 @@ class TradingEngine:
                         self._submit_auto_sell(symbol, qty, f"트레일링청산 high={high_price}")
                         return
 
-            # 최종 익절 / 손절
             exit_reason = None
 
             if pnl_pct >= config.TAKE_PROFIT_PCT:
@@ -398,7 +500,6 @@ class TradingEngine:
                 self._check_engine_protection()
 
                 if config.DRY_RUN:
-                    # SELL은 체결시키지 않음 -> 미체결 유지
                     pass
 
             self.logger.info(
@@ -449,7 +550,6 @@ class TradingEngine:
                     broker_order_id = real_id
                     break
 
-            # DRY_RUN에서는 실제 broker id 매핑이 없을 수 있음
             if not broker_order_id:
                 broker_order_id = order.order_id
 
@@ -488,7 +588,6 @@ class TradingEngine:
 
                 order.status = OrderStatus.CANCELED
 
-                # 기존 열린 주문 제거
                 try:
                     self.order_manager.orders.pop(order.order_id, None)
                 except Exception:
@@ -505,7 +604,6 @@ class TradingEngine:
                 except Exception:
                     pass
 
-                # 취소됐으니 매도 진행 플래그 해제
                 self.sell_in_progress.discard(symbol)
 
                 if config.RETRY_SELL_AFTER_CANCEL:
@@ -577,8 +675,6 @@ class TradingEngine:
                 self.pending_resell.pop(symbol, None)
                 self.cancel_in_progress.discard(symbol)
                 self.sell_in_progress.discard(symbol)
-
-                # 이 종목은 자동매도 재시도 포기 상태로 전환
                 self.abandon_resell_symbols.add(symbol)
                 return
 
@@ -710,7 +806,16 @@ class TradingEngine:
     # 틱 처리
     # -------------------------
     def on_tick(self, tick: TickData):
-        self.logger.info(f"[CHECK] {tick.symbol} price={tick.price}")
+        self.logger.info(
+            f"[CHECK] {tick.symbol} "
+            f"price={tick.price} vol={tick.volume} "
+            f"chg={getattr(tick, 'price_change_pct', 0.0)} "
+            f"strength={getattr(tick, 'trade_strength', 0.0)} "
+            f"vr={getattr(tick, 'volume_ratio', 0.0)} "
+            f"news={getattr(tick, 'news_score', 0.0)} "
+            f"theme={getattr(tick, 'theme_score', 0.0)} "
+            f"leader={getattr(tick, 'leader_score', 0.0)}"
+        )
 
         if not self.is_running:
             return
@@ -719,14 +824,29 @@ class TradingEngine:
         if signal is None:
             return
 
-        self.logger.info(f"[SIGNAL] {signal.symbol} side={signal.side} qty={signal.qty}")
+        entry_score = self._extract_score_from_reason(getattr(signal, "reason", ""))
+
+        self.logger.info(
+            f"[SIGNAL] {signal.symbol} side={signal.side} qty={signal.qty} "
+            f"score={entry_score} reason={signal.reason}"
+        )
 
         ok, reason = self.can_send_order(signal, tick)
         if not ok:
-            self.logger.info(f"[{signal.symbol}] 주문 차단 | {reason}")
+            self.logger.info(
+                f"[{signal.symbol}] 주문 차단 | {reason} | "
+                f"score={entry_score} chg={getattr(tick, 'price_change_pct', 0.0)} "
+                f"strength={getattr(tick, 'trade_strength', 0.0)} "
+                f"vr={getattr(tick, 'volume_ratio', 0.0)}"
+            )
             return
 
         try:
+            self.logger.info(
+                f"[ORDER_READY] {signal.symbol} side={signal.side} qty={signal.qty} "
+                f"score={entry_score} reason={signal.reason}"
+            )
+
             order = self.broker.place_order(signal)
             self.order_manager.register(order)
 
@@ -738,7 +858,6 @@ class TradingEngine:
                     self.strategy.mark_entry(signal.symbol, tick.ts)
 
             if config.DRY_RUN:
-                # BUY만 체결 처리
                 if signal.side.value == "BUY":
                     class StubFill:
                         pass
@@ -755,7 +874,8 @@ class TradingEngine:
 
             self.logger.info(
                 f"주문 등록 | id={order.order_id} symbol={order.symbol} "
-                f"side={order.side} qty={order.qty} count={self.daily_order_count}/{self.max_daily_orders}"
+                f"side={order.side} qty={order.qty} count={self.daily_order_count}/{self.max_daily_orders} "
+                f"score={entry_score}"
             )
 
             if self.telegram:
@@ -765,6 +885,8 @@ class TradingEngine:
                     f"방향: {order.side}\n"
                     f"수량: {order.qty}\n"
                     f"상태: {order.status}\n"
+                    f"점수: {entry_score}\n"
+                    f"사유: {signal.reason}\n"
                     f"일일주문: {self.daily_order_count}/{self.max_daily_orders}"
                 )
 
@@ -775,7 +897,9 @@ class TradingEngine:
                         f"❌ 주문 거부\n"
                         f"종목: {order.symbol}\n"
                         f"방향: {order.side}\n"
-                        f"수량: {order.qty}"
+                        f"수량: {order.qty}\n"
+                        f"점수: {entry_score}\n"
+                        f"사유: {signal.reason}"
                     )
 
         except Exception as e:

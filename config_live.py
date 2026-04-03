@@ -1,3 +1,5 @@
+# config_live.py
+
 import os
 from dotenv import load_dotenv
 
@@ -8,7 +10,7 @@ load_dotenv()
 # -------------------------
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-ACCOUNT_PASSWORD = "0000"
+ACCOUNT_PASSWORD = os.getenv("ACCOUNT_PASSWORD", "0000")
 
 # -------------------------
 # 실행 모드 (실전)
@@ -38,9 +40,9 @@ REENTRY_BLOCK_SEC_AFTER_SELL = 300
 # 미체결 대응 (실전 중요)
 # -------------------------
 ENABLE_SELL_CANCEL_TIMEOUT = True
-SELL_ORDER_TIMEOUT_SEC = 10       # 🔥 실전은 여유 줘야 함
+SELL_ORDER_TIMEOUT_SEC = 10
 RETRY_SELL_AFTER_CANCEL = True
-RETRY_SELL_MAX_COUNT = 1          # 🔥 실전은 재시도 줄임
+RETRY_SELL_MAX_COUNT = 1
 RETRY_SELL_DELAY_SEC = 2
 
 # -------------------------
@@ -64,11 +66,20 @@ MAX_SYMBOL_POSITION = 1
 STRATEGY_CONFIG = {
     "watchlist": ["005930", "000660"],
 
+    # 기본 진입 조건
     "min_trade_strength": 120,
     "min_price_change_pct": 0.5,
-    "min_volume_ratio": 1.5,
+
+    # 새 volume_ratio 기준 반영
+    "min_volume_ratio": 1.1,
+    "volume_ratio_hard_floor": 0.7,
+    "strong_momentum_trade_strength": 160,
+    "strong_momentum_price_change_pct": 1.2,
+    "strong_momentum_volume_ratio": 0.95,
+
     "max_positions": 3,
 
+    # 청산
     "stop_loss_pct": -2.0,
     "take_profit_pct": 3.0,
     "partial_take_profit_pct": 2.0,
@@ -76,10 +87,13 @@ STRATEGY_CONFIG = {
     "trailing_start_pct": 1.5,
     "trailing_gap_pct": 1.0,
 
+    # 보조
     "re_sell_attempts": 1,
     "protect_mode_drawdown_pct": -3.0,
-
     "entry_cooldown_sec": 60,
     "allow_reentry": False,
-    "min_entry_score": 2,
+
+    # 점수 필터
+    "use_score_filter": True,
+    "min_entry_score": 40,
 }
