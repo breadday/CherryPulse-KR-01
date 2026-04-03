@@ -39,8 +39,82 @@ class KiwoomBroker(QObject):
         self._pending_orders_result = []
         self._pending_orders_password = ""
 
+        # -------------------------
+        # TR 요청 속도 제한
+        # -------------------------
+        self.tr_interval_sec = 0.7        # TR 요청 간 최소 간격
+        self.tr_retry_wait_sec = 1.2      # -202 재시도 대기
+        self.max_tr_retry = 3             # 최대 재시도 횟수
+        self.last_tr_request_ts = 0.0     # 마지막 TR 요청 시각
+
         self._set_signal_slots()
 
+    # -------------------------
+    # TR 속도 제한 대기
+    # -------------------------
+    def _wait_tr_slot(self, rqname: str, trcode: str):
+        now = time.time()
+        elapsed = now - self.last_tr_request_ts
+
+        if elapsed < self.tr_interval_sec:
+            wait_sec = self.tr_interval_sec - elapsed
+            self.logger.info(
+                f"TR 대기 | rq={rqname} tr={trcode} wait={wait_sec:.2f}s"
+            )
+            time.sleep(wait_sec)
+
+        self.last_tr_request_ts = time.time()
+
+    # -------------------------
+    # CommRqData 공통 래퍼
+    # -------------------------
+    def _comm_rq_data_with_retry(
+        self,
+        rqname: str,
+        trcode: str,
+        prev_next: int,
+        screen_no: str,
+    ) -> int:
+        last_ret = None
+
+        for attempt in range(1, self.max_tr_retry + 1):
+            self._wait_tr_slot(rqname, trcode)
+
+            ret = self.ocx.dynamicCall(
+                "CommRqData(QString, QString, int, QString)",
+                rqname,
+                trcode,
+                int(prev_next),
+                screen_no,
+            )
+
+            self.logger.info(
+                f"CommRqData 호출 | rq={rqname} tr={trcode} prev_next={prev_next} "
+                f"screen={screen_no} ret={ret} attempt={attempt}/{self.max_tr_retry}"
+            )
+
+            if ret == 0:
+                return 0
+
+            last_ret = ret
+
+            if ret == -202:
+                wait_sec = self.tr_retry_wait_sec * attempt
+                self.logger.warning(
+                    f"조회 제한 발생(-202) | rq={rqname} tr={trcode} "
+                    f"attempt={attempt} wait={wait_sec:.1f}s 후 재시도"
+                )
+                time.sleep(wait_sec)
+                continue
+
+            raise RuntimeError(
+                f"CommRqData 실패 | rqname={rqname} trcode={trcode} ret={ret}"
+            )
+
+        raise RuntimeError(
+            f"CommRqData 재시도 실패 | rqname={rqname} trcode={trcode} ret={last_ret}"
+        )
+    
     # -------------------------
     # 이벤트 연결
     # -------------------------
@@ -235,14 +309,12 @@ class KiwoomBroker(QObject):
         self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호입력매체구분", "00")
         self.ocx.dynamicCall("SetInputValue(QString, QString)", "조회구분", "2")
 
-        ret = self.ocx.dynamicCall(
-            "CommRqData(QString, QString, int, QString)",
-            "deposit_req",
-            "opw00001",
-            0,
-            self.deposit_screen_no,
+        self._comm_rq_data_with_retry(
+            rqname="deposit_req",
+            trcode="opw00001",
+            prev_next=0,
+            screen_no=self.deposit_screen_no,
         )
-        self.logger.info(f"CommRqData(opw00001) 완료 | ret={ret}")
 
         self.tr_loop.exec_()
         return self._deposit_result
@@ -393,14 +465,12 @@ class KiwoomBroker(QObject):
         self.ocx.dynamicCall("SetInputValue(QString, QString)", "체결구분", "1")
 
         self.logger.info(f"미체결주문요청 호출 | prev_next={prev_next}")
-        ret = self.ocx.dynamicCall(
-            "CommRqData(QString, QString, int, QString)",
-            "opt10075_req",
-            "opt10075",
-            int(prev_next),
-            self.pending_screen_no,
+        self._comm_rq_data_with_retry(
+            rqname="opt10075_req",
+            trcode="opt10075",
+            prev_next=int(prev_next),
+            screen_no=self.pending_screen_no,
         )
-        self.logger.info(f"CommRqData(opt10075) 완료 | ret={ret}")
 
     def _handle_opt10075(self, sTrCode: str, sRQName: str, sPrevNext: str):
         count = self.ocx.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
@@ -490,14 +560,12 @@ class KiwoomBroker(QObject):
         self.ocx.dynamicCall("SetInputValue(QString, QString)", "조회구분", "1")
 
         self.logger.info(f"계좌평가잔고내역요청 호출 | prev_next={prev_next}")
-        ret = self.ocx.dynamicCall(
-            "CommRqData(QString, QString, int, QString)",
-            "opw00018_req",
-            "opw00018",
-            int(prev_next),
-            self.balance_screen_no,
+        self._comm_rq_data_with_retry(
+            rqname="opw00018_req",
+            trcode="opw00018",
+            prev_next=int(prev_next),
+            screen_no=self.balance_screen_no,
         )
-        self.logger.info(f"CommRqData(opw00018) 완료 | ret={ret}")
 
     def get_balance(self):
         """
@@ -515,6 +583,72 @@ class KiwoomBroker(QObject):
 
         return result
 
+    # -------------------------
+    # TR 속도 제한 대기
+    # -------------------------
+    def _wait_tr_slot(self, rqname: str, trcode: str):
+        now = time.time()
+        elapsed = now - self.last_tr_request_ts
+
+        if elapsed < self.tr_interval_sec:
+            wait_sec = self.tr_interval_sec - elapsed
+            self.logger.info(
+                f"TR 대기 | rq={rqname} tr={trcode} wait={wait_sec:.2f}s"
+            )
+            time.sleep(wait_sec)
+
+        self.last_tr_request_ts = time.time()
+
+    # -------------------------
+    # CommRqData 공통 래퍼
+    # -------------------------
+    def _comm_rq_data_with_retry(
+        self,
+        rqname: str,
+        trcode: str,
+        prev_next: int,
+        screen_no: str,
+    ) -> int:
+        last_ret = None
+
+        for attempt in range(1, self.max_tr_retry + 1):
+            self._wait_tr_slot(rqname, trcode)
+
+            ret = self.ocx.dynamicCall(
+                "CommRqData(QString, QString, int, QString)",
+                rqname,
+                trcode,
+                int(prev_next),
+                screen_no,
+            )
+
+            self.logger.info(
+                f"CommRqData 호출 | rq={rqname} tr={trcode} prev_next={prev_next} "
+                f"screen={screen_no} ret={ret} attempt={attempt}/{self.max_tr_retry}"
+            )
+
+            if ret == 0:
+                return 0
+
+            last_ret = ret
+
+            if ret == -202:
+                wait_sec = self.tr_retry_wait_sec * attempt
+                self.logger.warning(
+                    f"조회 제한 발생(-202) | rq={rqname} tr={trcode} "
+                    f"attempt={attempt} wait={wait_sec:.1f}s 후 재시도"
+                )
+                time.sleep(wait_sec)
+                continue
+
+            raise RuntimeError(
+                f"CommRqData 실패 | rqname={rqname} trcode={trcode} ret={ret}"
+            )
+
+        raise RuntimeError(
+            f"CommRqData 재시도 실패 | rqname={rqname} trcode={trcode} ret={last_ret}"
+        )
+    
     # -------------------------
     # 실시간
     # -------------------------
