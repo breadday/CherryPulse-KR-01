@@ -3,6 +3,7 @@
 import sys
 import os
 import signal
+import time   # ✅ 추가
 from datetime import datetime
 
 from PyQt5.QtWidgets import QApplication
@@ -61,7 +62,7 @@ def main():
 
     broker = KiwoomBroker(
         logger=logger,
-        account_no="8122731511"  # 모의계좌
+        account_no="8122731511"
     )
 
     strategy = MomentumIntradayStrategy(config=STRATEGY_CONFIG)
@@ -105,109 +106,12 @@ def main():
         os._exit(0)
 
     # -------------------------
-    # 장외 DRY_RUN 테스트 틱 주입
-    # -------------------------
-    def inject_test_ticks():
-        if shutting_down["flag"]:
-            return
-
-        if not config.DRY_RUN:
-            logger.info("LIVE 모드에서는 테스트 틱 주입 안 함")
-            return
-
-        logger.info("🧪 DRY_RUN 테스트 틱 주입 시작")
-
-        test_ticks = [
-            {"symbol": "005930", "price": 70000, "trade_volume": 1000},
-            {"symbol": "005930", "price": 70800, "trade_volume": 1500},
-            {"symbol": "005930", "price": 71500, "trade_volume": 1800},
-            {"symbol": "005930", "price": 72000, "trade_volume": 2000},
-            {"symbol": "005930", "price": 70500, "trade_volume": 2200},
-        ]
-
-        interval_ms = 700
-
-        def push_tick(index: int):
-            if shutting_down["flag"]:
-                return
-
-            if index >= len(test_ticks):
-                logger.info("🧪 DRY_RUN 테스트 틱 주입 종료")
-                return
-
-            tick = test_ticks[index]
-            logger.info(
-                f"🧪 테스트틱 주입 | symbol={tick['symbol']} "
-                f"price={tick['price']} vol={tick['trade_volume']}"
-            )
-
-            try:
-                # 엔진 쪽 실시간 처리 함수 호출
-                if hasattr(engine, "on_real_tick"):
-                    engine.on_real_tick(tick)
-                else:
-                    logger.error("engine.on_real_tick 메서드를 찾을 수 없습니다.")
-                    return
-            except Exception as e:
-                logger.exception(f"테스트틱 처리 실패 | idx={index} err={e}")
-                return
-
-            QTimer.singleShot(interval_ms, lambda: push_tick(index + 1))
-
-        push_tick(0)
-
-    # -------------------------
-    # 테스트 주문
-    # -------------------------
-    def test_order():
-        if shutting_down["flag"]:
-            return
-
-        # DRY_RUN이면 장외에도 테스트 허용
-        if not config.DRY_RUN and not is_market_open():
-            logger.info("장 외 시간 → 주문 스킵")
-            return
-
-        if config.DRY_RUN and not is_market_open():
-            logger.info("DRY_RUN 장외 테스트 허용 | 테스트 주문 진행")
-
-        logger.info("🔥 테스트 주문 실행")
-
-        signal_obj = Signal(
-            symbol="005930",
-            side=Side.BUY,
-            qty=1,
-            price=0,
-            order_type=OrderType.MARKET,
-            reason="1주 테스트 매수"
-        )
-
-        if telegram:
-            telegram.send("🔥 테스트 주문 실행")
-
-        order = broker.place_order(signal_obj)
-
-        logger.info(
-            f"테스트 주문 결과 | order_id={order.order_id} "
-            f"status={order.status}"
-        )
-
-        if telegram:
-            telegram.send(
-                f"📈 주문 발생\n"
-                f"종목: {signal_obj.symbol}\n"
-                f"수량: {signal_obj.qty}\n"
-                f"상태: {order.status}"
-            )
-
-    # -------------------------
     # 자동 종료
     # -------------------------
     def auto_shutdown():
         if shutting_down["flag"]:
             return
 
-        # DRY_RUN이면 자동 종료 비활성화
         if config.DRY_RUN:
             return
 
@@ -241,19 +145,22 @@ def main():
     broker.show_account_window()
     logger.info("계좌비밀번호 창에서 저장 후 사용하세요.")
 
-    # 로그인 완료 후 계좌 동기화
+    # =========================
+    # 🔥 핵심 수정 부분
+    # =========================
+    logger.info("계좌 동기화 시작")
+
+    time.sleep(1.5)
     engine.sync_account(password=ACCOUNT_PASSWORD)
+
+    time.sleep(1.0)
     engine.sync_pending_orders(password=ACCOUNT_PASSWORD)
 
     engine.health_check()
 
-    stream.subscribe(["005930", "000660"])
+    # =========================
 
-    # DRY_RUN이면 장외 테스트틱 주입, 아니면 기존 테스트 주문만
-    if config.DRY_RUN:
-        QTimer.singleShot(3000, inject_test_ticks)
-    else:
-        QTimer.singleShot(3000, test_order)
+    stream.subscribe(["005930", "000660"])
 
     logger.info("실시간 엔진 시작")
 

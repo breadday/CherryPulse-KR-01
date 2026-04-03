@@ -104,7 +104,35 @@ class TradingEngine:
     # -------------------------
     def sync_account(self, password: str = ""):
         try:
-            deposit = self.broker.get_deposit(password=password)
+            deposit = 0
+            positions = []
+
+            # -------------------------
+            # 예수금 조회 (재시도)
+            # -------------------------
+            last_error = None
+            for attempt in range(3):
+                try:
+                    if attempt == 0:
+                        time.sleep(1.5)   # 로그인 직후 첫 조회 대기
+                    else:
+                        time.sleep(1.0)   # 재시도 간격
+
+                    deposit = self.broker.get_deposit(password=password)
+                    self.logger.info(f"예수금 조회 성공 | attempt={attempt + 1} deposit={deposit}")
+                    break
+
+                except Exception as e:
+                    last_error = e
+                    self.logger.warning(f"예수금 조회 실패 | attempt={attempt + 1} err={e}")
+
+            if deposit == 0 and last_error is not None:
+                raise last_error
+
+            # -------------------------
+            # 보유종목 조회
+            # -------------------------
+            time.sleep(1.0)
             positions = self.broker.get_positions(password=password)
 
             self.logger.info(f"예수금 동기화 완료 | deposit={deposit}")
