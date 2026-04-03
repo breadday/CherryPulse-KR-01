@@ -30,6 +30,16 @@ class TickData:
     volume: int
     ts: datetime
 
+    # Step 19~21 확장 필드
+    price_change_pct: float = 0.0
+    trade_strength: float = 0.0
+    volume_ratio: float = 0.0
+
+    # Step 20 외부 점수
+    news_score: float = 0.0
+    theme_score: float = 0.0
+    leader_score: float = 0.0
+
 
 @dataclass
 class Signal:
