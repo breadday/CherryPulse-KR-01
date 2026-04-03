@@ -24,30 +24,31 @@ class TradingEngine:
         # -------------------------
         # 주문 방어 설정
         # -------------------------
-        self.last_order_time = {}          # 종목별 마지막 주문 시각
-        self.order_cooldown_sec = 10       # 같은 종목 재주문 최소 간격
-        self.daily_order_count = 0         # 일일 주문 횟수
-        self.max_daily_orders = 20         # 일일 최대 주문 수
+        self.last_order_time = {}
+        self.order_cooldown_sec = 10
+        self.daily_order_count = 0
+        self.max_daily_orders = 20
         self.current_trading_date = datetime.now().date()
 
-        # 선택 방어
-        self.min_tick_volume = 1           # 너무 빈약한 틱 무시용
-        self.max_symbol_position = 1       # 종목당 1포지션만 허용
+        self.min_tick_volume = 1
+        self.max_symbol_position = 1
 
         self.broker.set_real_tick_callback(self.on_real_tick)
         self.broker.set_fill_callback(self.on_fill)
         self.broker.set_msg_callback(self.on_broker_msg)
-        self.sell_in_progress = set()      # 중복 매도 방지용
-        self.last_price_map = {}           # 종목별 최근가 저장
-        self.reentry_block_until = {}      # 종목별 재진입 금지 만료시각(timestamp)
-        self.last_exit_reason = {}         # 종목별 마지막 청산 사유
-        self.partial_exit_done = set()     # 1차 익절 완료 종목
-        self.breakeven_active = set()      # 본절 적용 종목
-        self.trailing_high_price = {}      # 종목별 트레일링 기준 최고가
-        self.cancel_in_progress = set()    # 종목별 취소 중복 방지
-        self.pending_resell = {}           # symbol -> {"qty": int, "reason": str, "requested_at": ts}
-        self.resell_retry_count = {}       # symbol -> 재시도 횟수
-        self.last_cancel_request_time = {} # symbol -> 마지막 취소 요청 시각
+
+        self.sell_in_progress = set()
+        self.last_price_map = {}
+        self.reentry_block_until = {}
+        self.last_exit_reason = {}
+        self.partial_exit_done = set()
+        self.breakeven_active = set()
+        self.trailing_high_price = {}
+        self.cancel_in_progress = set()
+        self.pending_resell = {}
+        self.resell_retry_count = {}
+        self.abandon_resell_symbols = set()
+        self.last_cancel_request_time = {}
         self.consecutive_loss_count = 0
         self.error_count = 0
         self.engine_protected = False
@@ -104,45 +105,16 @@ class TradingEngine:
     # -------------------------
     def sync_account(self, password: str = ""):
         try:
-            deposit = 0
-            positions = []
-
-            # -------------------------
-            # 예수금 조회 (재시도)
-            # -------------------------
-            last_error = None
-            for attempt in range(3):
-                try:
-                    if attempt == 0:
-                        time.sleep(1.5)   # 로그인 직후 첫 조회 대기
-                    else:
-                        time.sleep(1.0)   # 재시도 간격
-
-                    deposit = self.broker.get_deposit(password=password)
-                    self.logger.info(f"예수금 조회 성공 | attempt={attempt + 1} deposit={deposit}")
-                    break
-
-                except Exception as e:
-                    last_error = e
-                    self.logger.warning(f"예수금 조회 실패 | attempt={attempt + 1} err={e}")
-
-            if deposit == 0 and last_error is not None:
-                raise last_error
-
-            # -------------------------
-            # 보유종목 조회
-            # -------------------------
+            deposit = self.broker.get_deposit(password=password)
             time.sleep(1.0)
             positions = self.broker.get_positions(password=password)
 
             self.logger.info(f"예수금 동기화 완료 | deposit={deposit}")
             self.logger.info(f"보유종목 동기화 완료 | count={len(positions)}")
 
-            # 포트폴리오 현금 반영
             if hasattr(self, "portfolio"):
                 self.portfolio.cash = deposit
 
-            # 보유종목 반영
             if hasattr(self, "portfolio"):
                 for item in positions:
                     symbol = item["symbol"]
@@ -225,21 +197,43 @@ class TradingEngine:
                 )
 
             self.logger.info(f"미체결 주문 동기화 완료 | restored={restored}")
-
             return pending_orders
 
         except Exception as e:
             self.logger.exception(f"미체결 주문 동기화 실패 | {e}")
             return []
-        
+
+    # -------------------------
+    # 주기적 미체결 관리
+    # -------------------------
+    def manage_pending_orders(self):
+        try:
+            if not self.is_running:
+                return
+
+            symbols = set()
+
+            for order in self.order_manager.orders.values():
+                if getattr(order, "status", None) in (OrderStatus.SUBMITTED, OrderStatus.PARTIAL):
+                    if getattr(order, "symbol", None):
+                        symbols.add(order.symbol)
+
+            symbols.update(self.pending_resell.keys())
+
+            for symbol in list(symbols):
+                self._check_stale_sell_order(symbol)
+                self._retry_sell_after_cancel(symbol)
+
+        except Exception as e:
+            self.logger.exception(f"미체결 주문 관리 실패 | {e}")
+
     # -------------------------
     # 실시간 틱 수신
     # -------------------------
     def on_real_tick(self, raw_tick: dict):
-
         if self.engine_protected:
             return
-        
+
         try:
             symbol = raw_tick["symbol"]
             price = int(raw_tick["price"])
@@ -250,19 +244,12 @@ class TradingEngine:
             if price <= 0:
                 return
 
-            # 최근가 저장
             self.last_price_map[symbol] = price
 
-            # 1) 자동 매도 먼저 검사
             self._check_auto_exit(symbol, price)
-
-            # 1-1) 오래된 매도 미체결 주문 정리
             self._check_stale_sell_order(symbol)
-
-            # 1-2) 취소 후 재매도 재시도
             self._retry_sell_after_cancel(symbol)
 
-            # 2) 기존 전략 엔진으로 틱 전달
             tick = TickData(
                 symbol=symbol,
                 price=price,
@@ -288,19 +275,27 @@ class TradingEngine:
             if qty <= 0 or avg_price <= 0:
                 return
 
-            # 이미 매도 진행 중이면 중복 방지
+            # 재매도 포기한 종목은 추가 자동매도 금지
+            if symbol in self.abandon_resell_symbols:
+                return
+
+            # 미체결 재매도 루프 중이면 추가 자동매도 금지
+            if symbol in self.pending_resell:
+                return
+
+            # 취소 진행 중이어도 추가 자동매도 금지
+            if symbol in self.cancel_in_progress:
+                return
+
             if symbol in self.sell_in_progress:
                 return
 
-            # 미체결/진행중 주문 있으면 중복 방지
             if self.order_manager.exists_open_order(symbol):
                 return
 
             pnl_pct = (price - avg_price) / avg_price
 
-            # -------------------------
             # 1차 부분 익절
-            # -------------------------
             if (
                 symbol not in self.partial_exit_done
                 and pnl_pct >= config.PARTIAL_TAKE_PROFIT_PCT
@@ -316,24 +311,19 @@ class TradingEngine:
                 if config.BREAKEVEN_ENABLED:
                     self.breakeven_active.add(symbol)
 
-                # 부분익절 이후 남은 물량의 트레일링 최고가 시작
                 if config.TRAILING_STOP_ENABLED:
                     self.trailing_high_price[symbol] = price
 
                 self._submit_auto_sell(symbol, sell_qty, "부분익절")
                 return
 
-            # -------------------------
             # 부분익절 이후 최고가 갱신
-            # -------------------------
             if symbol in self.partial_exit_done and config.TRAILING_STOP_ENABLED:
                 prev_high = self.trailing_high_price.get(symbol, 0)
                 if price > prev_high:
                     self.trailing_high_price[symbol] = price
 
-            # -------------------------
             # 본절 손절
-            # -------------------------
             if symbol in self.breakeven_active:
                 if price <= avg_price:
                     self.logger.info(
@@ -342,9 +332,7 @@ class TradingEngine:
                     self._submit_auto_sell(symbol, qty, "본절청산")
                     return
 
-            # -------------------------
             # 트레일링 스탑
-            # -------------------------
             if symbol in self.partial_exit_done and config.TRAILING_STOP_ENABLED:
                 high_price = self.trailing_high_price.get(symbol, 0)
                 if high_price > 0:
@@ -358,9 +346,7 @@ class TradingEngine:
                         self._submit_auto_sell(symbol, qty, f"트레일링청산 high={high_price}")
                         return
 
-            # -------------------------
             # 최종 익절 / 손절
-            # -------------------------
             exit_reason = None
 
             if pnl_pct >= config.TAKE_PROFIT_PCT:
@@ -386,7 +372,6 @@ class TradingEngine:
             if qty <= 0:
                 return
 
-            # 중복 매도 방지 플래그
             self.sell_in_progress.add(symbol)
 
             signal = Signal(
@@ -405,28 +390,16 @@ class TradingEngine:
                 self.last_order_time[symbol] = time.time()
                 self.daily_order_count += 1
 
-                # 손절/비손절 카운트 관리
                 if "손절" in reason:
                     self.consecutive_loss_count += 1
                 else:
                     self.consecutive_loss_count = 0
 
-                # 보호모드 체크
                 self._check_engine_protection()
 
                 if config.DRY_RUN:
-                    class StubFill:
-                        pass
-
-                    fill = StubFill()
-                    fill.order_id = order.order_id
-                    fill.symbol = order.symbol
-                    fill.side = order.side
-                    fill.fill_qty = qty
-                    fill.fill_price = self.last_price_map.get(symbol, 0)
-                    fill.unfilled_qty = 0
-
-                    self.on_fill(fill)
+                    # SELL은 체결시키지 않음 -> 미체결 유지
+                    pass
 
             self.logger.info(
                 f"자동매도 주문 등록 | symbol={symbol} qty={qty} "
@@ -470,17 +443,25 @@ class TradingEngine:
             if order is None:
                 return
 
-            # 실제 주문번호가 아직 매핑 안 됐으면 취소 불가
             broker_order_id = None
             for real_id, local_id in self.order_manager.broker_to_local_id.items():
                 if local_id == order.order_id:
                     broker_order_id = real_id
                     break
 
+            # DRY_RUN에서는 실제 broker id 매핑이 없을 수 있음
             if not broker_order_id:
-                return
+                broker_order_id = order.order_id
 
-            elapsed = time.time() - float(order.ts)
+            order_ts = getattr(order, "ts", None)
+
+            if order_ts is None:
+                elapsed = 0.0
+            elif isinstance(order_ts, datetime):
+                elapsed = time.time() - order_ts.timestamp()
+            else:
+                elapsed = time.time() - float(order_ts)
+
             if elapsed < config.SELL_ORDER_TIMEOUT_SEC:
                 return
 
@@ -498,11 +479,34 @@ class TradingEngine:
             ret = self.broker.cancel_order(
                 symbol=symbol,
                 order_no=broker_order_id,
-                qty=remain_qty
+                qty=remain_qty,
+                side=Side.SELL,
             )
 
             if ret == 0:
                 self.last_cancel_request_time[symbol] = time.time()
+
+                order.status = OrderStatus.CANCELED
+
+                # 기존 열린 주문 제거
+                try:
+                    self.order_manager.orders.pop(order.order_id, None)
+                except Exception:
+                    pass
+
+                try:
+                    remove_keys = []
+                    for broker_id, local_id in self.order_manager.broker_to_local_id.items():
+                        if local_id == order.order_id:
+                            remove_keys.append(broker_id)
+
+                    for broker_id in remove_keys:
+                        self.order_manager.broker_to_local_id.pop(broker_id, None)
+                except Exception:
+                    pass
+
+                # 취소됐으니 매도 진행 플래그 해제
+                self.sell_in_progress.discard(symbol)
 
                 if config.RETRY_SELL_AFTER_CANCEL:
                     self.pending_resell[symbol] = {
@@ -544,7 +548,6 @@ class TradingEngine:
             if symbol in self.sell_in_progress:
                 return
 
-            # 아직 취소 직후 너무 이르면 대기
             requested_at = float(pending.get("requested_at", 0))
             if time.time() - requested_at < config.RETRY_SELL_DELAY_SEC:
                 return
@@ -557,7 +560,6 @@ class TradingEngine:
                 self.cancel_in_progress.discard(symbol)
                 return
 
-            # 보유 수량 다시 확인
             pos = self.portfolio.get_position(symbol)
             hold_qty = int(getattr(pos, "qty", 0))
             if hold_qty <= 0:
@@ -574,9 +576,12 @@ class TradingEngine:
                 )
                 self.pending_resell.pop(symbol, None)
                 self.cancel_in_progress.discard(symbol)
+                self.sell_in_progress.discard(symbol)
+
+                # 이 종목은 자동매도 재시도 포기 상태로 전환
+                self.abandon_resell_symbols.add(symbol)
                 return
 
-            # 아직 진행중인 주문 있으면 대기
             if self.order_manager.exists_open_order(symbol):
                 return
 
@@ -657,7 +662,7 @@ class TradingEngine:
             return False, f"재진입 제한 중({remain}초 남음, 사유={reason})"
 
         return True, "OK"
-    
+
     # -------------------------
     # 주문 가능 여부 방어 로직
     # -------------------------
@@ -685,13 +690,12 @@ class TradingEngine:
         if now_ts - last_ts < self.order_cooldown_sec:
             return False, f"주문 쿨타임 {self.order_cooldown_sec}초 이내"
 
-        # 매수 재진입 제한
         if signal.side.value == "BUY":
             ok_reenter, reason_reenter = self._can_reenter_buy(signal.symbol)
             if not ok_reenter:
                 return False, reason_reenter
 
-        pos = self.portfolio.get_position(signal.symbol)        
+        pos = self.portfolio.get_position(signal.symbol)
         if signal.side.value == "BUY":
             if pos.qty >= self.max_symbol_position:
                 return False, "종목당 최대 보유 제한"
@@ -726,8 +730,6 @@ class TradingEngine:
             order = self.broker.place_order(signal)
             self.order_manager.register(order)
 
-
-            # 주문 접수 시점에 먼저 카운트
             if order.status == OrderStatus.SUBMITTED:
                 self.last_order_time[signal.symbol] = time.time()
                 self.daily_order_count += 1
@@ -736,18 +738,20 @@ class TradingEngine:
                     self.strategy.mark_entry(signal.symbol, tick.ts)
 
             if config.DRY_RUN:
-                class StubFill:
-                    pass
+                # BUY만 체결 처리
+                if signal.side.value == "BUY":
+                    class StubFill:
+                        pass
 
-                fill = StubFill()
-                fill.order_id = order.order_id
-                fill.symbol = order.symbol
-                fill.side = order.side
-                fill.fill_qty = order.qty
-                fill.fill_price = tick.price
-                fill.unfilled_qty = 0
+                    fill = StubFill()
+                    fill.order_id = order.order_id
+                    fill.symbol = order.symbol
+                    fill.side = order.side
+                    fill.fill_qty = order.qty
+                    fill.fill_price = tick.price
+                    fill.unfilled_qty = 0
 
-                self.on_fill(fill)
+                    self.on_fill(fill)
 
             self.logger.info(
                 f"주문 등록 | id={order.order_id} symbol={order.symbol} "
@@ -786,17 +790,14 @@ class TradingEngine:
     # -------------------------
     def on_fill(self, fill):
         try:
-            # 1) 실제 주문번호와 내부 주문번호 연결
             local_order_id = self.order_manager.bind_broker_order_id(
                 symbol=fill.symbol,
                 broker_order_id=fill.order_id
             )
             resolved_order_id = local_order_id or self.order_manager.resolve_order_id(fill.order_id)
 
-            # 2) 포트폴리오에는 "이번 체결분"만 반영
             self.portfolio.update_fill(fill)
 
-            # 3) 주문 누적 체결 반영
             order = self.order_manager.apply_fill(
                 order_id=resolved_order_id,
                 fill_qty=fill.fill_qty,
@@ -836,7 +837,6 @@ class TradingEngine:
                     f"상태: {status_text}"
                 )
 
-            # 매도 체결 시 중복 매도 방지 플래그 해제
             try:
                 if getattr(fill.side, "name", "") == "SELL":
                     self.sell_in_progress.discard(fill.symbol)
@@ -847,7 +847,6 @@ class TradingEngine:
             except Exception:
                 pass
 
-            # 포지션 완전 청산 시 상태 초기화
             try:
                 pos = self.portfolio.get_position(fill.symbol)
                 if int(getattr(pos, "qty", 0)) == 0:
@@ -858,20 +857,16 @@ class TradingEngine:
             except Exception:
                 pass
 
-            # 완전 청산 시 재매도 관련 상태도 초기화
             try:
                 pos = self.portfolio.get_position(fill.symbol)
                 if int(getattr(pos, "qty", 0)) == 0:
                     self.pending_resell.pop(fill.symbol, None)
                     self.resell_retry_count.pop(fill.symbol, None)
                     self.last_cancel_request_time.pop(fill.symbol, None)
+                    self.abandon_resell_symbols.discard(fill.symbol)
             except Exception:
                 pass
 
-            pos = self.portfolio.get_position("005930")
-            # self.logger.info(f"[POS] 005930 qty={pos.qty} avg={pos.avg_price}")
-
-            # 완전 체결 또는 포지션 정리 시 취소 플래그 해제
             try:
                 self.cancel_in_progress.discard(fill.symbol)
             except Exception:
@@ -889,15 +884,12 @@ class TradingEngine:
     # -------------------------
     def _check_engine_protection(self):
         try:
-            # 1. 연속 손절
             if self.consecutive_loss_count >= config.MAX_CONSECUTIVE_LOSS:
                 self._trigger_protection(f"연속 손절 {self.consecutive_loss_count}회")
 
-            # 2. 일일 손실
             if self.portfolio.realized_pnl <= config.MAX_DAILY_LOSS:
                 self._trigger_protection(f"일일 손실 초과 {self.portfolio.realized_pnl}")
 
-            # 3. 오류 누적
             if self.error_count >= config.MAX_ERROR_COUNT:
                 self._trigger_protection(f"오류 누적 {self.error_count}회")
 
@@ -919,7 +911,6 @@ class TradingEngine:
                 f"PnL: {self.portfolio.realized_pnl:.0f}"
             )
 
-        # 엔진 중지
         self.stop()
 
     # -------------------------
@@ -961,14 +952,13 @@ class TradingEngine:
 
         except Exception as e:
             self.logger.exception(f"헬스체크 실패 | {e}")
-            
+
     # -------------------------
     # 서버 메시지
     # -------------------------
     def on_broker_msg(self, text: str):
         self.logger.info(text)
 
-        # 취소/정정/거부 관련 메시지 들어오면 취소 플래그 해제
         cancel_keywords = ["취소", "정정", "거부", "실패", "오류"]
         if any(k in text for k in cancel_keywords):
             try:
@@ -977,8 +967,6 @@ class TradingEngine:
             except Exception:
                 pass
 
-        # 매도 취소/정정 관련 메시지 이후 재매도는 on_real_tick에서 처리
         error_keywords = ["실패", "오류", "거부", "에러", "제한"]
         if self.telegram and any(k in text for k in error_keywords):
             self.telegram.send(f"⚠️ 서버 메시지\n{text}")
-

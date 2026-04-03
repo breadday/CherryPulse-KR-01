@@ -1,5 +1,3 @@
-# broker/kiwoom_broker.py
-
 from PyQt5.QtCore import QObject, QEventLoop
 from PyQt5.QAxContainer import QAxWidget
 import time
@@ -42,12 +40,30 @@ class KiwoomBroker(QObject):
         # -------------------------
         # TR 요청 속도 제한
         # -------------------------
-        self.tr_interval_sec = 0.7        # TR 요청 간 최소 간격
-        self.tr_retry_wait_sec = 1.2      # -202 재시도 대기
-        self.max_tr_retry = 3             # 최대 재시도 횟수
-        self.last_tr_request_ts = 0.0     # 마지막 TR 요청 시각
+        self.tr_interval_sec = 0.7
+        self.tr_retry_wait_sec = 1.2
+        self.max_tr_retry = 3
+        self.last_tr_request_ts = 0.0
+
+        # -------------------------
+        # 주문 요청 속도 제한
+        # -------------------------
+        self.order_interval_sec = 0.5
+        self.order_retry_wait_sec = 1.0
+        self.max_order_retry = 3
+        self.last_order_request_ts = 0.0
 
         self._set_signal_slots()
+
+    # -------------------------
+    # 이벤트 연결
+    # -------------------------
+    def _set_signal_slots(self):
+        self.ocx.OnEventConnect.connect(self._on_event_connect)
+        self.ocx.OnReceiveRealData.connect(self._on_receive_real_data)
+        self.ocx.OnReceiveChejanData.connect(self._on_receive_chejan_data)
+        self.ocx.OnReceiveMsg.connect(self._on_receive_msg)
+        self.ocx.OnReceiveTrData.connect(self._on_receive_tr_data)
 
     # -------------------------
     # TR 속도 제한 대기
@@ -58,12 +74,24 @@ class KiwoomBroker(QObject):
 
         if elapsed < self.tr_interval_sec:
             wait_sec = self.tr_interval_sec - elapsed
-            self.logger.info(
-                f"TR 대기 | rq={rqname} tr={trcode} wait={wait_sec:.2f}s"
-            )
+            self.logger.info(f"TR 대기 | rq={rqname} tr={trcode} wait={wait_sec:.2f}s")
             time.sleep(wait_sec)
 
         self.last_tr_request_ts = time.time()
+
+    # -------------------------
+    # 주문 속도 제한 대기
+    # -------------------------
+    def _wait_order_slot(self, tag: str = "SendOrder"):
+        now = time.time()
+        elapsed = now - self.last_order_request_ts
+
+        if elapsed < self.order_interval_sec:
+            wait_sec = self.order_interval_sec - elapsed
+            self.logger.info(f"주문 대기 | tag={tag} wait={wait_sec:.2f}s")
+            time.sleep(wait_sec)
+
+        self.last_order_request_ts = time.time()
 
     # -------------------------
     # CommRqData 공통 래퍼
@@ -114,16 +142,69 @@ class KiwoomBroker(QObject):
         raise RuntimeError(
             f"CommRqData 재시도 실패 | rqname={rqname} trcode={trcode} ret={last_ret}"
         )
-    
+
     # -------------------------
-    # 이벤트 연결
+    # SendOrder 공통 래퍼
     # -------------------------
-    def _set_signal_slots(self):
-        self.ocx.OnEventConnect.connect(self._on_event_connect)
-        self.ocx.OnReceiveRealData.connect(self._on_receive_real_data)
-        self.ocx.OnReceiveChejanData.connect(self._on_receive_chejan_data)
-        self.ocx.OnReceiveMsg.connect(self._on_receive_msg)
-        self.ocx.OnReceiveTrData.connect(self._on_receive_tr_data)
+    def _send_order_with_retry(
+        self,
+        rqname: str,
+        screen_no: str,
+        account_no: str,
+        order_type: int,
+        code: str,
+        qty: int,
+        price: int,
+        hoga_gb: str,
+        org_order_no: str = "",
+    ) -> int:
+        last_ret = None
+
+        for attempt in range(1, self.max_order_retry + 1):
+            self._wait_order_slot(tag=f"{rqname}:{code}")
+
+            ret = self.ocx.dynamicCall(
+                "SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
+                [
+                    rqname,
+                    screen_no,
+                    account_no,
+                    int(order_type),
+                    code,
+                    int(qty),
+                    int(price),
+                    hoga_gb,
+                    org_order_no,
+                ]
+            )
+
+            self.logger.info(
+                f"SendOrder 호출 | rq={rqname} code={code} type={order_type} "
+                f"qty={qty} price={price} hoga={hoga_gb} org={org_order_no} "
+                f"ret={ret} attempt={attempt}/{self.max_order_retry}"
+            )
+
+            if ret == 0:
+                return 0
+
+            last_ret = ret
+
+            if ret in (-308, -202):
+                wait_sec = self.order_retry_wait_sec * attempt
+                self.logger.warning(
+                    f"주문 재시도 대상 오류 | rq={rqname} code={code} ret={ret} "
+                    f"attempt={attempt} wait={wait_sec:.1f}s"
+                )
+                time.sleep(wait_sec)
+                continue
+
+            raise RuntimeError(
+                f"SendOrder 실패 | rqname={rqname} code={code} order_type={order_type} ret={ret}"
+            )
+
+        raise RuntimeError(
+            f"SendOrder 재시도 실패 | rqname={rqname} code={code} order_type={order_type} ret={last_ret}"
+        )
 
     # -------------------------
     # 로그인
@@ -160,7 +241,7 @@ class KiwoomBroker(QObject):
     def show_account_window(self):
         self.logger.info("계좌비밀번호 입력창 호출")
         self.ocx.dynamicCall('KOA_Functions(QString, QString)', "ShowAccountWindow", "")
-        
+
     def _on_event_connect(self, err_code):
         self.logger.info(f"OnEventConnect 호출 | err_code={err_code}")
 
@@ -212,7 +293,7 @@ class KiwoomBroker(QObject):
             if sRQName == "opt10075_req":
                 self._handle_opt10075(sTrCode, sRQName, sPrevNext)
                 return
-            
+
         except Exception as e:
             self.logger.exception(f"TR 처리 오류 | rq={sRQName} tr={sTrCode} err={e}")
             if self.tr_loop and self.tr_loop.isRunning():
@@ -292,186 +373,6 @@ class KiwoomBroker(QObject):
         if self.tr_loop and self.tr_loop.isRunning():
             self.tr_loop.quit()
 
-    # -------------------------
-    # 계좌 조회
-    # -------------------------
-    def get_deposit(self, password: str = "") -> int:
-        self.logger.info("get_deposit 호출")
-
-        if not self.account_no:
-            raise RuntimeError("계좌번호(account_no)가 설정되지 않았습니다.")
-
-        self._deposit_result = 0
-        self.tr_loop = QEventLoop()
-
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호", password)
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호입력매체구분", "00")
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "조회구분", "2")
-
-        self._comm_rq_data_with_retry(
-            rqname="deposit_req",
-            trcode="opw00001",
-            prev_next=0,
-            screen_no=self.deposit_screen_no,
-        )
-
-        self.tr_loop.exec_()
-        return self._deposit_result
-
-    def get_positions(self, password: str = "") -> list[dict]:
-        """
-        보유 종목 조회 (opw00018)
-        """
-        self.logger.info("get_positions 호출")
-
-        if not self.account_no:
-            raise RuntimeError("계좌번호(account_no)가 설정되지 않았습니다.")
-
-        self._positions_result = []
-        self._positions_password = password
-        self.tr_loop = QEventLoop()
-
-        self._request_positions(prev_next="0", password=password)
-        self.tr_loop.exec_()
-
-        self.logger.info(f"get_positions 완료 | count={len(self._positions_result)}")
-        return self._positions_result
-
-    def _request_positions(self, prev_next: str = "0", password: str = ""):
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호", password)
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호입력매체구분", "00")
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "조회구분", "1")
-
-        self.logger.info(f"계좌평가잔고내역요청 호출 | prev_next={prev_next}")
-        ret = self.ocx.dynamicCall(
-            "CommRqData(QString, QString, int, QString)",
-            "opw00018_req",
-            "opw00018",
-            int(prev_next),
-            self.balance_screen_no,
-        )
-        self.logger.info(f"CommRqData(opw00018) 완료 | ret={ret}")
-
-    def _handle_opw00018(self, sTrCode: str, sRQName: str, sPrevNext: str):
-        count = self.ocx.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
-        self.logger.info(f"opw00018 수신 | rows={count} | sPrevNext={sPrevNext}")
-
-        for i in range(count):
-            code = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode, sRQName, i, "종목번호"
-            ).strip()
-            name = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode, sRQName, i, "종목명"
-            ).strip()
-            qty = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode, sRQName, i, "보유수량"
-            ).strip()
-            available_qty = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode, sRQName, i, "매매가능수량"
-            ).strip()
-            avg_price = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode, sRQName, i, "매입가"
-            ).strip()
-            current_price = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode, sRQName, i, "현재가"
-            ).strip()
-            eval_pnl = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode, sRQName, i, "평가손익"
-            ).strip()
-            return_pct = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode, sRQName, i, "수익률(%)"
-            ).strip()
-
-            item = {
-                "symbol": self._clean_code(code),
-                "name": name,
-                "qty": self._to_int(qty),
-                "available_qty": self._to_int(available_qty),
-                "avg_price": float(abs(self._to_int(avg_price))),
-                "current_price": float(abs(self._to_int(current_price))),
-                "eval_pnl": self._to_int(eval_pnl),
-                "return_pct": self._to_float(return_pct),
-            }
-
-            if item["symbol"] and item["qty"] > 0:
-                self._positions_result.append(item)
-
-        if str(sPrevNext).strip() == "2":
-            self._request_positions(prev_next="2", password=self._positions_password)
-            return
-
-        self.logger.info(f"보유종목 조회 완료 | count={len(self._positions_result)}")
-
-        if self.tr_loop and self.tr_loop.isRunning():
-            self.tr_loop.quit()
-            
-    def get_pending_orders(self, password: str = "") -> list[dict]:
-        """
-        미체결 주문 조회 (opt10075)
-        반환 예:
-        [
-            {
-                "order_no": "1234567",
-                "symbol": "005930",
-                "name": "삼성전자",
-                "side": Side.BUY,
-                "order_price": 70000,
-                "order_qty": 2,
-                "unfilled_qty": 1,
-                "filled_qty": 1,
-                "order_status": "접수",
-            }
-        ]
-        """
-        self.logger.info("get_pending_orders 호출")
-
-        if not self.account_no:
-            raise RuntimeError("계좌번호(account_no)가 설정되지 않았습니다.")
-
-        self._pending_orders_result = []
-        self._pending_orders_password = password
-        self.tr_loop = QEventLoop()
-
-        self._request_pending_orders(prev_next="0", password=password)
-        self.tr_loop.exec_()
-
-        self.logger.info(f"get_pending_orders 완료 | count={len(self._pending_orders_result)}")
-        return self._pending_orders_result
-
-    def _request_pending_orders(self, prev_next: str = "0", password: str = ""):
-        """
-        opt10075 미체결 주문 조회
-        입력값:
-        - 계좌번호
-        - 전체종목구분: 0 전체 / 1 종목
-        - 매매구분: 0 전체 / 1 매도 / 2 매수
-        - 종목코드: 전체면 공백
-        - 체결구분: 1 미체결 / 2 체결 / 0 전체
-        """
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "전체종목구분", "0")
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "매매구분", "0")
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "종목코드", "")
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", "체결구분", "1")
-
-        self.logger.info(f"미체결주문요청 호출 | prev_next={prev_next}")
-        self._comm_rq_data_with_retry(
-            rqname="opt10075_req",
-            trcode="opt10075",
-            prev_next=int(prev_next),
-            screen_no=self.pending_screen_no,
-        )
-
     def _handle_opt10075(self, sTrCode: str, sRQName: str, sPrevNext: str):
         count = self.ocx.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
         self.logger.info(f"opt10075 수신 | rows={count} | sPrevNext={sPrevNext}")
@@ -547,11 +448,48 @@ class KiwoomBroker(QObject):
         if self.tr_loop and self.tr_loop.isRunning():
             self.tr_loop.quit()
 
-    def _parse_order_side(self, order_gubun: str):
-        text = str(order_gubun).strip().replace("+", "").replace("-", "")
-        if "매도" in text:
-            return Side.SELL
-        return Side.BUY
+    # -------------------------
+    # 계좌 조회
+    # -------------------------
+    def get_deposit(self, password: str = "") -> int:
+        self.logger.info("get_deposit 호출")
+
+        if not self.account_no:
+            raise RuntimeError("계좌번호(account_no)가 설정되지 않았습니다.")
+
+        self._deposit_result = 0
+        self.tr_loop = QEventLoop()
+
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호", password)
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "비밀번호입력매체구분", "00")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "조회구분", "2")
+
+        self._comm_rq_data_with_retry(
+            rqname="deposit_req",
+            trcode="opw00001",
+            prev_next=0,
+            screen_no=self.deposit_screen_no,
+        )
+
+        self.tr_loop.exec_()
+        return self._deposit_result
+
+    def get_positions(self, password: str = "") -> list[dict]:
+        self.logger.info("get_positions 호출")
+
+        if not self.account_no:
+            raise RuntimeError("계좌번호(account_no)가 설정되지 않았습니다.")
+
+        self._positions_result = []
+        self._positions_password = password
+        self.tr_loop = QEventLoop()
+
+        self._request_positions(prev_next="0", password=password)
+        self.tr_loop.exec_()
+
+        self.logger.info(f"get_positions 완료 | count={len(self._positions_result)}")
+        return self._positions_result
 
     def _request_positions(self, prev_next: str = "0", password: str = ""):
         self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
@@ -567,11 +505,44 @@ class KiwoomBroker(QObject):
             screen_no=self.balance_screen_no,
         )
 
+    def get_pending_orders(self, password: str = "") -> list[dict]:
+        self.logger.info("get_pending_orders 호출")
+
+        if not self.account_no:
+            raise RuntimeError("계좌번호(account_no)가 설정되지 않았습니다.")
+
+        self._pending_orders_result = []
+        self._pending_orders_password = password
+        self.tr_loop = QEventLoop()
+
+        self._request_pending_orders(prev_next="0", password=password)
+        self.tr_loop.exec_()
+
+        self.logger.info(f"get_pending_orders 완료 | count={len(self._pending_orders_result)}")
+        return self._pending_orders_result
+
+    def _request_pending_orders(self, prev_next: str = "0", password: str = ""):
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_no)
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "전체종목구분", "0")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "매매구분", "0")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "종목코드", "")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "체결구분", "1")
+
+        self.logger.info(f"미체결주문요청 호출 | prev_next={prev_next}")
+        self._comm_rq_data_with_retry(
+            rqname="opt10075_req",
+            trcode="opt10075",
+            prev_next=int(prev_next),
+            screen_no=self.pending_screen_no,
+        )
+
+    def _parse_order_side(self, order_gubun: str):
+        text = str(order_gubun).strip().replace("+", "").replace("-", "")
+        if "매도" in text:
+            return Side.SELL
+        return Side.BUY
+
     def get_balance(self):
-        """
-        기존 호환용.
-        내부적으로 get_positions() 결과를 dict 형태로 변환.
-        """
         result = {}
         positions = self.get_positions(password="")
 
@@ -583,72 +554,6 @@ class KiwoomBroker(QObject):
 
         return result
 
-    # -------------------------
-    # TR 속도 제한 대기
-    # -------------------------
-    def _wait_tr_slot(self, rqname: str, trcode: str):
-        now = time.time()
-        elapsed = now - self.last_tr_request_ts
-
-        if elapsed < self.tr_interval_sec:
-            wait_sec = self.tr_interval_sec - elapsed
-            self.logger.info(
-                f"TR 대기 | rq={rqname} tr={trcode} wait={wait_sec:.2f}s"
-            )
-            time.sleep(wait_sec)
-
-        self.last_tr_request_ts = time.time()
-
-    # -------------------------
-    # CommRqData 공통 래퍼
-    # -------------------------
-    def _comm_rq_data_with_retry(
-        self,
-        rqname: str,
-        trcode: str,
-        prev_next: int,
-        screen_no: str,
-    ) -> int:
-        last_ret = None
-
-        for attempt in range(1, self.max_tr_retry + 1):
-            self._wait_tr_slot(rqname, trcode)
-
-            ret = self.ocx.dynamicCall(
-                "CommRqData(QString, QString, int, QString)",
-                rqname,
-                trcode,
-                int(prev_next),
-                screen_no,
-            )
-
-            self.logger.info(
-                f"CommRqData 호출 | rq={rqname} tr={trcode} prev_next={prev_next} "
-                f"screen={screen_no} ret={ret} attempt={attempt}/{self.max_tr_retry}"
-            )
-
-            if ret == 0:
-                return 0
-
-            last_ret = ret
-
-            if ret == -202:
-                wait_sec = self.tr_retry_wait_sec * attempt
-                self.logger.warning(
-                    f"조회 제한 발생(-202) | rq={rqname} tr={trcode} "
-                    f"attempt={attempt} wait={wait_sec:.1f}s 후 재시도"
-                )
-                time.sleep(wait_sec)
-                continue
-
-            raise RuntimeError(
-                f"CommRqData 실패 | rqname={rqname} trcode={trcode} ret={ret}"
-            )
-
-        raise RuntimeError(
-            f"CommRqData 재시도 실패 | rqname={rqname} trcode={trcode} ret={last_ret}"
-        )
-    
     # -------------------------
     # 실시간
     # -------------------------
@@ -721,36 +626,75 @@ class KiwoomBroker(QObject):
                 f"qty={signal.qty} price={price} order_type={signal.order_type} reason={signal.reason}"
             )
 
-            return Order(
-                order_id=local_id,
-                symbol=signal.symbol,
-                side=signal.side,
-                qty=signal.qty,
+            # -------------------------
+            # 🔥 핵심: BUY만 즉시 체결 / SELL은 미체결 유지
+            # -------------------------
+            if signal.side == Side.BUY:
+                order = Order(
+                    order_id=local_id,
+                    symbol=signal.symbol,
+                    side=signal.side,
+                    qty=signal.qty,
+                    price=price,
+                    order_type=signal.order_type,
+                    status=OrderStatus.SUBMITTED,
+                    reason=signal.reason,
+                )
+
+                # 즉시 체결 시뮬레이션
+                class StubFill:
+                    pass
+
+                fill = StubFill()
+                fill.order_id = local_id
+                fill.symbol = signal.symbol
+                fill.side = signal.side
+                fill.fill_qty = signal.qty
+                fill.fill_price = price if price > 0 else 70000
+                fill.unfilled_qty = 0
+
+                if self.on_fill_callback:
+                    self.on_fill_callback(fill)
+
+                return order
+
+            else:
+                # SELL은 일부러 체결 안됨 → 미체결 유지
+                return Order(
+                    order_id=local_id,
+                    symbol=signal.symbol,
+                    side=signal.side,
+                    qty=signal.qty,
+                    price=price,
+                    order_type=signal.order_type,
+                    status=OrderStatus.SUBMITTED,
+                    reason="DRY_RUN_미체결",
+                )
+        try:
+            ret = self._send_order_with_retry(
+                rqname="주문요청",
+                screen_no=self.order_screen_no,
+                account_no=self.account_no,
+                order_type=order_type_map[signal.side],
+                code=signal.symbol,
+                qty=int(signal.qty),
                 price=price,
-                order_type=signal.order_type,
-                status=OrderStatus.SUBMITTED,
-                reason=signal.reason,
+                hoga_gb=hoga_gb,
+                org_order_no="",
             )
 
-        ret = self.ocx.dynamicCall(
-            "SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
-            "주문요청",
-            self.order_screen_no,
-            self.account_no,
-            order_type_map[signal.side],
-            signal.symbol,
-            int(signal.qty),
-            price,
-            hoga_gb,
-            ""
-        )
+            if ret == 0:
+                status = OrderStatus.SUBMITTED
+                self.logger.info(f"주문 성공 | {signal.symbol} {signal.side} {signal.qty}")
+            else:
+                status = OrderStatus.REJECTED
+                self.logger.error(f"주문 실패 | ret={ret}")
 
-        if ret == 0:
-            status = OrderStatus.SUBMITTED
-            self.logger.info(f"주문 성공 | {signal.symbol} {signal.side} {signal.qty}")
-        else:
+        except Exception as e:
+            self.logger.exception(
+                f"주문 예외 | symbol={signal.symbol} side={signal.side} qty={signal.qty} err={e}"
+            )
             status = OrderStatus.REJECTED
-            self.logger.error(f"주문 실패 | ret={ret}")
 
         return Order(
             order_id=local_id,
@@ -766,13 +710,13 @@ class KiwoomBroker(QObject):
     # -------------------------
     # 주문 취소
     # -------------------------
-    def cancel_order(self, symbol: str, order_no: str, qty: int) -> int:
+    def cancel_order(self, symbol: str, order_no: str, qty: int, side: Side = Side.SELL) -> int:
         try:
             import config
 
             if config.DRY_RUN or not config.LIVE_MODE:
                 self.logger.warning(
-                    f"[DRY_RUN] 취소 모의 처리 | symbol={symbol} order_no={order_no} qty={qty}"
+                    f"[DRY_RUN] 취소 모의 처리 | symbol={symbol} order_no={order_no} qty={qty} side={side}"
                 )
                 return 0
 
@@ -780,33 +724,34 @@ class KiwoomBroker(QObject):
                 self.logger.warning(f"취소 실패 | 주문번호 없음 | symbol={symbol}")
                 return -1
 
-            ret = self.ocx.dynamicCall(
-                "SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
-                "주문취소",
-                self.order_screen_no,
-                self.account_no,
-                4,
-                symbol,
-                int(qty),
-                0,
-                "00",
-                order_no
+            cancel_type = 4 if side == Side.SELL else 3
+
+            ret = self._send_order_with_retry(
+                rqname="주문취소",
+                screen_no=self.order_screen_no,
+                account_no=self.account_no,
+                order_type=cancel_type,
+                code=symbol,
+                qty=int(qty),
+                price=0,
+                hoga_gb="00",
+                org_order_no=order_no,
             )
 
             if ret == 0:
                 self.logger.info(
-                    f"취소 주문 요청 성공 | symbol={symbol} order_no={order_no} qty={qty}"
+                    f"취소 주문 요청 성공 | symbol={symbol} order_no={order_no} qty={qty} side={side}"
                 )
             else:
                 self.logger.error(
-                    f"취소 주문 요청 실패 | symbol={symbol} order_no={order_no} qty={qty} ret={ret}"
+                    f"취소 주문 요청 실패 | symbol={symbol} order_no={order_no} qty={qty} side={side} ret={ret}"
                 )
 
             return ret
 
         except Exception as e:
             self.logger.exception(
-                f"취소 주문 예외 | symbol={symbol} order_no={order_no} qty={qty} err={e}"
+                f"취소 주문 예외 | symbol={symbol} order_no={order_no} qty={qty} side={side} err={e}"
             )
             return -1
 
@@ -843,7 +788,6 @@ class KiwoomBroker(QObject):
                     fill_qty=fill_qty,
                     fill_price=fill_price
                 )
-
                 fill.unfilled_qty = unfilled_qty
 
                 if self.on_fill_callback:
