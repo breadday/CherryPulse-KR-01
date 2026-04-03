@@ -1,50 +1,10 @@
-# strategy/momentum_intraday.py
-
 from datetime import datetime, timedelta
+
 from core.models import Signal, Side, OrderType
+from utils.score_filter import calculate_score
 
-def generate_signal(self, tick, portfolio):
-    """
-    tick: TickData
-    portfolio: Portfolio
-    """
-
-    symbol = tick.symbol
-    price = tick.price
-
-    # 이미 보유 중이면 진입 안함
-    pos = portfolio.get_position(symbol)
-    if pos.qty > 0:
-        return None
-
-    # market_data 구성 (전략 입력용)
-    market_data = {
-        "price": price,
-        "price_change_pct": getattr(tick, "price_change_pct", 0.0),
-        "trade_strength": getattr(tick, "trade_strength", 0.0),
-        "volume_ratio": getattr(tick, "volume_ratio", 1.0),
-        "timestamp": getattr(tick, "ts", None),
-    }
-
-    # 진입 조건 체크
-    ok, reason = self.can_enter(symbol, market_data, portfolio)
-    if not ok:
-        return None
-
-    # 수량 결정 (기본: 1주 테스트)
-    qty = 1
-
-    return Signal(
-        symbol=symbol,
-        side=Side.BUY,
-        qty=qty,
-        price=0,
-        order_type=OrderType.MARKET,
-        reason=f"momentum_entry:{reason}",
-    )
 
 class MomentumIntradayStrategy:
-    
     def __init__(self, config=None):
         self.config = config or {}
 
@@ -53,6 +13,9 @@ class MomentumIntradayStrategy:
         self.min_price_change_pct = self.config.get("min_price_change_pct", 0.5)
         self.min_volume_ratio = self.config.get("min_volume_ratio", 1.5)
         self.max_positions = self.config.get("max_positions", 3)
+
+        # 최소 점수 필터
+        self.min_entry_score = self.config.get("min_entry_score", 2)
 
         # 청산 조건
         self.stop_loss_pct = self.config.get("stop_loss_pct", -2.0)
@@ -83,11 +46,21 @@ class MomentumIntradayStrategy:
             "price_change_pct": getattr(tick, "price_change_pct", 0.0),
             "trade_strength": getattr(tick, "trade_strength", 0.0),
             "volume_ratio": getattr(tick, "volume_ratio", 1.0),
-            "timestamp": getattr(tick, "ts", None),
+            "timestamp": getattr(tick, "ts", datetime.now()),
         }
 
+        # 기존 진입 조건 체크
         ok, reason = self.can_enter(symbol, market_data, portfolio)
         if not ok:
+            return None
+
+        # 최소 점수 필터
+        score = calculate_score(
+            price_change_pct=market_data["price_change_pct"],
+            volume_ratio=market_data["volume_ratio"],
+        )
+
+        if score < self.min_entry_score:
             return None
 
         # 테스트용 1주
@@ -99,9 +72,9 @@ class MomentumIntradayStrategy:
             qty=qty,
             price=0,
             order_type=OrderType.MARKET,
-            reason=f"momentum_entry:{reason}",
+            reason=f"momentum_entry:{reason}:score={score}",
         )
-    
+
     def can_enter(self, symbol, market_data, portfolio=None):
         """
         진입 가능 여부 판단
@@ -127,7 +100,8 @@ class MomentumIntradayStrategy:
 
         # 포트폴리오 최대 보유 수 제한
         if portfolio is not None:
-            if len(portfolio.positions) >= self.max_positions:
+            holding_count = sum(1 for p in portfolio.positions.values() if getattr(p, "qty", 0) > 0)
+            if holding_count >= self.max_positions:
                 return False, "max_positions"
 
         if trade_strength < self.min_trade_strength:
