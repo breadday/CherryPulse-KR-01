@@ -166,3 +166,9 @@ TR 요청 제한 대응
 engine.py 수정
 strategy도 같이 봐줘
 통복붙으로 줘
+
+
+### 앞으로 운영 기준을 이렇게 고정하면 된다 ###
+
+개발/디버깅: python main.py
+실전(모의투자 계좌 포함): python main_live.py

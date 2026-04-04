@@ -1,3 +1,5 @@
+# main_live.py  - 실전/모의실전용
+
 import sys
 import os
 import signal
@@ -14,7 +16,8 @@ from strategy.momentum_intraday import MomentumIntradayStrategy
 from utils.logger import setup_logger
 from core.models import Signal, Side, OrderType
 
-from config import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, STRATEGY_CONFIG, ACCOUNT_PASSWORD
+import config_live as config
+from config_live import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, STRATEGY_CONFIG, ACCOUNT_PASSWORD
 from infra.telegram_notifier import TelegramNotifier
 
 telegram = None
@@ -44,8 +47,6 @@ def main():
 
     logger = setup_logger("CherryPulse-Live")
     logger.info("프로그램 시작")
-
-    import config
 
     logger.info(
         f"실행 모드 | DRY_RUN={config.DRY_RUN} LIVE_MODE={config.LIVE_MODE}"
@@ -117,9 +118,6 @@ def main():
         logger.info("🧪 DRY_RUN 테스트 틱 주입 시작")
 
         test_ticks = [
-            # -------------------------
-            # 진입 유도 구간
-            # -------------------------
             {
                 "symbol": "005930",
                 "price": 70000,
@@ -127,6 +125,9 @@ def main():
                 "price_change_pct": 0.8,
                 "trade_strength": 130.0,
                 "volume_ratio": 0.95,
+                "news_score": 0.5,
+                "theme_score": 0.0,
+                "leader_score": 0.0,
             },
             {
                 "symbol": "005930",
@@ -135,6 +136,9 @@ def main():
                 "price_change_pct": 1.1,
                 "trade_strength": 155.0,
                 "volume_ratio": 1.15,
+                "news_score": 1.0,
+                "theme_score": 0.0,
+                "leader_score": 0.0,
             },
             {
                 "symbol": "005930",
@@ -143,6 +147,9 @@ def main():
                 "price_change_pct": 1.5,
                 "trade_strength": 170.0,
                 "volume_ratio": 1.35,
+                "news_score": 1.5,
+                "theme_score": 0.0,
+                "leader_score": 0.0,
             },
             {
                 "symbol": "005930",
@@ -151,11 +158,10 @@ def main():
                 "price_change_pct": 1.8,
                 "trade_strength": 180.0,
                 "volume_ratio": 1.50,
+                "news_score": 2.0,
+                "theme_score": 0.0,
+                "leader_score": 0.0,
             },
-
-            # -------------------------
-            # 약화 구간
-            # -------------------------
             {
                 "symbol": "005930",
                 "price": 70500,
@@ -163,11 +169,10 @@ def main():
                 "price_change_pct": 0.7,
                 "trade_strength": 110.0,
                 "volume_ratio": 0.85,
+                "news_score": 0.2,
+                "theme_score": 0.0,
+                "leader_score": 0.0,
             },
-
-            # -------------------------
-            # timeout / 미체결 테스트용 약한 틱
-            # -------------------------
             {
                 "symbol": "005930",
                 "price": 70500,
@@ -175,6 +180,9 @@ def main():
                 "price_change_pct": 0.4,
                 "trade_strength": 85.0,
                 "volume_ratio": 0.55,
+                "news_score": 0.0,
+                "theme_score": 0.0,
+                "leader_score": 0.0,
             },
             {
                 "symbol": "005930",
@@ -183,6 +191,9 @@ def main():
                 "price_change_pct": 0.3,
                 "trade_strength": 80.0,
                 "volume_ratio": 0.50,
+                "news_score": 0.0,
+                "theme_score": 0.0,
+                "leader_score": 0.0,
             },
             {
                 "symbol": "005930",
@@ -191,22 +202,9 @@ def main():
                 "price_change_pct": 0.2,
                 "trade_strength": 75.0,
                 "volume_ratio": 0.45,
-            },
-            {
-                "symbol": "005930",
-                "price": 70500,
-                "trade_volume": 100,
-                "price_change_pct": 0.1,
-                "trade_strength": 70.0,
-                "volume_ratio": 0.40,
-            },
-            {
-                "symbol": "005930",
-                "price": 70500,
-                "trade_volume": 100,
-                "price_change_pct": 0.0,
-                "trade_strength": 65.0,
-                "volume_ratio": 0.35,
+                "news_score": 0.0,
+                "theme_score": 0.0,
+                "leader_score": 0.0,
             },
         ]
 
@@ -226,7 +224,8 @@ def main():
                 f"price={tick['price']} vol={tick['trade_volume']} "
                 f"chg={tick.get('price_change_pct', 0.0)} "
                 f"strength={tick.get('trade_strength', 0.0)} "
-                f"vr={tick.get('volume_ratio', 0.0)}"
+                f"vr={tick.get('volume_ratio', 0.0)} "
+                f"news={tick.get('news_score', 0.0)}"
             )
 
             try:
