@@ -67,15 +67,15 @@ STRATEGY_CONFIG = {
     "watchlist": ["005930", "000660"],
 
     # 기본 진입 조건
-    "min_trade_strength": 120,
+    "min_trade_strength": 125,
     "min_price_change_pct": 0.5,
 
-    # 새 volume_ratio 기준 반영
-    "min_volume_ratio": 1.1,
-    "volume_ratio_hard_floor": 0.7,
-    "strong_momentum_trade_strength": 160,
+    # 거래량 비율
+    "min_volume_ratio": 1.15,
+    "volume_ratio_hard_floor": 0.8,
+    "strong_momentum_trade_strength": 155,
     "strong_momentum_price_change_pct": 1.2,
-    "strong_momentum_volume_ratio": 0.95,
+    "strong_momentum_volume_ratio": 1.2,
 
     "max_positions": 3,
 
@@ -95,15 +95,15 @@ STRATEGY_CONFIG = {
 
     # 점수 필터
     "use_score_filter": True,
-    "min_entry_score": 50,
+    "min_entry_score": 60,
 
-    "entry_volume_ratio_min": 1.2,
-    "news_weight": 1.5,
-    "hot_move_price_change_pct": 2.5,
+    "entry_volume_ratio_min": 1.15,
+    "news_weight": 1.4,
+    "hot_move_price_change_pct": 2.3,
     "hot_move_trade_strength": 150,
     "max_chase_price_change_pct": 4.5,
-    "max_chase_volume_ratio": 3.5,
+    "max_chase_volume_ratio": 3.2,
     "min_news_score_for_hot_move": 3.0,
     "min_theme_score_for_entry": 0.0,
-    "min_leader_score_for_entry": 0.0,    
+    "min_leader_score_for_entry": 0.0,
 }
