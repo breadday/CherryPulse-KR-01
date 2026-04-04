@@ -21,6 +21,68 @@ from config_live import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, STRATEGY_CONFIG, ACCOU
 from infra.telegram_notifier import TelegramNotifier
 
 
+# -------------------------
+# 테스트 케이스 선택
+# -------------------------
+TEST_NAME = "case1_profit_only"
+
+TEST_CASES = {
+    # CASE 1: 순수 상승 → 익절 확인용
+    "case1_profit_only": [
+        {"symbol": "005930", "price": 70000, "trade_volume": 1000, "price_change_pct": 0.8, "trade_strength": 130.0, "volume_ratio": 1.00, "news_score": 0.5, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 70500, "trade_volume": 1500, "price_change_pct": 1.2, "trade_strength": 150.0, "volume_ratio": 1.20, "news_score": 1.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 71000, "trade_volume": 1800, "price_change_pct": 1.6, "trade_strength": 170.0, "volume_ratio": 1.40, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 71500, "trade_volume": 2000, "price_change_pct": 2.0, "trade_strength": 180.0, "volume_ratio": 1.60, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 72500, "trade_volume": 2200, "price_change_pct": 2.5, "trade_strength": 185.0, "volume_ratio": 1.80, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 73500, "trade_volume": 2500, "price_change_pct": 3.5, "trade_strength": 190.0, "volume_ratio": 2.00, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 74500, "trade_volume": 2700, "price_change_pct": 4.5, "trade_strength": 195.0, "volume_ratio": 2.20, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+    ],
+
+    # CASE 2: 순수 하락 → 손절 확인용
+    "case2_stoploss_only": [
+        {"symbol": "000660", "price": 120000, "trade_volume": 1100, "price_change_pct": 0.9, "trade_strength": 135.0, "volume_ratio": 1.00, "news_score": 0.5, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "000660", "price": 121500, "trade_volume": 1500, "price_change_pct": 1.2, "trade_strength": 150.0, "volume_ratio": 1.18, "news_score": 1.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "000660", "price": 122800, "trade_volume": 1800, "price_change_pct": 1.5, "trade_strength": 168.0, "volume_ratio": 1.32, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "000660", "price": 123500, "trade_volume": 2100, "price_change_pct": 1.8, "trade_strength": 178.0, "volume_ratio": 1.48, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "000660", "price": 124000, "trade_volume": 2300, "price_change_pct": 2.0, "trade_strength": 185.0, "volume_ratio": 1.62, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "000660", "price": 119500, "trade_volume": 2700, "price_change_pct": -1.2, "trade_strength": 85.0, "volume_ratio": 1.10, "news_score": 0.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "000660", "price": 118500, "trade_volume": 2900, "price_change_pct": -2.0, "trade_strength": 82.0, "volume_ratio": 1.20, "news_score": 0.0, "theme_score": 0.0, "leader_score": 0.0},
+    ],
+
+    # CASE 3: 상승 후 급반락 → 가짜 돌파
+    "case3_fake_breakout": [
+        {"symbol": "005930", "price": 70000, "trade_volume": 1000, "price_change_pct": 0.8, "trade_strength": 130.0, "volume_ratio": 1.00, "news_score": 0.5, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 70500, "trade_volume": 1500, "price_change_pct": 1.2, "trade_strength": 150.0, "volume_ratio": 1.20, "news_score": 1.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 71000, "trade_volume": 1800, "price_change_pct": 1.6, "trade_strength": 170.0, "volume_ratio": 1.40, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 71500, "trade_volume": 2000, "price_change_pct": 2.0, "trade_strength": 180.0, "volume_ratio": 1.60, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 71800, "trade_volume": 2100, "price_change_pct": 2.2, "trade_strength": 183.0, "volume_ratio": 1.70, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 70000, "trade_volume": 2800, "price_change_pct": -0.5, "trade_strength": 90.0, "volume_ratio": 1.20, "news_score": 0.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 69500, "trade_volume": 3000, "price_change_pct": -1.2, "trade_strength": 82.0, "volume_ratio": 1.25, "news_score": 0.0, "theme_score": 0.0, "leader_score": 0.0},
+    ],
+
+    # CASE 4: 상승 → 횡보 → 재상승
+    "case4_rise_pullback_rise": [
+        {"symbol": "005930", "price": 70000, "trade_volume": 1000, "price_change_pct": 0.8, "trade_strength": 130.0, "volume_ratio": 1.00, "news_score": 0.5, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 70400, "trade_volume": 1350, "price_change_pct": 1.0, "trade_strength": 145.0, "volume_ratio": 1.15, "news_score": 1.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 70900, "trade_volume": 1650, "price_change_pct": 1.4, "trade_strength": 160.0, "volume_ratio": 1.28, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 71300, "trade_volume": 1900, "price_change_pct": 1.8, "trade_strength": 176.0, "volume_ratio": 1.45, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 71200, "trade_volume": 1800, "price_change_pct": 1.7, "trade_strength": 150.0, "volume_ratio": 1.20, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 71400, "trade_volume": 1850, "price_change_pct": 1.9, "trade_strength": 158.0, "volume_ratio": 1.22, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 72500, "trade_volume": 2400, "price_change_pct": 2.8, "trade_strength": 188.0, "volume_ratio": 1.85, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 73500, "trade_volume": 2600, "price_change_pct": 3.6, "trade_strength": 193.0, "volume_ratio": 2.00, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+    ],
+
+    # CASE 5: 이미 과열 급등 → 추격 방지 테스트
+    "case5_overheat_spike": [
+        {"symbol": "005930", "price": 70000, "trade_volume": 1000, "price_change_pct": 0.8, "trade_strength": 130.0, "volume_ratio": 1.00, "news_score": 0.5, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 72000, "trade_volume": 2200, "price_change_pct": 3.0, "trade_strength": 185.0, "volume_ratio": 1.80, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 73800, "trade_volume": 2600, "price_change_pct": 5.0, "trade_strength": 195.0, "volume_ratio": 2.20, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 75000, "trade_volume": 3000, "price_change_pct": 7.0, "trade_strength": 205.0, "volume_ratio": 2.50, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
+        {"symbol": "005930", "price": 74200, "trade_volume": 2800, "price_change_pct": 5.9, "trade_strength": 150.0, "volume_ratio": 1.90, "news_score": 1.0, "theme_score": 0.0, "leader_score": 0.0},
+    ],
+}
+
+
 def is_market_open():
     now = datetime.now().time()
     market_open = datetime.strptime("09:00", "%H:%M").time()
@@ -33,6 +95,7 @@ def main():
 
     logger = setup_logger("CherryPulse-Live")
     logger.info("프로그램 시작")
+    logger.info(f"선택된 테스트 케이스 | TEST_NAME={TEST_NAME}")
 
     telegram = None
     if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
@@ -43,7 +106,7 @@ def main():
         )
 
         telegram.debug_identity()
-        
+
         ok = telegram.send_startup_test()
         if ok:
             logger.info("텔레그램 연결 테스트 성공")
@@ -74,7 +137,8 @@ def main():
         broker,
         strategy,
         logger,
-        telegram=telegram
+        telegram=telegram,
+        test_name=TEST_NAME,
     )
 
     stream = MarketStream(broker, logger)
@@ -115,77 +179,7 @@ def main():
 
         logger.info("🧪 DRY_RUN 테스트 틱 주입 시작")
 
-        test_ticks = [
-            {
-                "symbol": "005930",
-                "price": 70000,
-                "trade_volume": 1000,
-                "price_change_pct": 0.8,
-                "trade_strength": 130.0,
-                "volume_ratio": 0.95,
-                "news_score": 0.5,
-                "theme_score": 0.0,
-                "leader_score": 0.0,
-            },
-            {
-                "symbol": "005930",
-                "price": 70800,
-                "trade_volume": 1500,
-                "price_change_pct": 1.1,
-                "trade_strength": 155.0,
-                "volume_ratio": 1.15,
-                "news_score": 1.0,
-                "theme_score": 0.0,
-                "leader_score": 0.0,
-            },
-            {
-                "symbol": "005930",
-                "price": 71500,
-                "trade_volume": 1800,
-                "price_change_pct": 1.5,
-                "trade_strength": 170.0,
-                "volume_ratio": 1.35,
-                "news_score": 1.5,
-                "theme_score": 0.0,
-                "leader_score": 0.0,
-            },
-            {
-                "symbol": "005930",
-                "price": 72000,
-                "trade_volume": 2000,
-                "price_change_pct": 1.8,
-                "trade_strength": 180.0,
-                "volume_ratio": 1.50,
-                "news_score": 2.0,
-                "theme_score": 0.0,
-                "leader_score": 0.0,
-            },
-            {
-                "symbol": "005930",
-                "price": 72300,
-                "trade_volume": 2200,
-                "price_change_pct": 2.0,
-                "trade_strength": 185.0,
-                "volume_ratio": 1.65,
-                "news_score": 2.0,
-                "theme_score": 0.0,
-                "leader_score": 0.0,
-            },
-
-            # ✅ 강제 손절 확인용
-            {
-                "symbol": "005930",
-                "price": 70000,
-                "trade_volume": 2600,
-                "price_change_pct": -0.5,
-                "trade_strength": 90.0,
-                "volume_ratio": 1.20,
-                "news_score": 0.0,
-                "theme_score": 0.0,
-                "leader_score": 0.0,
-            },
-        ]
-
+        test_ticks = TEST_CASES.get(TEST_NAME, TEST_CASES["case1_profit_only"])
         interval_ms = 1000
 
         def push_tick(index: int):
@@ -198,7 +192,7 @@ def main():
 
             tick = test_ticks[index]
             logger.info(
-                f"🧪 테스트틱 주입 | symbol={tick['symbol']} "
+                f"🧪 테스트틱 주입 | case={TEST_NAME} symbol={tick['symbol']} "
                 f"price={tick['price']} vol={tick['trade_volume']} "
                 f"chg={tick.get('price_change_pct', 0.0)} "
                 f"strength={tick.get('trade_strength', 0.0)} "

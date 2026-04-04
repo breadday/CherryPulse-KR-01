@@ -12,11 +12,12 @@ from data.news_provider import NewsProvider
 
 
 class TradingEngine:
-    def __init__(self, broker, strategy, logger, telegram=None, initial_cash=5_000_000):
+    def __init__(self, broker, strategy, logger, telegram=None, initial_cash=5_000_000, test_name="default"):
         self.broker = broker
         self.strategy = strategy
         self.logger = logger
         self.telegram = telegram
+        self.test_name = str(test_name).strip() if test_name else "default"
 
         self.portfolio = Portfolio(initial_cash=initial_cash)
         self.risk_manager = RiskManager()
@@ -91,12 +92,20 @@ class TradingEngine:
             return default
 
     # -------------------------
-    # 거래 성과 집계 유틸
+    # 거래 성과 집계 CSV 저장
     # -------------------------
     def _get_trade_log_csv_path(self):
         log_dir = Path("logs")
         log_dir.mkdir(parents=True, exist_ok=True)
-        file_name = f"trades_{datetime.now().strftime('%Y%m%d')}.csv"
+
+        safe_test_name = "".join(
+            ch if ch.isalnum() or ch in ("-", "_") else "_"
+            for ch in str(self.test_name)
+        ).strip("_")
+        if not safe_test_name:
+            safe_test_name = "default"
+
+        file_name = f"trades_{safe_test_name}_{datetime.now().strftime('%Y%m%d')}.csv"
         return log_dir / file_name
 
     def _append_trade_log_to_csv(self, trade_item: dict):
@@ -105,6 +114,7 @@ class TradingEngine:
             file_exists = csv_path.exists()
             fieldnames = [
                 "date",
+                "test_name",
                 "symbol",
                 "entry_time",
                 "exit_time",
@@ -119,6 +129,7 @@ class TradingEngine:
 
             row = {
                 "date": datetime.now().strftime("%Y-%m-%d"),
+                "test_name": self.test_name,
                 "symbol": trade_item.get("symbol", ""),
                 "entry_time": trade_item.get("entry_time", ""),
                 "exit_time": trade_item.get("exit_time", ""),
@@ -137,10 +148,18 @@ class TradingEngine:
                     writer.writeheader()
                 writer.writerow(row)
 
-            self.logger.info(f"거래로그 CSV 저장 | path={csv_path} symbol={row['symbol']} result={row['result']}")
+            self.logger.info(
+                f"거래로그 CSV 저장 | path={csv_path} test_name={self.test_name} "
+                f"symbol={row['symbol']} result={row['result']}"
+            )
         except Exception as e:
             self.logger.exception(f"거래로그 CSV 저장 실패 | {e}")
 
+
+
+    # -------------------------
+    # 거래 성과 집계 유틸
+    # -------------------------
     def _start_trade_cycle_if_needed(self, symbol: str, qty_before: int, qty_after: int, avg_price_after: float):
         try:
             if qty_before <= 0 and qty_after > 0:
@@ -1313,48 +1332,13 @@ class TradingEngine:
             if self.telegram:
                 self.telegram.send(f"🚨 체결 반영 실패\n{fill.symbol}\n{e}")
 
-
-    # -------------------------
-    # 엔진 상태 점검
-    # -------------------------
-    def health_check(self):
-        try:
-            self._check_engine_protection()
-
-            open_order_count = 0
-            try:
-                open_order_count = sum(
-                    1
-                    for order in self.order_manager.orders.values()
-                    if getattr(order, "status", None) in (OrderStatus.SUBMITTED, OrderStatus.PARTIAL)
-                )
-            except Exception:
-                open_order_count = 0
-
-            self.logger.info(
-                f"엔진 상태 점검 | running={self.is_running} protected={self.engine_protected} "
-                f"cash={self.portfolio.cash:.0f} realized_pnl={self.portfolio.realized_pnl:.0f} "
-                f"open_orders={open_order_count} daily_orders={self.daily_order_count}/{self.max_daily_orders}"
-            )
-
-            if self.telegram and getattr(config, "ENABLE_TELEGRAM_LOG", False) and self.engine_protected:
-                self.telegram.send(
-                    f"🩺 엔진 상태 점검\n"
-                    f"running={self.is_running}\n"
-                    f"protected={self.engine_protected}\n"
-                    f"realized_pnl={self.portfolio.realized_pnl:.0f}\n"
-                    f"daily_orders={self.daily_order_count}/{self.max_daily_orders}"
-                )
-        except Exception as e:
-            self.logger.warning(f"엔진 상태 점검 실패 | {e}")
-
     # -------------------------
     # 브로커 메시지 처리
     # -------------------------
     def on_broker_msg(self, msg: str):
         try:
             self.logger.info(f"브로커 메시지 | {msg}")
-            if self.telegram and getattr(config, "ENABLE_TELEGRAM_LOG", False):
+            if self.telegram and config.ENABLE_TELEGRAM_LOG:
                 self.telegram.send(f"ℹ️ 브로커 메시지\n{msg}")
         except Exception as e:
             self.logger.warning(f"브로커 메시지 처리 실패 | {e}")
@@ -1395,3 +1379,4 @@ class TradingEngine:
                 )
         except Exception as e:
             self.logger.warning(f"엔진 보호모드 체크 실패 | {e}")
+            
