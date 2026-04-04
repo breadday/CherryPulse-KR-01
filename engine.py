@@ -833,6 +833,9 @@ class TradingEngine:
     # -------------------------
     # 틱 처리
     # -------------------------
+    # -------------------------
+    # 틱 처리
+    # -------------------------
     def on_tick(self, tick: TickData):
         self.logger.info(
             f"[CHECK] {tick.symbol} "
@@ -848,8 +851,28 @@ class TradingEngine:
         if not self.is_running:
             return
 
+        self.logger.info(
+            f"[TRY_ENTRY] {tick.symbol} "
+            f"chg={getattr(tick, 'price_change_pct', 0.0)} "
+            f"strength={getattr(tick, 'trade_strength', 0.0)} "
+            f"vr={getattr(tick, 'volume_ratio', 0.0)} "
+            f"news={getattr(tick, 'news_score', 0.0)}"
+        )
+
         signal = self.strategy.generate_signal(tick, self.portfolio)
+
         if signal is None:
+            block_reason = ""
+            if hasattr(self.strategy, "get_last_block_reason"):
+                block_reason = self.strategy.get_last_block_reason(tick.symbol)
+
+            self.logger.info(
+                f"[ENTRY_FAIL] {tick.symbol} "
+                f"chg={getattr(tick, 'price_change_pct', 0.0)} "
+                f"strength={getattr(tick, 'trade_strength', 0.0)} "
+                f"vr={getattr(tick, 'volume_ratio', 0.0)} "
+                f"reason={block_reason or '전략 필터 통과 실패'}"
+            )
             return
 
         entry_score = self._extract_score_from_reason(getattr(signal, "reason", ""))
