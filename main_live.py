@@ -171,14 +171,16 @@ def main():
                 "theme_score": 0.0,
                 "leader_score": 0.0,
             },
+
+            # ✅ 강제 손절 확인용
             {
                 "symbol": "005930",
-                "price": 72600,
-                "trade_volume": 2400,
-                "price_change_pct": 2.2,
-                "trade_strength": 188.0,
-                "volume_ratio": 1.75,
-                "news_score": 2.0,
+                "price": 70000,
+                "trade_volume": 2600,
+                "price_change_pct": -0.5,
+                "trade_strength": 90.0,
+                "volume_ratio": 1.20,
+                "news_score": 0.0,
                 "theme_score": 0.0,
                 "leader_score": 0.0,
             },

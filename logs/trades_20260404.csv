@@ -1,0 +1,2 @@
+﻿date,symbol,entry_time,exit_time,entry_price,exit_price,qty,pnl,pnl_pct,result,exit_reason
+2026-04-04,005930,2026-04-04 20:51:08,2026-04-04 20:51:11,72300.0,70000.0,1,-2300.0,-3.1812,LOSS,SELL_EXIT

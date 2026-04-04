@@ -1,5 +1,7 @@
+import csv
 import time
 from datetime import datetime
+from pathlib import Path
 
 import config
 from core.models import Order, TickData, OrderStatus, Signal, Side, OrderType
@@ -62,6 +64,8 @@ class TradingEngine:
         self.trade_log = []
         self.win_count = 0
         self.loss_count = 0
+        self.trade_open_info = {}
+        self.trade_cycle_realized_pnl = {}
 
     # -------------------------
     # 안전 변환 유틸
@@ -85,6 +89,190 @@ class TradingEngine:
             return float(value)
         except Exception:
             return default
+
+    # -------------------------
+    # 거래 성과 집계 유틸
+    # -------------------------
+    def _get_trade_log_csv_path(self):
+        log_dir = Path("logs")
+        log_dir.mkdir(parents=True, exist_ok=True)
+        file_name = f"trades_{datetime.now().strftime('%Y%m%d')}.csv"
+        return log_dir / file_name
+
+    def _append_trade_log_to_csv(self, trade_item: dict):
+        try:
+            csv_path = self._get_trade_log_csv_path()
+            file_exists = csv_path.exists()
+            fieldnames = [
+                "date",
+                "symbol",
+                "entry_time",
+                "exit_time",
+                "entry_price",
+                "exit_price",
+                "qty",
+                "pnl",
+                "pnl_pct",
+                "result",
+                "exit_reason",
+            ]
+
+            row = {
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "symbol": trade_item.get("symbol", ""),
+                "entry_time": trade_item.get("entry_time", ""),
+                "exit_time": trade_item.get("exit_time", ""),
+                "entry_price": trade_item.get("entry_price", 0.0),
+                "exit_price": trade_item.get("exit_price", 0.0),
+                "qty": trade_item.get("qty", 0),
+                "pnl": trade_item.get("pnl", 0.0),
+                "pnl_pct": trade_item.get("pnl_pct", 0.0),
+                "result": trade_item.get("result", ""),
+                "exit_reason": trade_item.get("exit_reason", ""),
+            }
+
+            with open(csv_path, "a", newline="", encoding="utf-8-sig") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                if not file_exists:
+                    writer.writeheader()
+                writer.writerow(row)
+
+            self.logger.info(f"거래로그 CSV 저장 | path={csv_path} symbol={row['symbol']} result={row['result']}")
+        except Exception as e:
+            self.logger.exception(f"거래로그 CSV 저장 실패 | {e}")
+
+    def _start_trade_cycle_if_needed(self, symbol: str, qty_before: int, qty_after: int, avg_price_after: float):
+        try:
+            if qty_before <= 0 and qty_after > 0:
+                self.trade_open_info[symbol] = {
+                    "entry_time": datetime.now(),
+                    "entry_price": float(avg_price_after),
+                    "entry_qty": int(qty_after),
+                }
+                self.trade_cycle_realized_pnl[symbol] = 0.0
+
+                self.logger.info(
+                    f"[TRADE_OPEN] symbol={symbol} entry_price={avg_price_after:.2f} qty={qty_after}"
+                )
+        except Exception as e:
+            self.logger.exception(f"거래 사이클 시작 기록 실패 | symbol={symbol} err={e}")
+
+    def _accumulate_trade_realized_pnl(self, symbol: str, realized_delta: float):
+        try:
+            if symbol not in self.trade_cycle_realized_pnl:
+                self.trade_cycle_realized_pnl[symbol] = 0.0
+            self.trade_cycle_realized_pnl[symbol] += float(realized_delta)
+        except Exception as e:
+            self.logger.exception(f"실현손익 누적 실패 | symbol={symbol} err={e}")
+
+    def _close_trade_cycle_if_needed(
+        self,
+        symbol: str,
+        qty_before: int,
+        qty_after: int,
+        fill_price: float,
+        exit_reason: str = "",
+    ):
+        try:
+            if not (qty_before > 0 and qty_after <= 0):
+                return
+
+            open_info = self.trade_open_info.pop(symbol, None)
+            total_realized_pnl = float(self.trade_cycle_realized_pnl.pop(symbol, 0.0))
+
+            if not open_info:
+                self.logger.warning(
+                    f"거래 종료 감지됐지만 진입 정보 없음 | symbol={symbol} pnl={total_realized_pnl:.0f}"
+                )
+                return
+
+            entry_price = float(open_info.get("entry_price", 0.0))
+            entry_qty = int(open_info.get("entry_qty", 0))
+            entry_time = open_info.get("entry_time")
+
+            entry_amount = entry_price * entry_qty
+            pnl_pct = 0.0
+            if entry_amount > 0:
+                pnl_pct = (total_realized_pnl / entry_amount) * 100.0
+
+            result = "WIN" if total_realized_pnl > 0 else "LOSS" if total_realized_pnl < 0 else "FLAT"
+
+            trade_item = {
+                "symbol": symbol,
+                "entry_time": entry_time.strftime("%Y-%m-%d %H:%M:%S") if entry_time else "",
+                "exit_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "entry_price": round(entry_price, 2),
+                "exit_price": round(float(fill_price), 2),
+                "qty": entry_qty,
+                "pnl": round(total_realized_pnl, 2),
+                "pnl_pct": round(pnl_pct, 4),
+                "result": result,
+                "exit_reason": exit_reason or self.last_exit_reason.get(symbol, ""),
+            }
+
+            self.trade_log.append(trade_item)
+            self._append_trade_log_to_csv(trade_item)
+
+            if result == "WIN":
+                self.win_count += 1
+            elif result == "LOSS":
+                self.loss_count += 1
+
+            self.logger.info(
+                f"[TRADE_CLOSE] symbol={symbol} result={result} "
+                f"entry={entry_price:.2f} exit={float(fill_price):.2f} qty={entry_qty} "
+                f"pnl={total_realized_pnl:.2f} pnl_pct={pnl_pct:.4f}% "
+                f"reason={trade_item['exit_reason']}"
+            )
+
+            summary = self.get_trade_summary()
+
+            self.logger.info(
+                f"[PERFORMANCE] trades={summary['total_trades']} "
+                f"wins={summary['wins']} losses={summary['losses']} "
+                f"win_rate={summary['win_rate']:.2f}% "
+                f"avg_profit={summary['avg_profit_pct']:.4f}% "
+                f"avg_loss={summary['avg_loss_pct']:.4f}% "
+                f"net_pnl={summary['net_pnl']:.2f}"
+            )
+
+        except Exception as e:
+            self.logger.exception(f"거래 종료 기록 실패 | symbol={symbol} err={e}")
+
+    def get_trade_summary(self):
+        total_trades = len(self.trade_log)
+        wins = self.win_count
+        losses = self.loss_count
+
+        win_rate = (wins / total_trades * 100.0) if total_trades > 0 else 0.0
+
+        profit_list = [x["pnl_pct"] for x in self.trade_log if x.get("pnl_pct", 0.0) > 0]
+        loss_list = [x["pnl_pct"] for x in self.trade_log if x.get("pnl_pct", 0.0) < 0]
+
+        avg_profit_pct = sum(profit_list) / len(profit_list) if profit_list else 0.0
+        avg_loss_pct = sum(loss_list) / len(loss_list) if loss_list else 0.0
+        net_pnl = sum(x.get("pnl", 0.0) for x in self.trade_log)
+
+        return {
+            "total_trades": total_trades,
+            "wins": wins,
+            "losses": losses,
+            "win_rate": round(win_rate, 2),
+            "avg_profit_pct": round(avg_profit_pct, 4),
+            "avg_loss_pct": round(avg_loss_pct, 4),
+            "net_pnl": round(net_pnl, 2),
+        }
+
+    def log_trade_summary(self, prefix: str = "성과 요약"):
+        try:
+            s = self.get_trade_summary()
+            self.logger.info(
+                f"{prefix} | trades={s['total_trades']} wins={s['wins']} losses={s['losses']} "
+                f"win_rate={s['win_rate']:.2f}% avg_profit={s['avg_profit_pct']:.4f}% "
+                f"avg_loss={s['avg_loss_pct']:.4f}% net_pnl={s['net_pnl']:.2f}"
+            )
+        except Exception as e:
+            self.logger.exception(f"성과 요약 로그 실패 | {e}")
 
     def _extract_score_from_reason(self, reason: str):
         try:
@@ -152,6 +340,7 @@ class TradingEngine:
     def stop(self):
         if not self.is_running:
             self.logger.info("이미 종료 상태")
+            self.log_trade_summary(prefix="종료 전 성과 요약")
             try:
                 self.broker.shutdown()
             except Exception as e:
@@ -159,6 +348,7 @@ class TradingEngine:
             return
 
         self.logger.info("엔진 종료 시작")
+        self.log_trade_summary(prefix="종료 전 성과 요약")
 
         try:
             self.broker.shutdown()
@@ -995,8 +1185,18 @@ class TradingEngine:
     # -------------------------
     # 체결 반영
     # -------------------------
+    # -------------------------
+    # 체결 반영
+    # -------------------------
     def on_fill(self, fill):
         try:
+            symbol = fill.symbol
+
+            pos_before = self.portfolio.get_position(symbol)
+            qty_before = int(getattr(pos_before, "qty", 0))
+            avg_before = float(getattr(pos_before, "avg_price", 0.0))
+            realized_before = float(getattr(self.portfolio, "realized_pnl", 0.0))
+
             local_order_id = self.order_manager.bind_broker_order_id(
                 symbol=fill.symbol,
                 broker_order_id=fill.order_id
@@ -1011,6 +1211,12 @@ class TradingEngine:
                 fill_price=fill.fill_price,
                 unfilled_qty=getattr(fill, "unfilled_qty", None)
             )
+
+            pos_after = self.portfolio.get_position(symbol)
+            qty_after = int(getattr(pos_after, "qty", 0))
+            avg_after = float(getattr(pos_after, "avg_price", 0.0))
+            realized_after = float(getattr(self.portfolio, "realized_pnl", 0.0))
+            realized_delta = realized_after - realized_before
 
             if order is None:
                 self.logger.warning(
@@ -1044,20 +1250,35 @@ class TradingEngine:
                     f"상태: {status_text}"
                 )
 
-            try:
-                if getattr(fill.side, "name", "") == "SELL":
-                    self.sell_in_progress.discard(fill.symbol)
-                    self.logger.info(
-                        f"매도 체결 완료 | symbol={fill.symbol} "
-                        f"reentry_reason={self.last_exit_reason.get(fill.symbol, '')}"
-                    )
-                    self._record_trade_result(
-                        symbol=fill.symbol,
-                        exit_price=float(fill.fill_price),
-                        reason=self.last_exit_reason.get(fill.symbol, "SELL_EXIT"),
-                    )
-            except Exception:
-                pass
+            side_name = getattr(fill.side, "name", "")
+
+            if side_name == "BUY":
+                self._start_trade_cycle_if_needed(
+                    symbol=symbol,
+                    qty_before=qty_before,
+                    qty_after=qty_after,
+                    avg_price_after=avg_after,
+                )
+
+            elif side_name == "SELL":
+                self.sell_in_progress.discard(fill.symbol)
+                self.logger.info(
+                    f"매도 체결 완료 | symbol={fill.symbol} "
+                    f"reentry_reason={self.last_exit_reason.get(fill.symbol, '')}"
+                )
+
+                self._accumulate_trade_realized_pnl(
+                    symbol=symbol,
+                    realized_delta=realized_delta,
+                )
+
+                self._close_trade_cycle_if_needed(
+                    symbol=symbol,
+                    qty_before=qty_before,
+                    qty_after=qty_after,
+                    fill_price=fill.fill_price,
+                    exit_reason=self.last_exit_reason.get(symbol, "SELL_EXIT"),
+                )
 
             try:
                 pos = self.portfolio.get_position(fill.symbol)
@@ -1092,48 +1313,40 @@ class TradingEngine:
             if self.telegram:
                 self.telegram.send(f"🚨 체결 반영 실패\n{fill.symbol}\n{e}")
 
+
     # -------------------------
-    # 거래 결과 기록
+    # 엔진 상태 점검
     # -------------------------
-    def _record_trade_result(self, symbol: str, exit_price: float, reason: str):
+    def health_check(self):
         try:
-            pnl_pct = 0.0
-            entry_price = 0.0
+            self._check_engine_protection()
 
+            open_order_count = 0
             try:
-                trades = getattr(self.portfolio, "trades", None)
-                if trades:
-                    recent = [t for t in trades if getattr(t, "symbol", "") == symbol]
-                    if recent:
-                        last_trade = recent[-1]
-                        entry_price = float(getattr(last_trade, "price", 0.0))
+                open_order_count = sum(
+                    1
+                    for order in self.order_manager.orders.values()
+                    if getattr(order, "status", None) in (OrderStatus.SUBMITTED, OrderStatus.PARTIAL)
+                )
             except Exception:
-                entry_price = 0.0
-
-            if entry_price > 0:
-                pnl_pct = (exit_price - entry_price) / entry_price
-
-            row = {
-                "ts": datetime.now(),
-                "symbol": symbol,
-                "entry_price": entry_price,
-                "exit_price": exit_price,
-                "pnl_pct": pnl_pct,
-                "reason": reason,
-            }
-            self.trade_log.append(row)
-
-            if pnl_pct > 0:
-                self.win_count += 1
-            elif pnl_pct < 0:
-                self.loss_count += 1
+                open_order_count = 0
 
             self.logger.info(
-                f"거래 결과 기록 | symbol={symbol} entry={entry_price:.2f} "
-                f"exit={exit_price:.2f} pnl={pnl_pct:.2%} reason={reason}"
+                f"엔진 상태 점검 | running={self.is_running} protected={self.engine_protected} "
+                f"cash={self.portfolio.cash:.0f} realized_pnl={self.portfolio.realized_pnl:.0f} "
+                f"open_orders={open_order_count} daily_orders={self.daily_order_count}/{self.max_daily_orders}"
             )
+
+            if self.telegram and getattr(config, "ENABLE_TELEGRAM_LOG", False) and self.engine_protected:
+                self.telegram.send(
+                    f"🩺 엔진 상태 점검\n"
+                    f"running={self.is_running}\n"
+                    f"protected={self.engine_protected}\n"
+                    f"realized_pnl={self.portfolio.realized_pnl:.0f}\n"
+                    f"daily_orders={self.daily_order_count}/{self.max_daily_orders}"
+                )
         except Exception as e:
-            self.logger.warning(f"거래 결과 기록 실패 | symbol={symbol} err={e}")
+            self.logger.warning(f"엔진 상태 점검 실패 | {e}")
 
     # -------------------------
     # 브로커 메시지 처리
@@ -1141,7 +1354,7 @@ class TradingEngine:
     def on_broker_msg(self, msg: str):
         try:
             self.logger.info(f"브로커 메시지 | {msg}")
-            if self.telegram and config.ENABLE_TELEGRAM_LOG:
+            if self.telegram and getattr(config, "ENABLE_TELEGRAM_LOG", False):
                 self.telegram.send(f"ℹ️ 브로커 메시지\n{msg}")
         except Exception as e:
             self.logger.warning(f"브로커 메시지 처리 실패 | {e}")
