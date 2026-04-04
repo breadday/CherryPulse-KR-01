@@ -1331,7 +1331,7 @@ class TradingEngine:
             self._check_engine_protection()
             if self.telegram:
                 self.telegram.send(f"🚨 체결 반영 실패\n{fill.symbol}\n{e}")
-
+               
     # -------------------------
     # 브로커 메시지 처리
     # -------------------------
@@ -1379,4 +1379,20 @@ class TradingEngine:
                 )
         except Exception as e:
             self.logger.warning(f"엔진 보호모드 체크 실패 | {e}")
-            
+
+    def health_check(self):
+        """
+        엔진 기본 상태 점검용.
+        main_live.py 에서 호출해도 죽지 않도록 최소 점검만 수행한다.
+        """
+        if hasattr(self, "logger") and self.logger:
+            try:
+                position_count = len(getattr(self.portfolio, "positions", {})) if hasattr(self, "portfolio") else 0
+                pending_count = len(getattr(self, "pending_orders", {})) if hasattr(self, "pending_orders") else 0
+
+                self.logger.info(
+                    f"health_check 완료 | positions={position_count} pending_orders={pending_count}"
+                )
+            except Exception as e:
+                self.logger.warning(f"health_check 점검 중 예외 | {e}") 
+                

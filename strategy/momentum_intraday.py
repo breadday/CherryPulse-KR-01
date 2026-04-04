@@ -1,224 +1,247 @@
-from collections import defaultdict, deque
-from datetime import datetime
-from typing import Deque, Dict, Optional, Tuple
+# strategy/momentum_intraday.py
 
+from datetime import datetime, timedelta
 from core.models import Signal, Side, OrderType
 
 
 class MomentumIntradayStrategy:
-    """
-    모멘텀 + 급상승 구간 필터 전략
 
-    엔진에서 사용하는 인터페이스:
-    - generate_signal(tick, portfolio)
-    - get_last_block_reason(symbol)
-    - mark_entry(symbol, ts)
-    """
-
-    def __init__(self, logger=None, config=None):
-        self.logger = logger
-        self.config = config or {}  
-
-        # 최근 틱 히스토리
-        self.price_history: Dict[str, Deque[float]] = defaultdict(lambda: deque(maxlen=30))
-        self.volume_history: Dict[str, Deque[int]] = defaultdict(lambda: deque(maxlen=30))
-
-        # 마지막 차단 사유 / 마지막 진입 시각
-        self._last_block_reason: Dict[str, str] = {}
-        self.last_entry_ts: Dict[str, datetime] = {}
+    def __init__(self, config=None):
+        self.config = config or {}
 
         # -------------------------
-        # 기본 파라미터
+        # 진입 조건
         # -------------------------
-        self.min_history = 5
-        self.entry_score_threshold = 78.0
+        self.min_trade_strength = self.config.get("min_trade_strength", 120)
+        self.min_price_change_pct = self.config.get("min_price_change_pct", 0.5)
+        self.min_volume_ratio = self.config.get("min_volume_ratio", 1.5)
+        self.max_positions = self.config.get("max_positions", 3)
 
-        # 급상승 구간 필터
-        # self.fast_rise_ret_3 = 0.008   # 3틱 +0.8%
-        # self.fast_rise_ret_5 = 0.012   # 5틱 +1.2%
-        # self.near_high_ratio = 0.998   # 최근 5틱 최고가의 99.8% 이상
-        
-        self.fast_rise_ret_3 = 0.004   # 0.4%
-        self.fast_rise_ret_5 = 0.007   # 0.7%
-        self.near_high_ratio = 0.995
-        
-        self.max_vertical_ret_5 = 0.060  # 5틱 +6% 초과면 과열로 제외
+        # -------------------------
+        # 청산 조건
+        # -------------------------
+        self.stop_loss_pct = self.config.get("stop_loss_pct", -2.0)
+        self.take_profit_pct = self.config.get("take_profit_pct", 3.0)
+        self.partial_take_profit_pct = self.config.get("partial_take_profit_pct", 2.0)
+        self.partial_take_profit_ratio = self.config.get("partial_take_profit_ratio", 0.5)
+        self.trailing_start_pct = self.config.get("trailing_start_pct", 1.5)
+        self.trailing_gap_pct = self.config.get("trailing_gap_pct", 1.0)
 
-        # 보조 조건
-        self.min_price_change_pct = 1.0
-        self.min_trade_strength = 150.0
-        self.min_volume_ratio = 1.10
-        self.min_news_score = 0.0
+        # -------------------------
+        # 재진입 / 백테스트용
+        # -------------------------
+        self.entry_cooldown_sec = self.config.get("entry_cooldown_sec", 30)
+        self.allow_reentry = self.config.get("allow_reentry", False)
 
-    # -------------------------
-    # 외부 조회용
-    # -------------------------
-    def get_last_block_reason(self, symbol: str) -> str:
-        return self._last_block_reason.get(symbol, "")
+        self.last_entry_time = {}
 
-    def mark_entry(self, symbol: str, ts):
-        self.last_entry_ts[symbol] = ts
+        # -------------------------
+        # 1틱 확인 진입용
+        # -------------------------
+        # 첫 돌파 틱은 바로 안 사고, 후보만 저장
+        # 다음 틱에서 조건이 유지되면 진입
+        self.pending_entry = {}
+
+        # 엔진 로그용 마지막 차단 사유
+        self.last_block_reason = {}
 
     # -------------------------
     # 내부 유틸
     # -------------------------
-    def _set_block(self, symbol: str, reason: str):
-        self._last_block_reason[symbol] = reason
+    def _now(self, ts=None):
+        if ts is None:
+            return datetime.now()
+        return ts
 
-    def _safe_float(self, value, default=0.0) -> float:
-        try:
-            if value in ("", None):
-                return default
-            return float(value)
-        except Exception:
-            return default
+    def _set_block_reason(self, symbol, reason):
+        self.last_block_reason[symbol] = reason
 
-    def _calc_returns(self, prices: Deque[float]) -> Tuple[float, float]:
-        p1 = float(prices[-1])
-        p3 = float(prices[-3])
-        p5 = float(prices[-5])
+    def get_last_block_reason(self, symbol):
+        return self.last_block_reason.get(symbol, "")
 
-        ret_3 = (p1 - p3) / p3 if p3 > 0 else 0.0
-        ret_5 = (p1 - p5) / p5 if p5 > 0 else 0.0
-        return ret_3, ret_5
+    def _clear_pending_entry(self, symbol):
+        if symbol in self.pending_entry:
+            del self.pending_entry[symbol]
 
-    def _is_fast_rising_zone(self, symbol: str, prices: Deque[float]) -> Tuple[bool, str]:
-        if len(prices) < 5:
-            return False, f"히스토리 부족 {len(prices)}/5"
+    def _build_market_data(self, tick):
+        return {
+            "price": tick.price,
+            "price_change_pct": getattr(tick, "price_change_pct", 0.0),
+            "trade_strength": getattr(tick, "trade_strength", 0.0),
+            "volume_ratio": getattr(tick, "volume_ratio", 1.0),
+            "timestamp": self._now(getattr(tick, "ts", None)),
+        }
 
-        ret_3, ret_5 = self._calc_returns(prices)
-        current_price = float(prices[-1])
-        recent_prices = list(prices)[-5:]
-        recent_high = max(recent_prices)
-        near_high = current_price >= recent_high * self.near_high_ratio
+    def _check_common_entry_filters(self, symbol, market_data, portfolio=None):
+        price_change_pct = market_data.get("price_change_pct", 0.0)
+        trade_strength = market_data.get("trade_strength", 0.0)
+        volume_ratio = market_data.get("volume_ratio", 0.0)
+        now = self._now(market_data.get("timestamp"))
 
-        if ret_3 < self.fast_rise_ret_3:
-            return False, f"3틱 급등 부족 {ret_3:.2%}"
+        # 재진입 제한
+        if symbol in self.last_entry_time:
+            diff = now - self.last_entry_time[symbol]
+            if diff < timedelta(seconds=self.entry_cooldown_sec):
+                return False, "entry_cooldown"
 
-        if ret_5 < self.fast_rise_ret_5:
-            return False, f"5틱 급등 부족 {ret_5:.2%}"
+        # 포트폴리오 최대 보유 수 제한
+        if portfolio is not None:
+            holding_count = sum(1 for p in portfolio.positions.values() if getattr(p, "qty", 0) > 0)
+            if holding_count >= self.max_positions:
+                return False, "max_positions"
 
-        if ret_5 > self.max_vertical_ret_5:
-            return False, f"과열 급등 {ret_5:.2%}"
+        if trade_strength < self.min_trade_strength:
+            return False, "trade_strength"
 
-        if not near_high:
-            return False, "최근 고점 근처 아님"
-
-        return True, f"급상승 구간 통과 ret3={ret_3:.2%} ret5={ret_5:.2%}"
-
-    def _compute_entry_score(self, tick, prices: Deque[float]) -> Tuple[float, str]:
-        chg = self._safe_float(getattr(tick, "price_change_pct", 0.0))
-        strength = self._safe_float(getattr(tick, "trade_strength", 0.0))
-        volume_ratio = self._safe_float(getattr(tick, "volume_ratio", 0.0))
-        news = self._safe_float(getattr(tick, "news_score", 0.0))
-        theme = self._safe_float(getattr(tick, "theme_score", 0.0))
-        leader = self._safe_float(getattr(tick, "leader_score", 0.0))
-
-        ret_3, ret_5 = self._calc_returns(prices)
-        recent_prices = list(prices)[-5:]
-        recent_high = max(recent_prices)
-        near_high_bonus = 2.0 if tick.price >= recent_high * self.near_high_ratio else 0.0
-
-        chg_score = min(max(chg, 0.0) * 12.0, 24.0)
-        str_score = min(max(strength - 130.0, 0.0) * (22.0 / 55.0), 22.0)
-        vol_score = min(max(volume_ratio - 1.0, 0.0) * (26.0 / 0.65), 26.0)
-        news_score = min(max(news, 0.0) * 10.0, 20.0)
-
-        vertical_penalty = 0.0
-        if ret_5 > 0.030:
-            vertical_penalty = min((ret_5 - 0.030) * 1000.0, 8.0)
-
-        score = chg_score + str_score + vol_score + news_score + near_high_bonus - vertical_penalty
-
-        detail = (
-            f"chg:+{chg_score:.1f},"
-            f"str:+{str_score:.1f},"
-            f"vol:+{vol_score:.1f},"
-            f"news:+{news_score:.1f},"
-            f"near_high:+{near_high_bonus:.1f},"
-            f"vertical:-{vertical_penalty:.1f}"
-        )
-
-        reason = (
-            f"ENTRY score={score:.1f} "
-            f"chg={chg:.2f}% "
-            f"str={strength:.1f} "
-            f"vol_ratio={volume_ratio:.2f} "
-            f"news={news:.2f} "
-            f"theme={theme:.2f} "
-            f"leader={leader:.2f} "
-            f"detail={detail}"
-        )
-        return round(score, 1), reason
-    
-    # -------------------------
-    # 메인
-    # -------------------------
-    def generate_signal(self, tick, portfolio) -> Optional[Signal]:
-        symbol = tick.symbol
-
-        # 최근 틱 히스토리 누적
-        self.price_history[symbol].append(float(tick.price))
-        self.volume_history[symbol].append(int(getattr(tick, "volume", 0)))
-
-        prices = self.price_history[symbol]
-
-        if len(prices) < self.min_history:
-            self._set_block(symbol, f"히스토리 부족 {len(prices)}/{self.min_history}")
-            return None
-
-        # 이미 보유 중이면 신규 진입 금지
-        pos = portfolio.get_position(symbol)
-        if int(getattr(pos, "qty", 0)) > 0:
-            self._set_block(symbol, "이미 보유중")
-            return None
-
-        chg = self._safe_float(getattr(tick, "price_change_pct", 0.0))
-        strength = self._safe_float(getattr(tick, "trade_strength", 0.0))
-        volume_ratio = self._safe_float(getattr(tick, "volume_ratio", 0.0))
-        news = self._safe_float(getattr(tick, "news_score", 0.0))
-
-        if chg < self.min_price_change_pct:
-            self._set_block(symbol, f"상승률 부족 {chg:.2f}%")
-            return None
-
-        if strength < self.min_trade_strength:
-            self._set_block(symbol, f"체결강도 부족 {strength:.1f}")
-            return None
+        if price_change_pct < self.min_price_change_pct:
+            return False, "price_change_pct"
 
         if volume_ratio < self.min_volume_ratio:
-            self._set_block(symbol, f"거래량비 부족 {volume_ratio:.2f}")
+            return False, "volume_ratio"
+
+        return True, "ok"
+
+    # -------------------------
+    # 진입 시그널
+    # -------------------------
+    def generate_signal(self, tick, portfolio):
+        symbol = tick.symbol
+        price = tick.price
+
+        # 이미 보유 중이면 진입 후보 제거
+        pos = portfolio.get_position(symbol)
+        if pos.qty > 0:
+            self._clear_pending_entry(symbol)
+            self._set_block_reason(symbol, "already_holding")
             return None
 
-        if news < self.min_news_score:
-            self._set_block(symbol, f"뉴스점수 부족 {news:.2f}")
+        market_data = self._build_market_data(tick)
+        now = market_data["timestamp"]
+
+        # 공통 진입 필터 체크
+        ok, reason = self._check_common_entry_filters(symbol, market_data, portfolio)
+        if not ok:
+            self._clear_pending_entry(symbol)
+            self._set_block_reason(symbol, reason)
             return None
 
-        # 급상승 구간 필터
-        ok_fast, fast_reason = self._is_fast_rising_zone(symbol, prices)
-        if not ok_fast:
-            self._set_block(symbol, fast_reason)
+        # -------------------------
+        # 1틱 확인 로직
+        # -------------------------
+        pending = self.pending_entry.get(symbol)
+
+        # 아직 후보가 없으면 이번 틱은 "관찰만"
+        if pending is None:
+            self.pending_entry[symbol] = {
+                "price": price,
+                "price_change_pct": market_data["price_change_pct"],
+                "trade_strength": market_data["trade_strength"],
+                "volume_ratio": market_data["volume_ratio"],
+                "timestamp": now,
+            }
+            self._set_block_reason(symbol, "wait_1tick_confirm")
             return None
 
-        score, reason = self._compute_entry_score(tick, prices)
-        if score < self.entry_score_threshold:
-            self._set_block(symbol, f"점수 부족 {score:.1f}/{self.entry_score_threshold:.1f}")
+        # 후보가 있으면 다음 틱에서 확인
+        candidate_price = pending.get("price", 0)
+
+        # 핵심:
+        # 다음 틱에서 가격이 후보 틱보다 밀리면 가짜 돌파로 보고 취소
+        if price < candidate_price:
+            self._clear_pending_entry(symbol)
+            self._set_block_reason(symbol, "confirm_fail_price_drop")
             return None
 
-        self._last_block_reason[symbol] = ""
-
-        if self.logger:
-            self.logger.info(
-                f"[FAST_RISE_PASS] {symbol} "
-                f"price={tick.price} chg={chg} strength={strength} vr={volume_ratio} "
-                f"reason={fast_reason} score={score}"
-            )
+        # 다음 틱에서도 기본 조건 유지되면 진입
+        qty = 1
+        self._clear_pending_entry(symbol)
 
         return Signal(
             symbol=symbol,
             side=Side.BUY,
-            qty=1,
+            qty=qty,
             price=0,
             order_type=OrderType.MARKET,
-            reason=reason,
+            reason=(
+                "momentum_entry:"
+                f"1tick_confirm_ok:"
+                f"chg={market_data['price_change_pct']:.2f}:"
+                f"strength={market_data['trade_strength']:.1f}:"
+                f"vr={market_data['volume_ratio']:.2f}"
+            ),
         )
+
+    # -------------------------
+    # 기존 호환용
+    # -------------------------
+    def can_enter(self, symbol, market_data, portfolio=None):
+        return self._check_common_entry_filters(symbol, market_data, portfolio)
+
+    def mark_entry(self, symbol, timestamp=None):
+        self.last_entry_time[symbol] = self._now(timestamp)
+        self._clear_pending_entry(symbol)
+
+    # -------------------------
+    # 청산 조건
+    # -------------------------
+    def should_exit(self, position, market_data):
+        """
+        position 예시:
+        {
+            "symbol": "005930",
+            "avg_price": 70000,
+            "qty": 10,
+            "highest_return_pct": 0.0,
+            "partial_taken": False,
+        }
+        """
+        current_price = market_data.get("price")
+        if not current_price or position["avg_price"] <= 0:
+            return None
+
+        avg_price = position["avg_price"]
+        pnl_pct = ((current_price - avg_price) / avg_price) * 100.0
+
+        # 최고 수익률 갱신
+        highest_return_pct = position.get("highest_return_pct", pnl_pct)
+        if pnl_pct > highest_return_pct:
+            highest_return_pct = pnl_pct
+            position["highest_return_pct"] = highest_return_pct
+
+        # 손절
+        if pnl_pct <= self.stop_loss_pct:
+            return {
+                "action": "FULL_SELL",
+                "reason": "stop_loss",
+                "pnl_pct": pnl_pct
+            }
+
+        # 부분익절
+        if (not position.get("partial_taken", False)) and pnl_pct >= self.partial_take_profit_pct:
+            return {
+                "action": "PARTIAL_SELL",
+                "reason": "partial_take_profit",
+                "ratio": self.partial_take_profit_ratio,
+                "pnl_pct": pnl_pct
+            }
+
+        # 고정 익절
+        if pnl_pct >= self.take_profit_pct:
+            return {
+                "action": "FULL_SELL",
+                "reason": "take_profit",
+                "pnl_pct": pnl_pct
+            }
+
+        # 트레일링
+        if highest_return_pct >= self.trailing_start_pct:
+            drawdown_from_peak = highest_return_pct - pnl_pct
+            if drawdown_from_peak >= self.trailing_gap_pct:
+                return {
+                    "action": "FULL_SELL",
+                    "reason": "trailing_stop",
+                    "pnl_pct": pnl_pct,
+                    "peak_pct": highest_return_pct
+                }
+
+        return None

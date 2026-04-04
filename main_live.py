@@ -24,7 +24,7 @@ from infra.telegram_notifier import TelegramNotifier
 # -------------------------
 # 테스트 케이스 선택
 # -------------------------
-TEST_NAME = "case1_profit_only"
+TEST_NAME = "case3_fake_breakout"
 
 TEST_CASES = {
     # CASE 1: 순수 상승 → 익절 확인용
@@ -290,7 +290,7 @@ def main():
     time.sleep(1.0)
     engine.sync_pending_orders(password=ACCOUNT_PASSWORD)
 
-    engine.health_check()
+    # engine.health_check()
 
     stream.subscribe(["005930", "000660"])
 

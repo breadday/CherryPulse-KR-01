@@ -1,0 +1,2 @@
+﻿date,test_name,symbol,entry_time,exit_time,entry_price,exit_price,qty,pnl,pnl_pct,result,exit_reason
+2026-04-04,case3_fake_breakout,005930,2026-04-04 22:34:45,2026-04-04 22:34:51,71000.0,69500.0,1,-1500.0,-2.1127,LOSS,SELL_EXIT
