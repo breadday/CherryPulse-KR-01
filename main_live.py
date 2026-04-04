@@ -1,4 +1,4 @@
-# main_live.py  - 실전/모의실전용
+# main_live.py
 
 import sys
 import os
@@ -20,15 +20,7 @@ import config_live as config
 from config_live import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, STRATEGY_CONFIG, ACCOUNT_PASSWORD
 from infra.telegram_notifier import TelegramNotifier
 
-telegram = None
 
-if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
-    telegram = TelegramNotifier(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)
-
-
-# -------------------------
-# 장 시간 체크
-# -------------------------
 def is_market_open():
     now = datetime.now().time()
     market_open = datetime.strptime("09:00", "%H:%M").time()
@@ -36,17 +28,29 @@ def is_market_open():
     return market_open <= now <= market_close
 
 
-# -------------------------
-# 메인
-# -------------------------
 def main():
     app = QApplication(sys.argv)
 
-    if telegram:
-        telegram.send("🚀 자동매매 시작")
-
     logger = setup_logger("CherryPulse-Live")
     logger.info("프로그램 시작")
+
+    telegram = None
+    if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
+        telegram = TelegramNotifier(
+            token=TELEGRAM_TOKEN,
+            chat_id=TELEGRAM_CHAT_ID,
+            logger=logger,
+        )
+
+        telegram.debug_identity()
+        
+        ok = telegram.send_startup_test()
+        if ok:
+            logger.info("텔레그램 연결 테스트 성공")
+        else:
+            logger.warning("텔레그램 연결 테스트 실패 | token/chat_id 또는 네트워크 확인 필요")
+    else:
+        logger.warning("텔레그램 설정 없음 | TELEGRAM_TOKEN / TELEGRAM_CHAT_ID 확인")
 
     logger.info(
         f"실행 모드 | DRY_RUN={config.DRY_RUN} LIVE_MODE={config.LIVE_MODE}"
@@ -77,9 +81,6 @@ def main():
 
     shutting_down = {"flag": False}
 
-    # -------------------------
-    # 종료 함수
-    # -------------------------
     def shutdown(*args):
         if shutting_down["flag"]:
             return
@@ -104,9 +105,6 @@ def main():
 
         os._exit(0)
 
-    # -------------------------
-    # 장외 DRY_RUN 테스트 틱 주입
-    # -------------------------
     def inject_test_ticks():
         if shutting_down["flag"]:
             return
@@ -162,50 +160,6 @@ def main():
                 "theme_score": 0.0,
                 "leader_score": 0.0,
             },
-            {
-                "symbol": "005930",
-                "price": 70500,
-                "trade_volume": 2200,
-                "price_change_pct": 0.7,
-                "trade_strength": 110.0,
-                "volume_ratio": 0.85,
-                "news_score": 0.2,
-                "theme_score": 0.0,
-                "leader_score": 0.0,
-            },
-            {
-                "symbol": "005930",
-                "price": 70500,
-                "trade_volume": 100,
-                "price_change_pct": 0.4,
-                "trade_strength": 85.0,
-                "volume_ratio": 0.55,
-                "news_score": 0.0,
-                "theme_score": 0.0,
-                "leader_score": 0.0,
-            },
-            {
-                "symbol": "005930",
-                "price": 70500,
-                "trade_volume": 100,
-                "price_change_pct": 0.3,
-                "trade_strength": 80.0,
-                "volume_ratio": 0.50,
-                "news_score": 0.0,
-                "theme_score": 0.0,
-                "leader_score": 0.0,
-            },
-            {
-                "symbol": "005930",
-                "price": 70500,
-                "trade_volume": 100,
-                "price_change_pct": 0.2,
-                "trade_strength": 75.0,
-                "volume_ratio": 0.45,
-                "news_score": 0.0,
-                "theme_score": 0.0,
-                "leader_score": 0.0,
-            },
         ]
 
         interval_ms = 1000
@@ -224,16 +178,11 @@ def main():
                 f"price={tick['price']} vol={tick['trade_volume']} "
                 f"chg={tick.get('price_change_pct', 0.0)} "
                 f"strength={tick.get('trade_strength', 0.0)} "
-                f"vr={tick.get('volume_ratio', 0.0)} "
-                f"news={tick.get('news_score', 0.0)}"
+                f"vr={tick.get('volume_ratio', 0.0)}"
             )
 
             try:
-                if hasattr(engine, "on_real_tick"):
-                    engine.on_real_tick(tick)
-                else:
-                    logger.error("engine.on_real_tick 메서드를 찾을 수 없습니다.")
-                    return
+                engine.on_real_tick(tick)
             except Exception as e:
                 logger.exception(f"테스트틱 처리 실패 | idx={index} err={e}")
                 return
@@ -242,9 +191,6 @@ def main():
 
         push_tick(0)
 
-    # -------------------------
-    # 테스트 주문
-    # -------------------------
     def test_order():
         if shutting_down["flag"]:
             return
@@ -273,8 +219,7 @@ def main():
         order = broker.place_order(signal_obj)
 
         logger.info(
-            f"테스트 주문 결과 | order_id={order.order_id} "
-            f"status={order.status}"
+            f"테스트 주문 결과 | order_id={order.order_id} status={order.status}"
         )
 
         if telegram:
@@ -285,9 +230,6 @@ def main():
                 f"상태: {order.status}"
             )
 
-    # -------------------------
-    # 자동 종료
-    # -------------------------
     def auto_shutdown():
         if shutting_down["flag"]:
             return
@@ -302,9 +244,6 @@ def main():
             logger.info("🛑 장 종료 시간 도달 → 자동 종료")
             shutdown()
 
-    # -------------------------
-    # 시그널 등록
-    # -------------------------
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
@@ -316,14 +255,10 @@ def main():
     shutdown_timer.start(60000)
     shutdown_timer.timeout.connect(auto_shutdown)
 
-    # 미체결 관리 타이머
     order_manage_timer = QTimer()
     order_manage_timer.start(1000)
     order_manage_timer.timeout.connect(engine.manage_pending_orders)
 
-    # -------------------------
-    # 실행
-    # -------------------------
     engine.start()
 
     broker.show_account_window()

@@ -47,17 +47,25 @@ class TradingEngine:
         self.last_price_map = {}
         self.reentry_block_until = {}
         self.last_exit_reason = {}
+
         self.partial_exit_done = set()
         self.breakeven_active = set()
         self.trailing_high_price = {}
+        self.trailing_armed = set()
+
         self.cancel_in_progress = set()
         self.pending_resell = {}
         self.resell_retry_count = {}
         self.abandon_resell_symbols = set()
         self.last_cancel_request_time = {}
+
         self.consecutive_loss_count = 0
         self.error_count = 0
         self.engine_protected = False
+
+        self.trade_log = []
+        self.win_count = 0
+        self.loss_count = 0
 
     # -------------------------
     # 안전 변환 유틸
@@ -87,7 +95,13 @@ class TradingEngine:
             if not reason:
                 return None
 
-            for token in str(reason).split(":"):
+            # "ENTRY score=88.4 ..." 형태 대응
+            text = str(reason)
+            if "score=" in text:
+                part = text.split("score=", 1)[1].split()[0]
+                return float(part.strip())
+
+            for token in text.split(":"):
                 if token.startswith("score="):
                     return float(token.split("=", 1)[1])
         except Exception:
@@ -173,24 +187,22 @@ class TradingEngine:
             self.logger.info(f"예수금 동기화 완료 | deposit={deposit}")
             self.logger.info(f"보유종목 동기화 완료 | count={len(positions)}")
 
-            if hasattr(self, "portfolio"):
-                self.portfolio.cash = deposit
+            self.portfolio.cash = deposit
 
-            if hasattr(self, "portfolio"):
-                for item in positions:
-                    symbol = item["symbol"]
-                    qty = int(item["qty"])
-                    avg_price = float(item["avg_price"])
+            for item in positions:
+                symbol = item["symbol"]
+                qty = int(item["qty"])
+                avg_price = float(item["avg_price"])
 
-                    pos = self.portfolio.get_position(symbol)
-                    pos.qty = qty
-                    pos.avg_price = avg_price
-                    pos.partial_taken = False
-                    pos.highest_return_pct = 0.0
+                pos = self.portfolio.get_position(symbol)
+                pos.qty = qty
+                pos.avg_price = avg_price
+                pos.partial_taken = False
+                pos.highest_return_pct = 0.0
 
-                    self.logger.info(
-                        f"포지션 반영 | symbol={symbol} qty={qty} avg_price={avg_price}"
-                    )
+                self.logger.info(
+                    f"포지션 반영 | symbol={symbol} qty={qty} avg_price={avg_price}"
+                )
 
             return {
                 "deposit": deposit,
@@ -374,11 +386,23 @@ class TradingEngine:
 
             pnl_pct = (price - avg_price) / avg_price
 
+            # 1) 손절 먼저
+            if pnl_pct <= config.STOP_LOSS_PCT:
+                exit_reason = f"손절 {pnl_pct:.2%}"
+                self.logger.info(
+                    f"자동매도 조건 충족 | symbol={symbol} price={price} "
+                    f"avg_price={avg_price} qty={qty} pnl_pct={pnl_pct:.2%} reason={exit_reason}"
+                )
+                self._submit_auto_sell(symbol=symbol, qty=qty, reason=exit_reason)
+                return
+
+            # 2) 부분익절
             if (
                 symbol not in self.partial_exit_done
                 and pnl_pct >= config.PARTIAL_TAKE_PROFIT_PCT
             ):
                 sell_qty = max(int(qty * config.PARTIAL_TAKE_RATIO), 1)
+                sell_qty = min(sell_qty, qty)
 
                 self.logger.info(
                     f"부분익절 발생 | symbol={symbol} qty={sell_qty} pnl={pnl_pct:.2%}"
@@ -395,20 +419,40 @@ class TradingEngine:
                 self._submit_auto_sell(symbol, sell_qty, "부분익절")
                 return
 
+            # 3) 부분익절 이후 최고가 갱신
             if symbol in self.partial_exit_done and config.TRAILING_STOP_ENABLED:
                 prev_high = self.trailing_high_price.get(symbol, 0)
                 if price > prev_high:
                     self.trailing_high_price[symbol] = price
 
+            # 4) trailing arm 활성화
+            trailing_start_pct = max(
+                config.PARTIAL_TAKE_PROFIT_PCT + 0.003,
+                config.TAKE_PROFIT_PCT * 0.7
+            )
+            if (
+                symbol in self.partial_exit_done
+                and config.TRAILING_STOP_ENABLED
+                and pnl_pct >= trailing_start_pct
+            ):
+                self.trailing_armed.add(symbol)
+
+            # 5) 본절 보호
             if symbol in self.breakeven_active:
-                if price <= avg_price:
+                if pnl_pct <= 0.001:
                     self.logger.info(
-                        f"본절 청산 | symbol={symbol} price={price} avg_price={avg_price}"
+                        f"본절 청산 | symbol={symbol} price={price} "
+                        f"avg_price={avg_price} pnl={pnl_pct:.2%}"
                     )
                     self._submit_auto_sell(symbol, qty, "본절청산")
                     return
 
-            if symbol in self.partial_exit_done and config.TRAILING_STOP_ENABLED:
+            # 6) 트레일링 스탑
+            if (
+                symbol in self.partial_exit_done
+                and symbol in self.trailing_armed
+                and config.TRAILING_STOP_ENABLED
+            ):
                 high_price = self.trailing_high_price.get(symbol, 0)
                 if high_price > 0:
                     trailing_stop_price = high_price * (1 - config.TRAILING_STOP_PCT)
@@ -418,22 +462,22 @@ class TradingEngine:
                             f"트레일링 스탑 청산 | symbol={symbol} price={price} "
                             f"high={high_price} stop={trailing_stop_price:.2f}"
                         )
-                        self._submit_auto_sell(symbol, qty, f"트레일링청산 high={high_price}")
+                        self._submit_auto_sell(
+                            symbol,
+                            qty,
+                            f"트레일링청산 high={high_price}"
+                        )
                         return
 
-            exit_reason = None
-
-            if pnl_pct >= config.TAKE_PROFIT_PCT:
+            # 7) 부분익절 안 한 상태에서 최종 익절
+            if symbol not in self.partial_exit_done and pnl_pct >= config.TAKE_PROFIT_PCT:
                 exit_reason = f"익절 {pnl_pct:.2%}"
-            elif pnl_pct <= config.STOP_LOSS_PCT:
-                exit_reason = f"손절 {pnl_pct:.2%}"
-
-            if exit_reason is not None:
                 self.logger.info(
-                    f"자동매도 조건 충족 | symbol={symbol} price={price} "
-                    f"avg_price={avg_price} qty={qty} pnl_pct={pnl_pct:.2%} reason={exit_reason}"
+                    f"자동익절 조건 충족 | symbol={symbol} price={price} "
+                    f"avg_price={avg_price} qty={qty} pnl_pct={pnl_pct:.2%}"
                 )
                 self._submit_auto_sell(symbol=symbol, qty=qty, reason=exit_reason)
+                return
 
         except Exception as e:
             self.logger.exception(f"자동매도 검사 실패 | symbol={symbol} price={price} err={e}")
@@ -459,6 +503,21 @@ class TradingEngine:
 
             order = self.broker.place_order(signal)
             self.order_manager.register(order)
+
+            # 🔥 DRY_RUN SELL 체결은 여기서 처리
+            if config.DRY_RUN:
+                class StubFill:
+                    pass
+
+                fill = StubFill()
+                fill.order_id = order.order_id
+                fill.symbol = order.symbol
+                fill.side = order.side
+                fill.fill_qty = order.qty
+                fill.fill_price = self.last_price_map.get(symbol, 0)
+                fill.unfilled_qty = 0
+
+                self.on_fill(fill)
 
             if order.status == OrderStatus.SUBMITTED:
                 self.last_order_time[symbol] = time.time()
@@ -826,6 +885,7 @@ class TradingEngine:
                 if signal.side.value == "BUY" and hasattr(self.strategy, "mark_entry"):
                     self.strategy.mark_entry(signal.symbol, tick.ts)
 
+            # 🔥 DRY_RUN BUY 체결은 여기서만 처리
             if config.DRY_RUN:
                 if signal.side.value == "BUY":
                     class StubFill:
@@ -937,6 +997,11 @@ class TradingEngine:
                         f"매도 체결 완료 | symbol={fill.symbol} "
                         f"reentry_reason={self.last_exit_reason.get(fill.symbol, '')}"
                     )
+                    self._record_trade_result(
+                        symbol=fill.symbol,
+                        exit_price=float(fill.fill_price),
+                        reason=self.last_exit_reason.get(fill.symbol, "SELL_EXIT"),
+                    )
             except Exception:
                 pass
 
@@ -945,6 +1010,7 @@ class TradingEngine:
                 if int(getattr(pos, "qty", 0)) == 0:
                     self.partial_exit_done.discard(fill.symbol)
                     self.breakeven_active.discard(fill.symbol)
+                    self.trailing_armed.discard(fill.symbol)
                     self.trailing_high_price.pop(fill.symbol, None)
                     self.logger.info(f"청산 상태 초기화 | symbol={fill.symbol}")
             except Exception:
@@ -1005,6 +1071,34 @@ class TradingEngine:
             )
 
         self.stop()
+
+    def _record_trade_result(self, symbol: str, exit_price: float, reason: str):
+        try:
+            # Portfolio의 realized_pnl은 누적값이라, 개별 트레이드는 최근 체결 기준으로 로그용만 기록
+            item = {
+                "ts": datetime.now(),
+                "symbol": symbol,
+                "exit_price": exit_price,
+                "reason": reason,
+                "realized_pnl_total": float(self.portfolio.realized_pnl),
+            }
+            self.trade_log.append(item)
+
+            self.logger.info(
+                f"[TRADE_SUMMARY] symbol={symbol} exit_price={exit_price} "
+                f"reason={reason} realized_total={self.portfolio.realized_pnl:.0f}"
+            )
+
+            if self.telegram:
+                self.telegram.send(
+                    f"📊 트레이드 요약\n"
+                    f"종목: {symbol}\n"
+                    f"청산가: {exit_price}\n"
+                    f"사유: {reason}\n"
+                    f"누적손익: {self.portfolio.realized_pnl:.0f}"
+                )
+        except Exception as e:
+            self.logger.exception(f"트레이드 요약 기록 실패 | {e}")
 
     # -------------------------
     # 초기 포지션 동기화

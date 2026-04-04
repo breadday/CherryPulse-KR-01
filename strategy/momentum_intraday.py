@@ -1,5 +1,3 @@
-# strategy/momentum_intraday.py
-
 from __future__ import annotations
 
 from collections import defaultdict, deque
@@ -11,11 +9,13 @@ from core.models import Signal, Side
 
 class MomentumIntradayStrategy:
     """
-    CherryPulse-KR-01 전략 튜닝 버전
+    CherryPulse-KR-01 전략 튜닝 버전 (1차)
 
-    엔진 호환 포인트:
-    - engine.py 에서 strategy.generate_signal(tick, portfolio) 호출
-    - 따라서 generate_signal() 메서드를 반드시 제공
+    목표:
+    - 가짜 돌파 감소
+    - 고점 추격 감소
+    - 거래량/체결강도/뉴스 점수 기반 진입 품질 개선
+    - engine.py 의 generate_signal(tick, portfolio) 인터페이스 유지
     """
 
     def __init__(self, config=None):
@@ -23,7 +23,9 @@ class MomentumIntradayStrategy:
 
         self.watchlist = set(self.cfg.get("watchlist", []))
 
+        # -------------------------
         # 기본 진입 조건
+        # -------------------------
         self.min_trade_strength = float(self.cfg.get("min_trade_strength", 0))
         self.min_price_change_pct = float(self.cfg.get("min_price_change_pct", 0.0))
 
@@ -70,8 +72,20 @@ class MomentumIntradayStrategy:
             self.cfg.get("min_leader_score_for_entry", 0.0)
         )
 
+        # 추가 튜닝 파라미터
+        self.history_size = int(self.cfg.get("history_size", 30))
+        self.min_history_for_entry = int(self.cfg.get("min_history_for_entry", 4))
+        self.pullback_tolerance_pct = float(self.cfg.get("pullback_tolerance_pct", 0.012))
+        self.near_high_tolerance_pct = float(self.cfg.get("near_high_tolerance_pct", 0.006))
+        self.max_short_term_spike_pct = float(self.cfg.get("max_short_term_spike_pct", 1.8))
+        self.require_price_above_recent_avg = bool(
+            self.cfg.get("require_price_above_recent_avg", True)
+        )
+
         # 최근 틱 저장
-        self.tick_history: Dict[str, Deque[dict]] = defaultdict(lambda: deque(maxlen=30))
+        self.tick_history: Dict[str, Deque[dict]] = defaultdict(
+            lambda: deque(maxlen=self.history_size)
+        )
 
         # 진입/청산 시간 기록
         self.last_entry_time: Dict[str, datetime] = {}
@@ -81,9 +95,6 @@ class MomentumIntradayStrategy:
     # 엔진 호환용 메인 진입점
     # --------------------------------------------------
     def generate_signal(self, tick: Any, portfolio=None) -> Optional[Signal]:
-        """
-        engine.py 에서 호출하는 표준 인터페이스
-        """
         has_position = self._has_position(tick, portfolio)
         return self.on_tick(tick, has_position=has_position)
 
@@ -92,6 +103,9 @@ class MomentumIntradayStrategy:
     # --------------------------------------------------
     def mark_exit(self, symbol: str, when: Optional[datetime] = None):
         self.last_exit_time[symbol] = when or datetime.now()
+
+    def mark_entry(self, symbol: str, when: Optional[datetime] = None):
+        self.last_entry_time[symbol] = when or datetime.now()
 
     # --------------------------------------------------
     # 내부 메인 진입 판단
@@ -109,16 +123,13 @@ class MomentumIntradayStrategy:
         # 틱 기록 먼저 저장
         self._append_tick(symbol, tick)
 
-        # 이미 포지션 있으면 신규 진입 안 함
         if has_position:
             return None
 
-        # 쿨다운 체크
         if self._is_in_cooldown(symbol, now):
             return None
 
-        # 최소 히스토리 부족 시 skip
-        if len(self.tick_history[symbol]) < 3:
+        if len(self.tick_history[symbol]) < self.min_history_for_entry:
             return None
 
         return self._check_entry(symbol, tick)
@@ -138,6 +149,9 @@ class MomentumIntradayStrategy:
         theme_score = self._get_theme_score(tick)
         leader_score = self._get_leader_score(tick)
 
+        # -------------------------
+        # 하드 필터
+        # -------------------------
         if price_change_pct < self.min_price_change_pct:
             return None
 
@@ -156,19 +170,23 @@ class MomentumIntradayStrategy:
         if leader_score < self.min_leader_score_for_entry:
             return None
 
+        # -------------------------
         # 급등 추격 방지
+        # -------------------------
         if price_change_pct >= self.max_chase_price_change_pct:
             if volume_ratio >= self.max_chase_volume_ratio:
                 return None
 
-        # hot move 구간 추가 필터
+        # hot move 구간은 더 엄격
         if price_change_pct >= self.hot_move_price_change_pct:
             if trade_strength < self.hot_move_trade_strength:
                 return None
             if news_score < self.min_news_score_for_hot_move:
                 return None
 
+        # -------------------------
         # 모멘텀 조건
+        # -------------------------
         base_ok = (
             price_change_pct >= self.min_price_change_pct
             and trade_strength >= self.min_trade_strength
@@ -184,11 +202,21 @@ class MomentumIntradayStrategy:
         if not (base_ok or strong_ok):
             return None
 
-        # 최근 흐름 체크
+        # -------------------------
+        # 최근 흐름 / 자리 필터
+        # -------------------------
         if not self._is_price_flow_positive(symbol):
             return None
 
+        if not self._is_structure_healthy(symbol, price):
+            return None
+
+        # -------------------------
+        # 점수 계산
+        # -------------------------
         score = self._calculate_entry_score(
+            symbol=symbol,
+            price=price,
             price_change_pct=price_change_pct,
             trade_strength=trade_strength,
             volume_ratio=volume_ratio,
@@ -225,7 +253,6 @@ class MomentumIntradayStrategy:
         if not symbol:
             return False
 
-        # dict 형태 대응
         if isinstance(portfolio, dict):
             pos = portfolio.get(symbol)
             if pos is None:
@@ -240,7 +267,6 @@ class MomentumIntradayStrategy:
                 qty = getattr(pos, "quantity", 0)
             return float(qty or 0) > 0
 
-        # positions 속성 대응
         positions = getattr(portfolio, "positions", None)
         if isinstance(positions, dict):
             pos = positions.get(symbol)
@@ -256,6 +282,13 @@ class MomentumIntradayStrategy:
                 qty = getattr(pos, "quantity", 0)
             return float(qty or 0) > 0
 
+        # Portfolio 객체 get_position 대응
+        get_position = getattr(portfolio, "get_position", None)
+        if callable(get_position):
+            pos = get_position(symbol)
+            qty = getattr(pos, "qty", 0)
+            return float(qty or 0) > 0
+
         return False
 
     # --------------------------------------------------
@@ -263,6 +296,8 @@ class MomentumIntradayStrategy:
     # --------------------------------------------------
     def _calculate_entry_score(
         self,
+        symbol: str,
+        price: float,
         price_change_pct: float,
         trade_strength: float,
         volume_ratio: float,
@@ -272,19 +307,21 @@ class MomentumIntradayStrategy:
     ) -> float:
         score = 0.0
 
+        # 등락률 점수
         if price_change_pct >= 0.3:
-            score += 8
+            score += 6
         if price_change_pct >= 0.5:
             score += 8
         if price_change_pct >= 0.8:
             score += 10
         if price_change_pct >= 1.2:
             score += 10
-        if price_change_pct >= 2.0:
-            score += 6
+        if 1.5 <= price_change_pct <= 2.8:
+            score += 4
         if price_change_pct >= self.max_chase_price_change_pct:
-            score -= 12
+            score -= 15
 
+        # 체결강도 점수
         if trade_strength >= 100:
             score += 8
         if trade_strength >= 120:
@@ -292,24 +329,36 @@ class MomentumIntradayStrategy:
         if trade_strength >= 140:
             score += 10
         if trade_strength >= 160:
-            score += 8
-        if trade_strength >= 180:
-            score += 4
+            score += 6
+        if trade_strength >= 190:
+            score -= 3  # 너무 과열된 순간치 방지
 
+        # 거래량비율 점수
         if volume_ratio >= 1.0:
-            score += 10
+            score += 8
         if volume_ratio >= 1.2:
             score += 10
         if volume_ratio >= 1.5:
             score += 8
         if volume_ratio >= 2.0:
-            score += 6
+            score += 5
         if volume_ratio >= 3.5:
-            score -= 4
+            score -= 5
 
+        # 외부 점수
         score += news_score * 10 * self.news_weight
         score += theme_score * 6
         score += leader_score * 6
+
+        # 구조 보너스 / 패널티
+        if self._is_near_recent_high(symbol, price):
+            score += 4
+
+        if self._is_too_far_from_recent_mean(symbol, price):
+            score -= 8
+
+        if self._is_short_term_vertical(symbol):
+            score -= 10
 
         return score
 
@@ -327,10 +376,77 @@ class MomentumIntradayStrategy:
         if len(prices) < 3:
             return True
 
+        # 3틱 연속 하락이면 제외
         if prices[-1] < prices[-2] < prices[-3]:
             return False
 
+        # 마지막 틱이 직전 대비 과하게 꺾이면 제외
+        if prices[-2] > 0:
+            drop_pct = (prices[-1] - prices[-2]) / prices[-2]
+            if drop_pct <= -self.pullback_tolerance_pct:
+                return False
+
         return True
+
+    def _is_structure_healthy(self, symbol: str, price: float) -> bool:
+        hist = self.tick_history[symbol]
+        items = list(hist)
+        prices = [x["price"] for x in items if x["price"] > 0]
+
+        if len(prices) < 4:
+            return True
+
+        # 최근 평균 위에 있어야 함
+        if self.require_price_above_recent_avg:
+            recent = prices[-4:]
+            avg_recent = sum(recent) / len(recent)
+            if price < avg_recent:
+                return False
+
+        # 최근 고점 근처에서 너무 멀어진 추격 진입 차단
+        recent_high = max(prices[-6:])
+        if recent_high > 0:
+            dist_from_high = (recent_high - price) / recent_high
+            if dist_from_high > self.pullback_tolerance_pct:
+                return False
+
+        return True
+
+    def _is_near_recent_high(self, symbol: str, price: float) -> bool:
+        hist = self.tick_history[symbol]
+        prices = [x["price"] for x in hist if x["price"] > 0]
+        if len(prices) < 4:
+            return False
+
+        recent_high = max(prices[-6:])
+        if recent_high <= 0:
+            return False
+
+        gap = abs(recent_high - price) / recent_high
+        return gap <= self.near_high_tolerance_pct
+
+    def _is_too_far_from_recent_mean(self, symbol: str, price: float) -> bool:
+        hist = self.tick_history[symbol]
+        prices = [x["price"] for x in hist if x["price"] > 0]
+        if len(prices) < 4:
+            return False
+
+        recent = prices[-4:]
+        mean_price = sum(recent) / len(recent)
+        if mean_price <= 0:
+            return False
+
+        spike_pct = ((price / mean_price) - 1.0) * 100.0
+        return spike_pct >= self.max_short_term_spike_pct
+
+    def _is_short_term_vertical(self, symbol: str) -> bool:
+        hist = self.tick_history[symbol]
+        prices = [x["price"] for x in hist if x["price"] > 0]
+        if len(prices) < 4:
+            return False
+
+        p1, p2, p3, p4 = prices[-4:]
+        return p1 < p2 < p3 < p4
 
     # --------------------------------------------------
     # 틱 기록
