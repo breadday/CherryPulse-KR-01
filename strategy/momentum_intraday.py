@@ -1,11 +1,8 @@
-# strategy/momentum_intraday.py
-
 from datetime import datetime, timedelta
 from core.models import Signal, Side, OrderType
 
 
 class MomentumIntradayStrategy:
-
     def __init__(self, config=None):
         self.config = config or {}
 
@@ -33,20 +30,26 @@ class MomentumIntradayStrategy:
         self.entry_cooldown_sec = self.config.get("entry_cooldown_sec", 30)
         self.allow_reentry = self.config.get("allow_reentry", False)
 
+        # -------------------------
+        # 확인 진입 / 필터 강화
+        # config 수정 없이 기본값으로 동작
+        # -------------------------
+        self.confirm_strength_ratio = self.config.get("confirm_strength_ratio", 0.95)
+        self.min_confirm_price_change_pct = self.config.get(
+            "min_confirm_price_change_pct",
+            self.min_price_change_pct
+        )
+
+        # -------------------------
+        # 내부 상태
+        # -------------------------
         self.last_entry_time = {}
-
-        # -------------------------
-        # 1틱 확인 진입용
-        # -------------------------
-        # 첫 돌파 틱은 바로 안 사고, 후보만 저장
-        # 다음 틱에서 조건이 유지되면 진입
         self.pending_entry = {}
-
-        # 엔진 로그용 마지막 차단 사유
         self.last_block_reason = {}
+        self.last_tick_price = {}
 
     # -------------------------
-    # 내부 유틸
+    # 공통 유틸
     # -------------------------
     def _now(self, ts=None):
         if ts is None:
@@ -86,10 +89,14 @@ class MomentumIntradayStrategy:
 
         # 포트폴리오 최대 보유 수 제한
         if portfolio is not None:
-            holding_count = sum(1 for p in portfolio.positions.values() if getattr(p, "qty", 0) > 0)
+            positions = getattr(portfolio, "positions", {})
+            holding_count = sum(
+                1 for p in positions.values() if getattr(p, "qty", 0) > 0
+            )
             if holding_count >= self.max_positions:
                 return False, "max_positions"
 
+        # 기본 돌파 조건
         if trade_strength < self.min_trade_strength:
             return False, "trade_strength"
 
@@ -108,53 +115,113 @@ class MomentumIntradayStrategy:
         symbol = tick.symbol
         price = tick.price
 
+        market_data = self._build_market_data(tick)
+        now = market_data["timestamp"]
+        price_change_pct = market_data["price_change_pct"]
+        trade_strength = market_data["trade_strength"]
+        volume_ratio = market_data["volume_ratio"]
+
+        prev_price = self.last_tick_price.get(symbol)
+
         # 이미 보유 중이면 진입 후보 제거
         pos = portfolio.get_position(symbol)
         if pos.qty > 0:
             self._clear_pending_entry(symbol)
+            self.last_tick_price[symbol] = price
             self._set_block_reason(symbol, "already_holding")
             return None
 
-        market_data = self._build_market_data(tick)
-        now = market_data["timestamp"]
-
-        # 공통 진입 필터 체크
+        # 공통 필터
         ok, reason = self._check_common_entry_filters(symbol, market_data, portfolio)
         if not ok:
             self._clear_pending_entry(symbol)
+            self.last_tick_price[symbol] = price
             self._set_block_reason(symbol, reason)
             return None
 
         # -------------------------
-        # 1틱 확인 로직
+        # 추가 하락/약세 필터
         # -------------------------
+        # 직전 틱보다 현재가가 밀리면 추격 진입 금지
+        if prev_price is not None and price < prev_price:
+            self._clear_pending_entry(symbol)
+            self.last_tick_price[symbol] = price
+            self._set_block_reason(symbol, "price_below_prev_tick")
+            return None
+
         pending = self.pending_entry.get(symbol)
 
-        # 아직 후보가 없으면 이번 틱은 "관찰만"
+        # -------------------------
+        # 1차: 후보 저장만
+        # -------------------------
         if pending is None:
+            # 첫 후보틱도 최소한 직전 틱보다 꺾이면 후보로 삼지 않음
+            if prev_price is not None and price <= prev_price:
+                self.last_tick_price[symbol] = price
+                self._set_block_reason(symbol, "candidate_not_rising")
+                return None
+
             self.pending_entry[symbol] = {
                 "price": price,
-                "price_change_pct": market_data["price_change_pct"],
-                "trade_strength": market_data["trade_strength"],
-                "volume_ratio": market_data["volume_ratio"],
+                "price_change_pct": price_change_pct,
+                "trade_strength": trade_strength,
+                "volume_ratio": volume_ratio,
                 "timestamp": now,
             }
+            self.last_tick_price[symbol] = price
             self._set_block_reason(symbol, "wait_1tick_confirm")
             return None
 
-        # 후보가 있으면 다음 틱에서 확인
+        # -------------------------
+        # 2차: 확인 진입
+        # -------------------------
         candidate_price = pending.get("price", 0)
+        candidate_strength = pending.get("trade_strength", 0.0)
+        candidate_price_change_pct = pending.get("price_change_pct", 0.0)
 
-        # 핵심:
-        # 다음 틱에서 가격이 후보 틱보다 밀리면 가짜 돌파로 보고 취소
+        # 확인틱에서 가격 밀리면 취소
         if price < candidate_price:
             self._clear_pending_entry(symbol)
+            self.last_tick_price[symbol] = price
             self._set_block_reason(symbol, "confirm_fail_price_drop")
             return None
 
-        # 다음 틱에서도 기본 조건 유지되면 진입
+        # 확인틱에서 등락률이 약해지면 취소
+        if price_change_pct < self.min_confirm_price_change_pct:
+            self._clear_pending_entry(symbol)
+            self.last_tick_price[symbol] = price
+            self._set_block_reason(symbol, "confirm_fail_price_change")
+            return None
+
+        # 확인틱에서 거래강도 유지 안 되면 취소
+        required_strength = max(
+            self.min_trade_strength,
+            candidate_strength * self.confirm_strength_ratio
+        )
+        if trade_strength < required_strength:
+            self._clear_pending_entry(symbol)
+            self.last_tick_price[symbol] = price
+            self._set_block_reason(symbol, "confirm_fail_strength_drop")
+            return None
+
+        # 확인틱에서 거래량 비율도 유지 안 되면 취소
+        if volume_ratio < self.min_volume_ratio:
+            self._clear_pending_entry(symbol)
+            self.last_tick_price[symbol] = price
+            self._set_block_reason(symbol, "confirm_fail_volume_ratio")
+            return None
+
+        # 첫 후보틱보다도 등락률이 많이 약해졌으면 취소
+        if price_change_pct < candidate_price_change_pct:
+            self._clear_pending_entry(symbol)
+            self.last_tick_price[symbol] = price
+            self._set_block_reason(symbol, "confirm_fail_momentum_weaken")
+            return None
+
+        # 최종 진입
         qty = 1
         self._clear_pending_entry(symbol)
+        self.last_tick_price[symbol] = price
 
         return Signal(
             symbol=symbol,
@@ -164,15 +231,17 @@ class MomentumIntradayStrategy:
             order_type=OrderType.MARKET,
             reason=(
                 "momentum_entry:"
-                f"1tick_confirm_ok:"
-                f"chg={market_data['price_change_pct']:.2f}:"
-                f"strength={market_data['trade_strength']:.1f}:"
-                f"vr={market_data['volume_ratio']:.2f}"
+                "1tick_confirm_ok:"
+                f"chg={price_change_pct:.2f}:"
+                f"prev_chg={candidate_price_change_pct:.2f}:"
+                f"strength={trade_strength:.1f}:"
+                f"prev_strength={candidate_strength:.1f}:"
+                f"vr={volume_ratio:.2f}"
             ),
         )
 
     # -------------------------
-    # 기존 호환용
+    # 엔진 호환용
     # -------------------------
     def can_enter(self, symbol, market_data, portfolio=None):
         return self._check_common_entry_filters(symbol, market_data, portfolio)
@@ -213,16 +282,16 @@ class MomentumIntradayStrategy:
             return {
                 "action": "FULL_SELL",
                 "reason": "stop_loss",
-                "pnl_pct": pnl_pct
+                "pnl_pct": pnl_pct,
             }
 
-        # 부분익절
+        # 부분 익절
         if (not position.get("partial_taken", False)) and pnl_pct >= self.partial_take_profit_pct:
             return {
                 "action": "PARTIAL_SELL",
                 "reason": "partial_take_profit",
                 "ratio": self.partial_take_profit_ratio,
-                "pnl_pct": pnl_pct
+                "pnl_pct": pnl_pct,
             }
 
         # 고정 익절
@@ -230,10 +299,10 @@ class MomentumIntradayStrategy:
             return {
                 "action": "FULL_SELL",
                 "reason": "take_profit",
-                "pnl_pct": pnl_pct
+                "pnl_pct": pnl_pct,
             }
 
-        # 트레일링
+        # 트레일링 스탑
         if highest_return_pct >= self.trailing_start_pct:
             drawdown_from_peak = highest_return_pct - pnl_pct
             if drawdown_from_peak >= self.trailing_gap_pct:
@@ -241,7 +310,7 @@ class MomentumIntradayStrategy:
                     "action": "FULL_SELL",
                     "reason": "trailing_stop",
                     "pnl_pct": pnl_pct,
-                    "peak_pct": highest_return_pct
+                    "peak_pct": highest_return_pct,
                 }
 
         return None

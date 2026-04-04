@@ -24,7 +24,7 @@ from infra.telegram_notifier import TelegramNotifier
 # -------------------------
 # 테스트 케이스 선택
 # -------------------------
-TEST_NAME = "case3_fake_breakout"
+TEST_NAME = "case5_overheat_spike"
 
 TEST_CASES = {
     # CASE 1: 순수 상승 → 익절 확인용
