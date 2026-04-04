@@ -1,5 +1,3 @@
-# config_live.py
-
 import os
 from dotenv import load_dotenv
 
@@ -9,7 +7,7 @@ load_dotenv()
 # 기본 실행 설정
 # =========================
 LIVE_MODE = True
-DRY_RUN = True   # 실주문 전 검증 단계에서는 True 유지
+DRY_RUN = True
 ACCOUNT_PASSWORD = os.getenv("ACCOUNT_PASSWORD", "0000")
 
 # =========================
@@ -22,47 +20,42 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 # 주문 / 자금 관리
 # =========================
 MAX_POSITIONS = 3
-ORDER_AMOUNT_PER_TRADE = 500000   # 종목당 진입 금액
-REBUY_COOLDOWN_SECONDS = 300      # 동일 종목 재진입 쿨다운
+ORDER_AMOUNT_PER_TRADE = 500000
+REBUY_COOLDOWN_SECONDS = 300
+
 
 # =========================
-# 수익률 튜닝 2차
+# 익절 / 손절 설정 (최종 튜닝)
 # =========================
-# 1차 부분익절: +2.5%
-PARTIAL_TAKE_PROFIT_PCT = 0.025
-
-# 최종 익절: 필요 시 기존 값 유지 또는 약간 상단 유지
-TAKE_PROFIT_PCT = 0.045
-
-# 손절: -1.8%
-STOP_LOSS_PCT = -0.018
-
-# =========================
-# 진입 필터 튜닝
-# =========================
-# 최소 진입 점수 상향
-MIN_ENTRY_SCORE = 65
-
-# 추격매수 제한
-MAX_CHASE_PRICE_CHANGE_PCT = 3.8
-
-# 최소 체결강도 상향
-MIN_TRADE_STRENGTH = 125
+PARTIAL_TAKE_PROFIT_PCT = 0.025   # +2.5%에서 일부만
+PARTIAL_TAKE_RATIO = 0.3          # 30%만 매도
+TAKE_PROFIT_PCT = 0.060           # +6%까지 열어둠
+TRAILING_STOP_PCT = 0.012         # 1.2% 트레일링 (조금 여유)
+STOP_LOSS_PCT = -0.018            # 그대로 유지
+BREAKEVEN_ENABLED = True
+TRAILING_STOP_ENABLED = True
 
 # =========================
-# 거래량 / 가격 필터
+# 매도 미체결 / 재매도
 # =========================
-MIN_VOLUME = 50000
-MIN_PRICE = 3000
-MAX_PRICE = 300000
+ENABLE_SELL_CANCEL_TIMEOUT = True
+SELL_ORDER_TIMEOUT_SEC = 10
+RETRY_SELL_AFTER_CANCEL = True
+RETRY_SELL_DELAY_SEC = 2
+RETRY_SELL_MAX_COUNT = 2
 
 # =========================
-# 장 운영 시간
+# 재진입 제한
 # =========================
-MARKET_OPEN_HOUR = 9
-MARKET_OPEN_MINUTE = 0
-MARKET_CLOSE_HOUR = 15
-MARKET_CLOSE_MINUTE = 20
+REENTRY_BLOCK_SEC_AFTER_STOPLOSS = 300
+REENTRY_BLOCK_SEC_AFTER_SELL = 120
+
+# =========================
+# 엔진 보호
+# =========================
+MAX_CONSECUTIVE_LOSS = 3
+MAX_DAILY_LOSS = -150000
+MAX_ERROR_COUNT = 5
 
 # =========================
 # 로그 / 디버그
@@ -70,34 +63,38 @@ MARKET_CLOSE_MINUTE = 20
 ENABLE_DEBUG_LOG = True
 ENABLE_TELEGRAM_LOG = True
 
-# -------------------------
-# 전략 설정 (🔥 추가)
-# -------------------------
+# =========================
+# 전략 설정
+# =========================
 STRATEGY_CONFIG = {
-    # 진입 필터
-    "min_trade_strength": 125,
+    "watchlist": [],
+
+    # 기본 진입 조건
+    "min_trade_strength": 120,
     "min_price_change_pct": 0.3,
 
-    # 거래량
-    "min_volume_ratio": 1.2,
-    "entry_volume_ratio_min": 1.1,
-    "volume_ratio_hard_floor": 0.8,
+    # 거래량 조건
+    "min_volume_ratio": 1.10,
+    "entry_volume_ratio_min": 1.00,
+    "volume_ratio_hard_floor": 0.80,
 
     # 점수 필터
     "use_score_filter": True,
-    "min_entry_score": 65,
+    "min_entry_score": 62,
 
-    # 강한 모멘텀
+    # 강한 모멘텀 조건
     "strong_momentum_trade_strength": 140,
     "strong_momentum_price_change_pct": 1.0,
-    "strong_momentum_volume_ratio": 1.3,
+    "strong_momentum_volume_ratio": 1.25,
 
     # 급등 추격 방지
     "max_chase_price_change_pct": 3.8,
+    "max_chase_volume_ratio": 3.5,
     "hot_move_price_change_pct": 2.0,
     "hot_move_trade_strength": 145,
+    "min_news_score_for_hot_move": 0.0,
 
-    # 뉴스 / 테마 / 대장
+    # 외부 점수
     "news_weight": 1.0,
     "min_theme_score_for_entry": 0.0,
     "min_leader_score_for_entry": 0.0,
@@ -107,10 +104,10 @@ STRATEGY_CONFIG = {
     "min_history_for_entry": 5,
     "pullback_tolerance_pct": 0.010,
     "near_high_tolerance_pct": 0.005,
-    "max_short_term_spike_pct": 1.6,
+    "max_short_term_spike_pct": 1.8,
     "require_price_above_recent_avg": True,
 
-    # 포지션
+    # 포지션 / 재진입
     "max_positions": 1,
     "entry_cooldown_sec": 30,
     "allow_reentry": False,

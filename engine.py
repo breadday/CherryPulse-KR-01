@@ -22,14 +22,10 @@ class TradingEngine:
 
         self.is_running = False
 
-        # -------------------------
         # 외부 점수 공급기
-        # -------------------------
         self.news_provider = NewsProvider(logger=logger)
 
-        # -------------------------
         # 주문 방어 설정
-        # -------------------------
         self.last_order_time = {}
         self.order_cooldown_sec = 10
         self.daily_order_count = 0
@@ -95,7 +91,6 @@ class TradingEngine:
             if not reason:
                 return None
 
-            # "ENTRY score=88.4 ..." 형태 대응
             text = str(reason)
             if "score=" in text:
                 part = text.split("score=", 1)[1].split()[0]
@@ -112,7 +107,6 @@ class TradingEngine:
     def _build_external_scores(self, raw_tick: dict):
         symbol = str(raw_tick.get("symbol", ""))
 
-        # raw_tick에 이미 외부 점수가 있으면 우선 사용
         news_score = self._safe_float(raw_tick.get("news_score", 0.0), 0.0)
         theme_score = self._safe_float(raw_tick.get("theme_score", 0.0), 0.0)
         leader_score = self._safe_float(raw_tick.get("leader_score", 0.0), 0.0)
@@ -125,7 +119,6 @@ class TradingEngine:
                 "total_external_score": round(news_score + theme_score + leader_score, 2),
             }
 
-        # 없으면 RSS 기반 provider 사용
         return self.news_provider.get_scores(symbol)
 
     # -------------------------
@@ -358,6 +351,34 @@ class TradingEngine:
             self._check_engine_protection()
 
     # -------------------------
+    # 청산 로그 포맷
+    # -------------------------
+    def _log_exit_event(self, symbol: str, price: int, avg_price: float, qty: int, event: str):
+        try:
+            pnl_pct = 0.0
+            if avg_price > 0:
+                pnl_pct = (price - avg_price) / avg_price
+
+            self.logger.info(
+                f"[EXIT_CHECK] {symbol} "
+                f"event={event} "
+                f"price={price} avg={avg_price:.2f} qty={qty} pnl={pnl_pct:.2%}"
+            )
+
+            if self.telegram and getattr(config, "ENABLE_TELEGRAM_LOG", False):
+                self.telegram.send(
+                    f"📉 청산신호\n"
+                    f"종목: {symbol}\n"
+                    f"유형: {event}\n"
+                    f"현재가: {price}\n"
+                    f"평단: {avg_price:.2f}\n"
+                    f"수량: {qty}\n"
+                    f"손익률: {pnl_pct:.2%}"
+                )
+        except Exception as e:
+            self.logger.warning(f"청산 로그 기록 실패 | symbol={symbol} err={e}")
+
+    # -------------------------
     # 자동 매도 검사
     # -------------------------
     def _check_auto_exit(self, symbol: str, price: int):
@@ -389,6 +410,7 @@ class TradingEngine:
             # 1) 손절 먼저
             if pnl_pct <= config.STOP_LOSS_PCT:
                 exit_reason = f"손절 {pnl_pct:.2%}"
+                self._log_exit_event(symbol, price, avg_price, qty, "STOP_LOSS")
                 self.logger.info(
                     f"자동매도 조건 충족 | symbol={symbol} price={price} "
                     f"avg_price={avg_price} qty={qty} pnl_pct={pnl_pct:.2%} reason={exit_reason}"
@@ -404,6 +426,7 @@ class TradingEngine:
                 sell_qty = max(int(qty * config.PARTIAL_TAKE_RATIO), 1)
                 sell_qty = min(sell_qty, qty)
 
+                self._log_exit_event(symbol, price, avg_price, sell_qty, "PARTIAL_TAKE")
                 self.logger.info(
                     f"부분익절 발생 | symbol={symbol} qty={sell_qty} pnl={pnl_pct:.2%}"
                 )
@@ -424,6 +447,9 @@ class TradingEngine:
                 prev_high = self.trailing_high_price.get(symbol, 0)
                 if price > prev_high:
                     self.trailing_high_price[symbol] = price
+                    self.logger.info(
+                        f"[TRAIL_HIGH] {symbol} high_price_update prev={prev_high} new={price}"
+                    )
 
             # 4) trailing arm 활성화
             trailing_start_pct = max(
@@ -435,11 +461,16 @@ class TradingEngine:
                 and config.TRAILING_STOP_ENABLED
                 and pnl_pct >= trailing_start_pct
             ):
-                self.trailing_armed.add(symbol)
+                if symbol not in self.trailing_armed:
+                    self.trailing_armed.add(symbol)
+                    self.logger.info(
+                        f"[TRAIL_ARM] {symbol} pnl={pnl_pct:.2%} start_pct={trailing_start_pct:.2%}"
+                    )
 
             # 5) 본절 보호
             if symbol in self.breakeven_active:
                 if pnl_pct <= 0.001:
+                    self._log_exit_event(symbol, price, avg_price, qty, "BREAKEVEN_EXIT")
                     self.logger.info(
                         f"본절 청산 | symbol={symbol} price={price} "
                         f"avg_price={avg_price} pnl={pnl_pct:.2%}"
@@ -457,7 +488,13 @@ class TradingEngine:
                 if high_price > 0:
                     trailing_stop_price = high_price * (1 - config.TRAILING_STOP_PCT)
 
+                    self.logger.info(
+                        f"[TRAIL_CHECK] {symbol} price={price} high={high_price} "
+                        f"stop={trailing_stop_price:.2f}"
+                    )
+
                     if price <= trailing_stop_price:
+                        self._log_exit_event(symbol, price, avg_price, qty, "TRAILING_STOP")
                         self.logger.info(
                             f"트레일링 스탑 청산 | symbol={symbol} price={price} "
                             f"high={high_price} stop={trailing_stop_price:.2f}"
@@ -472,6 +509,7 @@ class TradingEngine:
             # 7) 부분익절 안 한 상태에서 최종 익절
             if symbol not in self.partial_exit_done and pnl_pct >= config.TAKE_PROFIT_PCT:
                 exit_reason = f"익절 {pnl_pct:.2%}"
+                self._log_exit_event(symbol, price, avg_price, qty, "TAKE_PROFIT")
                 self.logger.info(
                     f"자동익절 조건 충족 | symbol={symbol} price={price} "
                     f"avg_price={avg_price} qty={qty} pnl_pct={pnl_pct:.2%}"
@@ -504,7 +542,6 @@ class TradingEngine:
             order = self.broker.place_order(signal)
             self.order_manager.register(order)
 
-            # 🔥 DRY_RUN SELL 체결은 여기서 처리
             if config.DRY_RUN:
                 class StubFill:
                     pass
@@ -833,9 +870,6 @@ class TradingEngine:
     # -------------------------
     # 틱 처리
     # -------------------------
-    # -------------------------
-    # 틱 처리
-    # -------------------------
     def on_tick(self, tick: TickData):
         self.logger.info(
             f"[CHECK] {tick.symbol} "
@@ -908,21 +942,18 @@ class TradingEngine:
                 if signal.side.value == "BUY" and hasattr(self.strategy, "mark_entry"):
                     self.strategy.mark_entry(signal.symbol, tick.ts)
 
-            # 🔥 DRY_RUN BUY 체결은 여기서만 처리
-            if config.DRY_RUN:
-                if signal.side.value == "BUY":
-                    class StubFill:
-                        pass
+            if config.DRY_RUN and signal.side.value == "BUY":
+                class StubFill:
+                    pass
 
-                    fill = StubFill()
-                    fill.order_id = order.order_id
-                    fill.symbol = order.symbol
-                    fill.side = order.side
-                    fill.fill_qty = order.qty
-                    fill.fill_price = tick.price
-                    fill.unfilled_qty = 0
-
-                    self.on_fill(fill)
+                fill = StubFill()
+                fill.order_id = order.order_id
+                fill.symbol = order.symbol
+                fill.side = order.side
+                fill.fill_qty = order.qty
+                fill.fill_price = tick.price
+                fill.unfilled_qty = 0
+                self.on_fill(fill)
 
             self.logger.info(
                 f"주문 등록 | id={order.order_id} symbol={order.symbol} "
@@ -1062,121 +1093,92 @@ class TradingEngine:
                 self.telegram.send(f"🚨 체결 반영 실패\n{fill.symbol}\n{e}")
 
     # -------------------------
+    # 거래 결과 기록
+    # -------------------------
+    def _record_trade_result(self, symbol: str, exit_price: float, reason: str):
+        try:
+            pnl_pct = 0.0
+            entry_price = 0.0
+
+            try:
+                trades = getattr(self.portfolio, "trades", None)
+                if trades:
+                    recent = [t for t in trades if getattr(t, "symbol", "") == symbol]
+                    if recent:
+                        last_trade = recent[-1]
+                        entry_price = float(getattr(last_trade, "price", 0.0))
+            except Exception:
+                entry_price = 0.0
+
+            if entry_price > 0:
+                pnl_pct = (exit_price - entry_price) / entry_price
+
+            row = {
+                "ts": datetime.now(),
+                "symbol": symbol,
+                "entry_price": entry_price,
+                "exit_price": exit_price,
+                "pnl_pct": pnl_pct,
+                "reason": reason,
+            }
+            self.trade_log.append(row)
+
+            if pnl_pct > 0:
+                self.win_count += 1
+            elif pnl_pct < 0:
+                self.loss_count += 1
+
+            self.logger.info(
+                f"거래 결과 기록 | symbol={symbol} entry={entry_price:.2f} "
+                f"exit={exit_price:.2f} pnl={pnl_pct:.2%} reason={reason}"
+            )
+        except Exception as e:
+            self.logger.warning(f"거래 결과 기록 실패 | symbol={symbol} err={e}")
+
+    # -------------------------
+    # 브로커 메시지 처리
+    # -------------------------
+    def on_broker_msg(self, msg: str):
+        try:
+            self.logger.info(f"브로커 메시지 | {msg}")
+            if self.telegram and config.ENABLE_TELEGRAM_LOG:
+                self.telegram.send(f"ℹ️ 브로커 메시지\n{msg}")
+        except Exception as e:
+            self.logger.warning(f"브로커 메시지 처리 실패 | {e}")
+
+    # -------------------------
     # 엔진 보호모드 체크
     # -------------------------
     def _check_engine_protection(self):
         try:
-            if self.consecutive_loss_count >= config.MAX_CONSECUTIVE_LOSS:
-                self._trigger_protection(f"연속 손절 {self.consecutive_loss_count}회")
+            max_consecutive_loss = getattr(config, "MAX_CONSECUTIVE_LOSS", 3)
+            max_error_count = getattr(config, "MAX_ERROR_COUNT", 5)
+            max_daily_loss = getattr(config, "MAX_DAILY_LOSS", -150000)
 
-            if self.portfolio.realized_pnl <= config.MAX_DAILY_LOSS:
-                self._trigger_protection(f"일일 손실 초과 {self.portfolio.realized_pnl}")
+            if self.consecutive_loss_count >= max_consecutive_loss:
+                self.engine_protected = True
+                self.logger.error(
+                    f"엔진 보호모드 진입 | 연속손실 {self.consecutive_loss_count}회"
+                )
 
-            if self.error_count >= config.MAX_ERROR_COUNT:
-                self._trigger_protection(f"오류 누적 {self.error_count}회")
+            if self.error_count >= max_error_count:
+                self.engine_protected = True
+                self.logger.error(
+                    f"엔진 보호모드 진입 | 오류누적 {self.error_count}회"
+                )
 
-        except Exception as e:
-            self.logger.exception(f"보호모드 체크 실패 | {e}")
+            if self.portfolio.realized_pnl <= max_daily_loss:
+                self.engine_protected = True
+                self.logger.error(
+                    f"엔진 보호모드 진입 | 일손실 {self.portfolio.realized_pnl:.0f}"
+                )
 
-    def _trigger_protection(self, reason: str):
-        if self.engine_protected:
-            return
-
-        self.engine_protected = True
-
-        self.logger.error(f"🚨 엔진 보호모드 발동 | reason={reason}")
-
-        if self.telegram:
-            self.telegram.send(
-                f"🚨 자동매매 중지\n"
-                f"사유: {reason}\n"
-                f"PnL: {self.portfolio.realized_pnl:.0f}"
-            )
-
-        self.stop()
-
-    def _record_trade_result(self, symbol: str, exit_price: float, reason: str):
-        try:
-            # Portfolio의 realized_pnl은 누적값이라, 개별 트레이드는 최근 체결 기준으로 로그용만 기록
-            item = {
-                "ts": datetime.now(),
-                "symbol": symbol,
-                "exit_price": exit_price,
-                "reason": reason,
-                "realized_pnl_total": float(self.portfolio.realized_pnl),
-            }
-            self.trade_log.append(item)
-
-            self.logger.info(
-                f"[TRADE_SUMMARY] symbol={symbol} exit_price={exit_price} "
-                f"reason={reason} realized_total={self.portfolio.realized_pnl:.0f}"
-            )
-
-            if self.telegram:
+            if self.engine_protected and self.telegram:
                 self.telegram.send(
-                    f"📊 트레이드 요약\n"
-                    f"종목: {symbol}\n"
-                    f"청산가: {exit_price}\n"
-                    f"사유: {reason}\n"
-                    f"누적손익: {self.portfolio.realized_pnl:.0f}"
+                    f"🛑 엔진 보호모드 진입\n"
+                    f"연속손실: {self.consecutive_loss_count}\n"
+                    f"오류수: {self.error_count}\n"
+                    f"실현손익: {self.portfolio.realized_pnl:.0f}"
                 )
         except Exception as e:
-            self.logger.exception(f"트레이드 요약 기록 실패 | {e}")
-
-    # -------------------------
-    # 초기 포지션 동기화
-    # -------------------------
-    def sync_portfolio(self):
-        try:
-            balance = self.broker.get_balance()
-
-            self.logger.info("초기 잔고 동기화 시작")
-
-            for symbol, data in balance.items():
-                qty = int(data["qty"])
-                avg_price = float(data["avg_price"])
-
-                if qty <= 0:
-                    continue
-
-                self.portfolio.positions[symbol].qty = qty
-                self.portfolio.positions[symbol].avg_price = avg_price
-
-                self.logger.info(
-                    f"보유 종목 | symbol={symbol} qty={qty} avg_price={avg_price}"
-                )
-
-            self.logger.info("초기 잔고 동기화 완료")
-
-        except Exception as e:
-            self.logger.exception(f"포트폴리오 동기화 실패 | {e}")
-
-    def health_check(self):
-        try:
-            total_qty = sum(p.qty for p in self.portfolio.positions.values())
-
-            self.logger.info(f"헬스체크 | 총 보유수량={total_qty}")
-
-            if total_qty > 50:
-                self.logger.warning("보유 수량 과다 - 확인 필요")
-
-        except Exception as e:
-            self.logger.exception(f"헬스체크 실패 | {e}")
-
-    # -------------------------
-    # 서버 메시지
-    # -------------------------
-    def on_broker_msg(self, text: str):
-        self.logger.info(text)
-
-        cancel_keywords = ["취소", "정정", "거부", "실패", "오류"]
-        if any(k in text for k in cancel_keywords):
-            try:
-                for symbol in list(self.cancel_in_progress):
-                    self.cancel_in_progress.discard(symbol)
-            except Exception:
-                pass
-
-        error_keywords = ["실패", "오류", "거부", "에러", "제한"]
-        if self.telegram and any(k in text for k in error_keywords):
-            self.telegram.send(f"⚠️ 서버 메시지\n{text}")
+            self.logger.warning(f"엔진 보호모드 체크 실패 | {e}")

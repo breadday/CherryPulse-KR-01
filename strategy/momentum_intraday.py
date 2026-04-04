@@ -1,25 +1,15 @@
-# momentum_intraday.py
-
 from __future__ import annotations
 
 from collections import defaultdict, deque
 from datetime import datetime
-from typing import Any, Deque, Dict, Optional
+from typing import Any, Deque, Dict, Optional, Tuple
 
 from core.models import Signal, Side
 
 
 class MomentumIntradayStrategy:
     """
-    CherryPulse-KR-01 전략 튜닝 버전 (2차 + ENTRY_FAIL 사유 추적)
-
-    목표:
-    - 가짜 돌파 감소
-    - 고점 추격 감소
-    - 거래량/체결강도/뉴스 점수 기반 진입 품질 개선
-    - config_live.py 의 튜닝값을 실제 진입 필터에 강하게 반영
-    - ENTRY_FAIL 이유를 엔진 로그에서 바로 확인 가능하게 개선
-    - engine.py 의 generate_signal(tick, portfolio) 인터페이스 유지
+    CherryPulse-KR-01 전략 튜닝 버전 (최종본)
     """
 
     def __init__(self, config=None):
@@ -27,14 +17,12 @@ class MomentumIntradayStrategy:
 
         self.watchlist = set(self.cfg.get("watchlist", []))
 
-        # -------------------------
         # 기본 진입 조건
-        # -------------------------
-        self.min_trade_strength = float(self.cfg.get("min_trade_strength", 125))
+        self.min_trade_strength = float(self.cfg.get("min_trade_strength", 120))
         self.min_price_change_pct = float(self.cfg.get("min_price_change_pct", 0.3))
 
         # 거래량 비율 관련
-        self.min_volume_ratio = float(self.cfg.get("min_volume_ratio", 1.2))
+        self.min_volume_ratio = float(self.cfg.get("min_volume_ratio", 1.10))
         self.volume_ratio_hard_floor = float(self.cfg.get("volume_ratio_hard_floor", 0.8))
         self.strong_momentum_trade_strength = float(
             self.cfg.get("strong_momentum_trade_strength", 140)
@@ -43,7 +31,7 @@ class MomentumIntradayStrategy:
             self.cfg.get("strong_momentum_price_change_pct", 1.0)
         )
         self.strong_momentum_volume_ratio = float(
-            self.cfg.get("strong_momentum_volume_ratio", 1.3)
+            self.cfg.get("strong_momentum_volume_ratio", 1.25)
         )
 
         # 포지션 / 재진입
@@ -53,10 +41,10 @@ class MomentumIntradayStrategy:
 
         # 점수 필터
         self.use_score_filter = bool(self.cfg.get("use_score_filter", True))
-        self.min_entry_score = float(self.cfg.get("min_entry_score", 65))
+        self.min_entry_score = float(self.cfg.get("min_entry_score", 62))
 
         # 세부 가중치
-        self.entry_volume_ratio_min = float(self.cfg.get("entry_volume_ratio_min", 1.1))
+        self.entry_volume_ratio_min = float(self.cfg.get("entry_volume_ratio_min", 1.00))
         self.news_weight = float(self.cfg.get("news_weight", 1.0))
 
         # 급등 추격 제어
@@ -81,7 +69,7 @@ class MomentumIntradayStrategy:
         self.min_history_for_entry = int(self.cfg.get("min_history_for_entry", 5))
         self.pullback_tolerance_pct = float(self.cfg.get("pullback_tolerance_pct", 0.010))
         self.near_high_tolerance_pct = float(self.cfg.get("near_high_tolerance_pct", 0.005))
-        self.max_short_term_spike_pct = float(self.cfg.get("max_short_term_spike_pct", 1.6))
+        self.max_short_term_spike_pct = float(self.cfg.get("max_short_term_spike_pct", 1.8))
         self.require_price_above_recent_avg = bool(
             self.cfg.get("require_price_above_recent_avg", True)
         )
@@ -98,16 +86,10 @@ class MomentumIntradayStrategy:
         # ENTRY_FAIL 이유 기록
         self.last_block_reason: Dict[str, str] = {}
 
-    # --------------------------------------------------
-    # 엔진 호환용 메인 진입점
-    # --------------------------------------------------
     def generate_signal(self, tick: Any, portfolio=None) -> Optional[Signal]:
         has_position = self._has_position(tick, portfolio)
         return self.on_tick(tick, has_position=has_position)
 
-    # --------------------------------------------------
-    # 외부 연동용
-    # --------------------------------------------------
     def mark_exit(self, symbol: str, when: Optional[datetime] = None):
         self.last_exit_time[symbol] = when or datetime.now()
 
@@ -117,9 +99,6 @@ class MomentumIntradayStrategy:
     def get_last_block_reason(self, symbol: str) -> str:
         return self.last_block_reason.get(symbol, "")
 
-    # --------------------------------------------------
-    # 내부 reject 헬퍼
-    # --------------------------------------------------
     def _reject(self, symbol: str, reason: str) -> Optional[Signal]:
         self.last_block_reason[symbol] = reason
         return None
@@ -127,9 +106,6 @@ class MomentumIntradayStrategy:
     def _clear_block_reason(self, symbol: str):
         self.last_block_reason.pop(symbol, None)
 
-    # --------------------------------------------------
-    # 내부 메인 진입 판단
-    # --------------------------------------------------
     def on_tick(self, tick: Any, has_position: bool = False) -> Optional[Signal]:
         symbol = self._get_symbol(tick)
         if not symbol:
@@ -142,7 +118,6 @@ class MomentumIntradayStrategy:
 
         now = self._get_timestamp(tick)
 
-        # 틱 기록 먼저 저장
         self._append_tick(symbol, tick)
 
         if has_position:
@@ -159,9 +134,6 @@ class MomentumIntradayStrategy:
 
         return self._check_entry(symbol, tick)
 
-    # --------------------------------------------------
-    # 실제 진입 체크
-    # --------------------------------------------------
     def _check_entry(self, symbol: str, tick: Any) -> Optional[Signal]:
         price = self._get_price(tick)
         if price <= 0:
@@ -174,9 +146,6 @@ class MomentumIntradayStrategy:
         theme_score = self._get_theme_score(tick)
         leader_score = self._get_leader_score(tick)
 
-        # -------------------------
-        # 하드 필터
-        # -------------------------
         if price_change_pct < self.min_price_change_pct:
             return self._reject(
                 symbol,
@@ -213,16 +182,12 @@ class MomentumIntradayStrategy:
                 f"대장주점수 부족 leader={leader_score:.2f} < min={self.min_leader_score_for_entry:.2f}",
             )
 
-        # -------------------------
-        # 급등 추격 방지
-        # -------------------------
         if price_change_pct >= self.max_chase_price_change_pct:
             return self._reject(
                 symbol,
                 f"급등 추격 차단 chg={price_change_pct:.2f} >= max_chase={self.max_chase_price_change_pct:.2f}",
             )
 
-        # hot move 구간은 더 엄격
         if price_change_pct >= self.hot_move_price_change_pct:
             if trade_strength < self.hot_move_trade_strength:
                 return self._reject(
@@ -240,9 +205,6 @@ class MomentumIntradayStrategy:
                     f"hot_move 뉴스점수 부족 news={news_score:.2f} < min={self.min_news_score_for_hot_move:.2f}",
                 )
 
-        # -------------------------
-        # 모멘텀 조건
-        # -------------------------
         base_ok = (
             price_change_pct >= self.min_price_change_pct
             and trade_strength >= self.min_trade_strength
@@ -264,19 +226,13 @@ class MomentumIntradayStrategy:
                 f"현재(chg={price_change_pct:.2f}, str={trade_strength:.1f}, vr={volume_ratio:.2f})"
             )
 
-        # -------------------------
-        # 최근 흐름 / 자리 필터
-        # -------------------------
         if not self._is_price_flow_positive(symbol):
             return self._reject(symbol, "최근 가격 흐름 약화(연속 하락 또는 급꺾임)")
 
         if not self._is_structure_healthy(symbol, price):
             return self._reject(symbol, "자리 불량(최근 평균 이탈 또는 최근 고점 대비 밀림)")
 
-        # -------------------------
-        # 점수 계산
-        # -------------------------
-        score = self._calculate_entry_score(
+        score, detail = self._calculate_entry_score_with_detail(
             symbol=symbol,
             price=price,
             price_change_pct=price_change_pct,
@@ -290,7 +246,7 @@ class MomentumIntradayStrategy:
         if self.use_score_filter and score < self.min_entry_score:
             return self._reject(
                 symbol,
-                f"점수 부족 score={score:.1f} < min_entry_score={self.min_entry_score:.1f}",
+                f"점수 부족 score={score:.1f} < min_entry_score={self.min_entry_score:.1f} detail={self._format_score_detail(detail)}",
             )
 
         reason = (
@@ -300,7 +256,8 @@ class MomentumIntradayStrategy:
             f"vol_ratio={volume_ratio:.2f} "
             f"news={news_score:.2f} "
             f"theme={theme_score:.2f} "
-            f"leader={leader_score:.2f}"
+            f"leader={leader_score:.2f} "
+            f"detail={self._format_score_detail(detail)}"
         )
 
         signal = self._build_buy_signal(symbol, price, reason)
@@ -308,9 +265,6 @@ class MomentumIntradayStrategy:
         self._clear_block_reason(symbol)
         return signal
 
-    # --------------------------------------------------
-    # portfolio 보유 여부 판단
-    # --------------------------------------------------
     def _has_position(self, tick: Any, portfolio) -> bool:
         if portfolio is None:
             return False
@@ -356,9 +310,6 @@ class MomentumIntradayStrategy:
 
         return False
 
-    # --------------------------------------------------
-    # 점수 계산
-    # --------------------------------------------------
     def _calculate_entry_score(
         self,
         symbol: str,
@@ -370,70 +321,116 @@ class MomentumIntradayStrategy:
         theme_score: float,
         leader_score: float,
     ) -> float:
-        score = 0.0
-
-        # 등락률 점수
-        if price_change_pct >= 0.3:
-            score += 5
-        if price_change_pct >= 0.5:
-            score += 8
-        if price_change_pct >= 0.8:
-            score += 10
-        if price_change_pct >= 1.2:
-            score += 10
-        if 1.5 <= price_change_pct <= 2.5:
-            score += 5
-        if price_change_pct >= 3.0:
-            score -= 8
-        if price_change_pct >= self.max_chase_price_change_pct:
-            score -= 20
-
-        # 체결강도 점수
-        if trade_strength >= 110:
-            score += 6
-        if trade_strength >= 125:
-            score += 10
-        if trade_strength >= 140:
-            score += 10
-        if trade_strength >= 160:
-            score += 6
-        if trade_strength >= 190:
-            score -= 4
-
-        # 거래량비율 점수
-        if volume_ratio >= 1.0:
-            score += 6
-        if volume_ratio >= 1.2:
-            score += 10
-        if volume_ratio >= 1.5:
-            score += 10
-        if volume_ratio >= 2.0:
-            score += 6
-        if volume_ratio >= 3.2:
-            score -= 4
-        if volume_ratio >= 4.0:
-            score -= 6
-
-        # 외부 점수
-        score += news_score * 10 * self.news_weight
-        score += theme_score * 6
-        score += leader_score * 6
-
-        # 구조 보너스 / 패널티
-        if self._is_near_recent_high(symbol, price):
-            score += 5
-
-        if self._is_too_far_from_recent_mean(symbol, price):
-            score -= 10
-
-        if self._is_short_term_vertical(symbol):
-            score -= 12
-
+        score, _ = self._calculate_entry_score_with_detail(
+            symbol=symbol,
+            price=price,
+            price_change_pct=price_change_pct,
+            trade_strength=trade_strength,
+            volume_ratio=volume_ratio,
+            news_score=news_score,
+            theme_score=theme_score,
+            leader_score=leader_score,
+        )
         return score
 
-    # --------------------------------------------------
-    # 최근 가격 흐름 체크
-    # --------------------------------------------------
+    def _calculate_entry_score_with_detail(
+        self,
+        symbol: str,
+        price: float,
+        price_change_pct: float,
+        trade_strength: float,
+        volume_ratio: float,
+        news_score: float,
+        theme_score: float,
+        leader_score: float,
+    ) -> Tuple[float, Dict[str, float]]:
+        detail = {
+            "chg": 0.0,
+            "str": 0.0,
+            "vol": 0.0,
+            "news": 0.0,
+            "theme": 0.0,
+            "leader": 0.0,
+            "near_high": 0.0,
+            "far_mean": 0.0,
+            "vertical": 0.0,
+            "chase_penalty": 0.0,
+        }
+
+        if price_change_pct >= 0.3:
+            detail["chg"] += 6
+        if price_change_pct >= 0.6:
+            detail["chg"] += 10
+        if price_change_pct >= 1.0:
+            detail["chg"] += 12
+        if price_change_pct >= 1.5:
+            detail["chg"] += 6
+
+        if price_change_pct >= 1.8:
+            detail["chg"] -= 10
+        if price_change_pct >= 2.3:
+            detail["chg"] -= 15
+        if price_change_pct >= 3.0:
+            detail["chg"] -= 10
+
+        if price_change_pct >= self.max_chase_price_change_pct:
+            detail["chase_penalty"] -= 30
+
+        if trade_strength >= 110:
+            detail["str"] += 6
+        if trade_strength >= 120:
+            detail["str"] += 8
+        if trade_strength >= 135:
+            detail["str"] += 10
+        if trade_strength >= 160:
+            detail["str"] += 6
+        if trade_strength >= 180:
+            detail["str"] -= 8
+        if trade_strength >= 190:
+            detail["str"] -= 4
+
+        if volume_ratio >= 1.0:
+            detail["vol"] += 6
+        if volume_ratio >= 1.2:
+            detail["vol"] += 10
+        if volume_ratio >= 1.5:
+            detail["vol"] += 10
+        if volume_ratio >= 2.0:
+            detail["vol"] += 6
+        if volume_ratio >= 3.2:
+            detail["vol"] -= 4
+        if volume_ratio >= 4.0:
+            detail["vol"] -= 6
+
+        detail["news"] = news_score * 10 * self.news_weight
+        detail["theme"] = theme_score * 6
+        detail["leader"] = leader_score * 6
+
+        if self._is_near_recent_high(symbol, price):
+            detail["near_high"] += 2
+
+        if self._is_too_far_from_recent_mean(symbol, price):
+            detail["far_mean"] -= 10
+
+        if self._is_short_term_vertical(symbol):
+            detail["vertical"] -= 8
+
+        score = round(sum(detail.values()), 2)
+        return score, detail
+
+    def _format_score_detail(self, detail: Dict[str, float]) -> str:
+        ordered_keys = [
+            "chg", "str", "vol", "news", "theme",
+            "leader", "near_high", "far_mean",
+            "vertical", "chase_penalty",
+        ]
+        parts = []
+        for key in ordered_keys:
+            value = float(detail.get(key, 0.0))
+            if abs(value) > 0.0001:
+                parts.append(f"{key}:{value:+.1f}")
+        return ",".join(parts) if parts else "none"
+
     def _is_price_flow_positive(self, symbol: str) -> bool:
         hist = self.tick_history[symbol]
         if len(hist) < 3:
@@ -445,11 +442,9 @@ class MomentumIntradayStrategy:
         if len(prices) < 3:
             return True
 
-        # 3틱 연속 하락이면 제외
         if prices[-1] < prices[-2] < prices[-3]:
             return False
 
-        # 마지막 틱이 직전 대비 과하게 꺾이면 제외
         if prices[-2] > 0:
             drop_pct = (prices[-1] - prices[-2]) / prices[-2]
             if drop_pct <= -self.pullback_tolerance_pct:
@@ -465,14 +460,12 @@ class MomentumIntradayStrategy:
         if len(prices) < 5:
             return True
 
-        # 최근 평균 위에 있어야 함
         if self.require_price_above_recent_avg:
             recent = prices[-5:]
             avg_recent = sum(recent) / len(recent)
             if price < avg_recent:
                 return False
 
-        # 최근 고점 근처에서 너무 밀린 자리 제외
         recent_high = max(prices[-7:])
         if recent_high > 0:
             dist_from_high = (recent_high - price) / recent_high
@@ -517,9 +510,6 @@ class MomentumIntradayStrategy:
         p1, p2, p3, p4 = prices[-4:]
         return p1 < p2 < p3 < p4
 
-    # --------------------------------------------------
-    # 틱 기록
-    # --------------------------------------------------
     def _append_tick(self, symbol: str, tick: Any):
         item = {
             "price": self._get_price(tick),
@@ -536,9 +526,6 @@ class MomentumIntradayStrategy:
         }
         self.tick_history[symbol].append(item)
 
-    # --------------------------------------------------
-    # 쿨다운
-    # --------------------------------------------------
     def _is_in_cooldown(self, symbol: str, now: datetime) -> bool:
         if self.allow_reentry:
             return False
@@ -553,9 +540,6 @@ class MomentumIntradayStrategy:
 
         return False
 
-    # --------------------------------------------------
-    # Signal 생성
-    # --------------------------------------------------
     def _build_buy_signal(self, symbol: str, price: float, reason: str) -> Signal:
         try:
             return Signal(
@@ -583,9 +567,6 @@ class MomentumIntradayStrategy:
                 except TypeError:
                     return Signal(symbol=symbol, side=Side.BUY)
 
-    # --------------------------------------------------
-    # Tick 파싱
-    # --------------------------------------------------
     def _get_symbol(self, tick: Any) -> str:
         value = self._extract_value(tick, ["symbol", "code", "stock_code"])
         return str(value) if value is not None else ""
@@ -658,9 +639,6 @@ class MomentumIntradayStrategy:
             return value
         return datetime.now()
 
-    # --------------------------------------------------
-    # 공통 유틸
-    # --------------------------------------------------
     def _extract_value(self, obj: Any, names, default=None):
         if isinstance(obj, dict):
             for name in names:
