@@ -1,663 +1,224 @@
-from __future__ import annotations
-
 from collections import defaultdict, deque
 from datetime import datetime
-from typing import Any, Deque, Dict, Optional, Tuple
+from typing import Deque, Dict, Optional, Tuple
 
-from core.models import Signal, Side
+from core.models import Signal, Side, OrderType
 
 
 class MomentumIntradayStrategy:
     """
-    CherryPulse-KR-01 전략 튜닝 버전 (최종본)
+    모멘텀 + 급상승 구간 필터 전략
+
+    엔진에서 사용하는 인터페이스:
+    - generate_signal(tick, portfolio)
+    - get_last_block_reason(symbol)
+    - mark_entry(symbol, ts)
     """
 
-    def __init__(self, config=None):
-        self.cfg = config or {}
+    def __init__(self, logger=None, config=None):
+        self.logger = logger
+        self.config = config or {}  
 
-        self.watchlist = set(self.cfg.get("watchlist", []))
+        # 최근 틱 히스토리
+        self.price_history: Dict[str, Deque[float]] = defaultdict(lambda: deque(maxlen=30))
+        self.volume_history: Dict[str, Deque[int]] = defaultdict(lambda: deque(maxlen=30))
 
-        # 기본 진입 조건
-        self.min_trade_strength = float(self.cfg.get("min_trade_strength", 120))
-        self.min_price_change_pct = float(self.cfg.get("min_price_change_pct", 0.3))
+        # 마지막 차단 사유 / 마지막 진입 시각
+        self._last_block_reason: Dict[str, str] = {}
+        self.last_entry_ts: Dict[str, datetime] = {}
 
-        # 거래량 비율 관련
-        self.min_volume_ratio = float(self.cfg.get("min_volume_ratio", 1.10))
-        self.volume_ratio_hard_floor = float(self.cfg.get("volume_ratio_hard_floor", 0.8))
-        self.strong_momentum_trade_strength = float(
-            self.cfg.get("strong_momentum_trade_strength", 140)
-        )
-        self.strong_momentum_price_change_pct = float(
-            self.cfg.get("strong_momentum_price_change_pct", 1.0)
-        )
-        self.strong_momentum_volume_ratio = float(
-            self.cfg.get("strong_momentum_volume_ratio", 1.25)
-        )
+        # -------------------------
+        # 기본 파라미터
+        # -------------------------
+        self.min_history = 5
+        self.entry_score_threshold = 78.0
 
-        # 포지션 / 재진입
-        self.max_positions = int(self.cfg.get("max_positions", 1))
-        self.entry_cooldown_sec = int(self.cfg.get("entry_cooldown_sec", 30))
-        self.allow_reentry = bool(self.cfg.get("allow_reentry", False))
+        # 급상승 구간 필터
+        # self.fast_rise_ret_3 = 0.008   # 3틱 +0.8%
+        # self.fast_rise_ret_5 = 0.012   # 5틱 +1.2%
+        # self.near_high_ratio = 0.998   # 최근 5틱 최고가의 99.8% 이상
+        
+        self.fast_rise_ret_3 = 0.004   # 0.4%
+        self.fast_rise_ret_5 = 0.007   # 0.7%
+        self.near_high_ratio = 0.995
+        
+        self.max_vertical_ret_5 = 0.060  # 5틱 +6% 초과면 과열로 제외
 
-        # 점수 필터
-        self.use_score_filter = bool(self.cfg.get("use_score_filter", True))
-        self.min_entry_score = float(self.cfg.get("min_entry_score", 62))
+        # 보조 조건
+        self.min_price_change_pct = 1.0
+        self.min_trade_strength = 150.0
+        self.min_volume_ratio = 1.10
+        self.min_news_score = 0.0
 
-        # 세부 가중치
-        self.entry_volume_ratio_min = float(self.cfg.get("entry_volume_ratio_min", 1.00))
-        self.news_weight = float(self.cfg.get("news_weight", 1.0))
-
-        # 급등 추격 제어
-        self.hot_move_price_change_pct = float(self.cfg.get("hot_move_price_change_pct", 2.0))
-        self.hot_move_trade_strength = float(self.cfg.get("hot_move_trade_strength", 145))
-        self.max_chase_price_change_pct = float(self.cfg.get("max_chase_price_change_pct", 3.8))
-        self.max_chase_volume_ratio = float(self.cfg.get("max_chase_volume_ratio", 3.5))
-        self.min_news_score_for_hot_move = float(
-            self.cfg.get("min_news_score_for_hot_move", 0.0)
-        )
-
-        # 보조 점수
-        self.min_theme_score_for_entry = float(
-            self.cfg.get("min_theme_score_for_entry", 0.0)
-        )
-        self.min_leader_score_for_entry = float(
-            self.cfg.get("min_leader_score_for_entry", 0.0)
-        )
-
-        # 추가 튜닝 파라미터
-        self.history_size = int(self.cfg.get("history_size", 30))
-        self.min_history_for_entry = int(self.cfg.get("min_history_for_entry", 5))
-        self.pullback_tolerance_pct = float(self.cfg.get("pullback_tolerance_pct", 0.010))
-        self.near_high_tolerance_pct = float(self.cfg.get("near_high_tolerance_pct", 0.005))
-        self.max_short_term_spike_pct = float(self.cfg.get("max_short_term_spike_pct", 1.8))
-        self.require_price_above_recent_avg = bool(
-            self.cfg.get("require_price_above_recent_avg", True)
-        )
-
-        # 최근 틱 저장
-        self.tick_history: Dict[str, Deque[dict]] = defaultdict(
-            lambda: deque(maxlen=self.history_size)
-        )
-
-        # 진입/청산 시간 기록
-        self.last_entry_time: Dict[str, datetime] = {}
-        self.last_exit_time: Dict[str, datetime] = {}
-
-        # ENTRY_FAIL 이유 기록
-        self.last_block_reason: Dict[str, str] = {}
-
-    def generate_signal(self, tick: Any, portfolio=None) -> Optional[Signal]:
-        has_position = self._has_position(tick, portfolio)
-        return self.on_tick(tick, has_position=has_position)
-
-    def mark_exit(self, symbol: str, when: Optional[datetime] = None):
-        self.last_exit_time[symbol] = when or datetime.now()
-
-    def mark_entry(self, symbol: str, when: Optional[datetime] = None):
-        self.last_entry_time[symbol] = when or datetime.now()
-
+    # -------------------------
+    # 외부 조회용
+    # -------------------------
     def get_last_block_reason(self, symbol: str) -> str:
-        return self.last_block_reason.get(symbol, "")
+        return self._last_block_reason.get(symbol, "")
 
-    def _reject(self, symbol: str, reason: str) -> Optional[Signal]:
-        self.last_block_reason[symbol] = reason
-        return None
+    def mark_entry(self, symbol: str, ts):
+        self.last_entry_ts[symbol] = ts
 
-    def _clear_block_reason(self, symbol: str):
-        self.last_block_reason.pop(symbol, None)
+    # -------------------------
+    # 내부 유틸
+    # -------------------------
+    def _set_block(self, symbol: str, reason: str):
+        self._last_block_reason[symbol] = reason
 
-    def on_tick(self, tick: Any, has_position: bool = False) -> Optional[Signal]:
-        symbol = self._get_symbol(tick)
-        if not symbol:
-            return None
+    def _safe_float(self, value, default=0.0) -> float:
+        try:
+            if value in ("", None):
+                return default
+            return float(value)
+        except Exception:
+            return default
 
-        self._clear_block_reason(symbol)
+    def _calc_returns(self, prices: Deque[float]) -> Tuple[float, float]:
+        p1 = float(prices[-1])
+        p3 = float(prices[-3])
+        p5 = float(prices[-5])
 
-        if self.watchlist and symbol not in self.watchlist:
-            return self._reject(symbol, "watchlist 제외 종목")
+        ret_3 = (p1 - p3) / p3 if p3 > 0 else 0.0
+        ret_5 = (p1 - p5) / p5 if p5 > 0 else 0.0
+        return ret_3, ret_5
 
-        now = self._get_timestamp(tick)
+    def _is_fast_rising_zone(self, symbol: str, prices: Deque[float]) -> Tuple[bool, str]:
+        if len(prices) < 5:
+            return False, f"히스토리 부족 {len(prices)}/5"
 
-        self._append_tick(symbol, tick)
+        ret_3, ret_5 = self._calc_returns(prices)
+        current_price = float(prices[-1])
+        recent_prices = list(prices)[-5:]
+        recent_high = max(recent_prices)
+        near_high = current_price >= recent_high * self.near_high_ratio
 
-        if has_position:
-            return self._reject(symbol, "이미 보유중")
+        if ret_3 < self.fast_rise_ret_3:
+            return False, f"3틱 급등 부족 {ret_3:.2%}"
 
-        if self._is_in_cooldown(symbol, now):
-            return self._reject(symbol, f"재진입 쿨다운 {self.entry_cooldown_sec}초 이내")
+        if ret_5 < self.fast_rise_ret_5:
+            return False, f"5틱 급등 부족 {ret_5:.2%}"
 
-        if len(self.tick_history[symbol]) < self.min_history_for_entry:
-            return self._reject(
-                symbol,
-                f"히스토리 부족 {len(self.tick_history[symbol])}/{self.min_history_for_entry}",
-            )
+        if ret_5 > self.max_vertical_ret_5:
+            return False, f"과열 급등 {ret_5:.2%}"
 
-        return self._check_entry(symbol, tick)
+        if not near_high:
+            return False, "최근 고점 근처 아님"
 
-    def _check_entry(self, symbol: str, tick: Any) -> Optional[Signal]:
-        price = self._get_price(tick)
-        if price <= 0:
-            return self._reject(symbol, f"유효하지 않은 가격 price={price}")
+        return True, f"급상승 구간 통과 ret3={ret_3:.2%} ret5={ret_5:.2%}"
 
-        price_change_pct = self._get_price_change_pct(tick)
-        trade_strength = self._get_trade_strength(tick)
-        volume_ratio = self._get_volume_ratio(tick, symbol)
-        news_score = self._get_news_score(tick)
-        theme_score = self._get_theme_score(tick)
-        leader_score = self._get_leader_score(tick)
+    def _compute_entry_score(self, tick, prices: Deque[float]) -> Tuple[float, str]:
+        chg = self._safe_float(getattr(tick, "price_change_pct", 0.0))
+        strength = self._safe_float(getattr(tick, "trade_strength", 0.0))
+        volume_ratio = self._safe_float(getattr(tick, "volume_ratio", 0.0))
+        news = self._safe_float(getattr(tick, "news_score", 0.0))
+        theme = self._safe_float(getattr(tick, "theme_score", 0.0))
+        leader = self._safe_float(getattr(tick, "leader_score", 0.0))
 
-        if price_change_pct < self.min_price_change_pct:
-            return self._reject(
-                symbol,
-                f"등락률 부족 chg={price_change_pct:.2f} < min={self.min_price_change_pct:.2f}",
-            )
+        ret_3, ret_5 = self._calc_returns(prices)
+        recent_prices = list(prices)[-5:]
+        recent_high = max(recent_prices)
+        near_high_bonus = 2.0 if tick.price >= recent_high * self.near_high_ratio else 0.0
 
-        if trade_strength < self.min_trade_strength:
-            return self._reject(
-                symbol,
-                f"체결강도 부족 strength={trade_strength:.1f} < min={self.min_trade_strength:.1f}",
-            )
+        chg_score = min(max(chg, 0.0) * 12.0, 24.0)
+        str_score = min(max(strength - 130.0, 0.0) * (22.0 / 55.0), 22.0)
+        vol_score = min(max(volume_ratio - 1.0, 0.0) * (26.0 / 0.65), 26.0)
+        news_score = min(max(news, 0.0) * 10.0, 20.0)
 
-        if volume_ratio < self.volume_ratio_hard_floor:
-            return self._reject(
-                symbol,
-                f"거래량비율 하드플로어 미달 vr={volume_ratio:.2f} < floor={self.volume_ratio_hard_floor:.2f}",
-            )
+        vertical_penalty = 0.0
+        if ret_5 > 0.030:
+            vertical_penalty = min((ret_5 - 0.030) * 1000.0, 8.0)
 
-        if volume_ratio < self.entry_volume_ratio_min:
-            return self._reject(
-                symbol,
-                f"진입 거래량비율 부족 vr={volume_ratio:.2f} < min={self.entry_volume_ratio_min:.2f}",
-            )
+        score = chg_score + str_score + vol_score + news_score + near_high_bonus - vertical_penalty
 
-        if theme_score < self.min_theme_score_for_entry:
-            return self._reject(
-                symbol,
-                f"테마점수 부족 theme={theme_score:.2f} < min={self.min_theme_score_for_entry:.2f}",
-            )
-
-        if leader_score < self.min_leader_score_for_entry:
-            return self._reject(
-                symbol,
-                f"대장주점수 부족 leader={leader_score:.2f} < min={self.min_leader_score_for_entry:.2f}",
-            )
-
-        if price_change_pct >= self.max_chase_price_change_pct:
-            return self._reject(
-                symbol,
-                f"급등 추격 차단 chg={price_change_pct:.2f} >= max_chase={self.max_chase_price_change_pct:.2f}",
-            )
-
-        if price_change_pct >= self.hot_move_price_change_pct:
-            if trade_strength < self.hot_move_trade_strength:
-                return self._reject(
-                    symbol,
-                    f"hot_move 체결강도 부족 strength={trade_strength:.1f} < hot_min={self.hot_move_trade_strength:.1f}",
-                )
-            if volume_ratio < 1.3:
-                return self._reject(
-                    symbol,
-                    f"hot_move 거래량 부족 vr={volume_ratio:.2f} < 1.30",
-                )
-            if news_score < self.min_news_score_for_hot_move:
-                return self._reject(
-                    symbol,
-                    f"hot_move 뉴스점수 부족 news={news_score:.2f} < min={self.min_news_score_for_hot_move:.2f}",
-                )
-
-        base_ok = (
-            price_change_pct >= self.min_price_change_pct
-            and trade_strength >= self.min_trade_strength
-            and volume_ratio >= self.min_volume_ratio
+        detail = (
+            f"chg:+{chg_score:.1f},"
+            f"str:+{str_score:.1f},"
+            f"vol:+{vol_score:.1f},"
+            f"news:+{news_score:.1f},"
+            f"near_high:+{near_high_bonus:.1f},"
+            f"vertical:-{vertical_penalty:.1f}"
         )
-
-        strong_ok = (
-            price_change_pct >= self.strong_momentum_price_change_pct
-            and trade_strength >= self.strong_momentum_trade_strength
-            and volume_ratio >= self.strong_momentum_volume_ratio
-        )
-
-        if not (base_ok or strong_ok):
-            return self._reject(
-                symbol,
-                "모멘텀 조건 미충족 "
-                f"(base: chg>={self.min_price_change_pct:.2f}, str>={self.min_trade_strength:.1f}, vr>={self.min_volume_ratio:.2f} / "
-                f"strong: chg>={self.strong_momentum_price_change_pct:.2f}, str>={self.strong_momentum_trade_strength:.1f}, vr>={self.strong_momentum_volume_ratio:.2f}) "
-                f"현재(chg={price_change_pct:.2f}, str={trade_strength:.1f}, vr={volume_ratio:.2f})"
-            )
-
-        if not self._is_price_flow_positive(symbol):
-            return self._reject(symbol, "최근 가격 흐름 약화(연속 하락 또는 급꺾임)")
-
-        if not self._is_structure_healthy(symbol, price):
-            return self._reject(symbol, "자리 불량(최근 평균 이탈 또는 최근 고점 대비 밀림)")
-
-        score, detail = self._calculate_entry_score_with_detail(
-            symbol=symbol,
-            price=price,
-            price_change_pct=price_change_pct,
-            trade_strength=trade_strength,
-            volume_ratio=volume_ratio,
-            news_score=news_score,
-            theme_score=theme_score,
-            leader_score=leader_score,
-        )
-
-        if self.use_score_filter and score < self.min_entry_score:
-            return self._reject(
-                symbol,
-                f"점수 부족 score={score:.1f} < min_entry_score={self.min_entry_score:.1f} detail={self._format_score_detail(detail)}",
-            )
 
         reason = (
             f"ENTRY score={score:.1f} "
-            f"chg={price_change_pct:.2f}% "
-            f"str={trade_strength:.1f} "
+            f"chg={chg:.2f}% "
+            f"str={strength:.1f} "
             f"vol_ratio={volume_ratio:.2f} "
-            f"news={news_score:.2f} "
-            f"theme={theme_score:.2f} "
-            f"leader={leader_score:.2f} "
-            f"detail={self._format_score_detail(detail)}"
+            f"news={news:.2f} "
+            f"theme={theme:.2f} "
+            f"leader={leader:.2f} "
+            f"detail={detail}"
         )
+        return round(score, 1), reason
+    
+    # -------------------------
+    # 메인
+    # -------------------------
+    def generate_signal(self, tick, portfolio) -> Optional[Signal]:
+        symbol = tick.symbol
 
-        signal = self._build_buy_signal(symbol, price, reason)
-        self.last_entry_time[symbol] = self._get_timestamp(tick)
-        self._clear_block_reason(symbol)
-        return signal
+        # 최근 틱 히스토리 누적
+        self.price_history[symbol].append(float(tick.price))
+        self.volume_history[symbol].append(int(getattr(tick, "volume", 0)))
 
-    def _has_position(self, tick: Any, portfolio) -> bool:
-        if portfolio is None:
-            return False
+        prices = self.price_history[symbol]
 
-        symbol = self._get_symbol(tick)
-        if not symbol:
-            return False
+        if len(prices) < self.min_history:
+            self._set_block(symbol, f"히스토리 부족 {len(prices)}/{self.min_history}")
+            return None
 
-        if isinstance(portfolio, dict):
-            pos = portfolio.get(symbol)
-            if pos is None:
-                return False
+        # 이미 보유 중이면 신규 진입 금지
+        pos = portfolio.get_position(symbol)
+        if int(getattr(pos, "qty", 0)) > 0:
+            self._set_block(symbol, "이미 보유중")
+            return None
 
-            if isinstance(pos, dict):
-                qty = pos.get("qty", pos.get("quantity", 0))
-                return float(qty or 0) > 0
+        chg = self._safe_float(getattr(tick, "price_change_pct", 0.0))
+        strength = self._safe_float(getattr(tick, "trade_strength", 0.0))
+        volume_ratio = self._safe_float(getattr(tick, "volume_ratio", 0.0))
+        news = self._safe_float(getattr(tick, "news_score", 0.0))
 
-            qty = getattr(pos, "qty", None)
-            if qty is None:
-                qty = getattr(pos, "quantity", 0)
-            return float(qty or 0) > 0
+        if chg < self.min_price_change_pct:
+            self._set_block(symbol, f"상승률 부족 {chg:.2f}%")
+            return None
 
-        positions = getattr(portfolio, "positions", None)
-        if isinstance(positions, dict):
-            pos = positions.get(symbol)
-            if pos is None:
-                return False
+        if strength < self.min_trade_strength:
+            self._set_block(symbol, f"체결강도 부족 {strength:.1f}")
+            return None
 
-            if isinstance(pos, dict):
-                qty = pos.get("qty", pos.get("quantity", 0))
-                return float(qty or 0) > 0
+        if volume_ratio < self.min_volume_ratio:
+            self._set_block(symbol, f"거래량비 부족 {volume_ratio:.2f}")
+            return None
 
-            qty = getattr(pos, "qty", None)
-            if qty is None:
-                qty = getattr(pos, "quantity", 0)
-            return float(qty or 0) > 0
+        if news < self.min_news_score:
+            self._set_block(symbol, f"뉴스점수 부족 {news:.2f}")
+            return None
 
-        get_position = getattr(portfolio, "get_position", None)
-        if callable(get_position):
-            pos = get_position(symbol)
-            qty = getattr(pos, "qty", 0)
-            return float(qty or 0) > 0
+        # 급상승 구간 필터
+        ok_fast, fast_reason = self._is_fast_rising_zone(symbol, prices)
+        if not ok_fast:
+            self._set_block(symbol, fast_reason)
+            return None
 
-        return False
+        score, reason = self._compute_entry_score(tick, prices)
+        if score < self.entry_score_threshold:
+            self._set_block(symbol, f"점수 부족 {score:.1f}/{self.entry_score_threshold:.1f}")
+            return None
 
-    def _calculate_entry_score(
-        self,
-        symbol: str,
-        price: float,
-        price_change_pct: float,
-        trade_strength: float,
-        volume_ratio: float,
-        news_score: float,
-        theme_score: float,
-        leader_score: float,
-    ) -> float:
-        score, _ = self._calculate_entry_score_with_detail(
-            symbol=symbol,
-            price=price,
-            price_change_pct=price_change_pct,
-            trade_strength=trade_strength,
-            volume_ratio=volume_ratio,
-            news_score=news_score,
-            theme_score=theme_score,
-            leader_score=leader_score,
-        )
-        return score
+        self._last_block_reason[symbol] = ""
 
-    def _calculate_entry_score_with_detail(
-        self,
-        symbol: str,
-        price: float,
-        price_change_pct: float,
-        trade_strength: float,
-        volume_ratio: float,
-        news_score: float,
-        theme_score: float,
-        leader_score: float,
-    ) -> Tuple[float, Dict[str, float]]:
-        detail = {
-            "chg": 0.0,
-            "str": 0.0,
-            "vol": 0.0,
-            "news": 0.0,
-            "theme": 0.0,
-            "leader": 0.0,
-            "near_high": 0.0,
-            "far_mean": 0.0,
-            "vertical": 0.0,
-            "chase_penalty": 0.0,
-        }
-
-        if price_change_pct >= 0.3:
-            detail["chg"] += 6
-        if price_change_pct >= 0.6:
-            detail["chg"] += 10
-        if price_change_pct >= 1.0:
-            detail["chg"] += 12
-        if price_change_pct >= 1.5:
-            detail["chg"] += 6
-
-        if price_change_pct >= 1.8:
-            detail["chg"] -= 10
-        if price_change_pct >= 2.3:
-            detail["chg"] -= 15
-        if price_change_pct >= 3.0:
-            detail["chg"] -= 10
-
-        if price_change_pct >= self.max_chase_price_change_pct:
-            detail["chase_penalty"] -= 30
-
-        if trade_strength >= 110:
-            detail["str"] += 6
-        if trade_strength >= 120:
-            detail["str"] += 8
-        if trade_strength >= 135:
-            detail["str"] += 10
-        if trade_strength >= 160:
-            detail["str"] += 6
-        if trade_strength >= 180:
-            detail["str"] -= 8
-        if trade_strength >= 190:
-            detail["str"] -= 4
-
-        if volume_ratio >= 1.0:
-            detail["vol"] += 6
-        if volume_ratio >= 1.2:
-            detail["vol"] += 10
-        if volume_ratio >= 1.5:
-            detail["vol"] += 10
-        if volume_ratio >= 2.0:
-            detail["vol"] += 6
-        if volume_ratio >= 3.2:
-            detail["vol"] -= 4
-        if volume_ratio >= 4.0:
-            detail["vol"] -= 6
-
-        detail["news"] = news_score * 10 * self.news_weight
-        detail["theme"] = theme_score * 6
-        detail["leader"] = leader_score * 6
-
-        if self._is_near_recent_high(symbol, price):
-            detail["near_high"] += 2
-
-        if self._is_too_far_from_recent_mean(symbol, price):
-            detail["far_mean"] -= 10
-
-        if self._is_short_term_vertical(symbol):
-            detail["vertical"] -= 8
-
-        score = round(sum(detail.values()), 2)
-        return score, detail
-
-    def _format_score_detail(self, detail: Dict[str, float]) -> str:
-        ordered_keys = [
-            "chg", "str", "vol", "news", "theme",
-            "leader", "near_high", "far_mean",
-            "vertical", "chase_penalty",
-        ]
-        parts = []
-        for key in ordered_keys:
-            value = float(detail.get(key, 0.0))
-            if abs(value) > 0.0001:
-                parts.append(f"{key}:{value:+.1f}")
-        return ",".join(parts) if parts else "none"
-
-    def _is_price_flow_positive(self, symbol: str) -> bool:
-        hist = self.tick_history[symbol]
-        if len(hist) < 3:
-            return True
-
-        items = list(hist)[-3:]
-        prices = [x["price"] for x in items if x["price"] > 0]
-
-        if len(prices) < 3:
-            return True
-
-        if prices[-1] < prices[-2] < prices[-3]:
-            return False
-
-        if prices[-2] > 0:
-            drop_pct = (prices[-1] - prices[-2]) / prices[-2]
-            if drop_pct <= -self.pullback_tolerance_pct:
-                return False
-
-        return True
-
-    def _is_structure_healthy(self, symbol: str, price: float) -> bool:
-        hist = self.tick_history[symbol]
-        items = list(hist)
-        prices = [x["price"] for x in items if x["price"] > 0]
-
-        if len(prices) < 5:
-            return True
-
-        if self.require_price_above_recent_avg:
-            recent = prices[-5:]
-            avg_recent = sum(recent) / len(recent)
-            if price < avg_recent:
-                return False
-
-        recent_high = max(prices[-7:])
-        if recent_high > 0:
-            dist_from_high = (recent_high - price) / recent_high
-            if dist_from_high > self.pullback_tolerance_pct:
-                return False
-
-        return True
-
-    def _is_near_recent_high(self, symbol: str, price: float) -> bool:
-        hist = self.tick_history[symbol]
-        prices = [x["price"] for x in hist if x["price"] > 0]
-        if len(prices) < 4:
-            return False
-
-        recent_high = max(prices[-6:])
-        if recent_high <= 0:
-            return False
-
-        gap = abs(recent_high - price) / recent_high
-        return gap <= self.near_high_tolerance_pct
-
-    def _is_too_far_from_recent_mean(self, symbol: str, price: float) -> bool:
-        hist = self.tick_history[symbol]
-        prices = [x["price"] for x in hist if x["price"] > 0]
-        if len(prices) < 4:
-            return False
-
-        recent = prices[-4:]
-        mean_price = sum(recent) / len(recent)
-        if mean_price <= 0:
-            return False
-
-        spike_pct = ((price / mean_price) - 1.0) * 100.0
-        return spike_pct >= self.max_short_term_spike_pct
-
-    def _is_short_term_vertical(self, symbol: str) -> bool:
-        hist = self.tick_history[symbol]
-        prices = [x["price"] for x in hist if x["price"] > 0]
-        if len(prices) < 4:
-            return False
-
-        p1, p2, p3, p4 = prices[-4:]
-        return p1 < p2 < p3 < p4
-
-    def _append_tick(self, symbol: str, tick: Any):
-        item = {
-            "price": self._get_price(tick),
-            "trade_volume": self._get_trade_volume(tick),
-            "trade_strength": self._get_trade_strength(tick),
-            "price_change_pct": self._get_price_change_pct(tick),
-            "volume_ratio": self._extract_number(
-                tick,
-                ["volume_ratio", "vol_ratio"],
-                default=None,
-            ),
-            "news_score": self._get_news_score(tick),
-            "ts": self._get_timestamp(tick),
-        }
-        self.tick_history[symbol].append(item)
-
-    def _is_in_cooldown(self, symbol: str, now: datetime) -> bool:
-        if self.allow_reentry:
-            return False
-
-        last_entry = self.last_entry_time.get(symbol)
-        if last_entry and (now - last_entry).total_seconds() < self.entry_cooldown_sec:
-            return True
-
-        last_exit = self.last_exit_time.get(symbol)
-        if last_exit and (now - last_exit).total_seconds() < self.entry_cooldown_sec:
-            return True
-
-        return False
-
-    def _build_buy_signal(self, symbol: str, price: float, reason: str) -> Signal:
-        try:
-            return Signal(
-                symbol=symbol,
-                side=Side.BUY,
-                qty=1,
-                price=price,
-                reason=reason,
+        if self.logger:
+            self.logger.info(
+                f"[FAST_RISE_PASS] {symbol} "
+                f"price={tick.price} chg={chg} strength={strength} vr={volume_ratio} "
+                f"reason={fast_reason} score={score}"
             )
-        except TypeError:
-            try:
-                return Signal(
-                    symbol=symbol,
-                    side=Side.BUY,
-                    price=price,
-                    reason=reason,
-                )
-            except TypeError:
-                try:
-                    return Signal(
-                        symbol=symbol,
-                        side=Side.BUY,
-                        reason=reason,
-                    )
-                except TypeError:
-                    return Signal(symbol=symbol, side=Side.BUY)
 
-    def _get_symbol(self, tick: Any) -> str:
-        value = self._extract_value(tick, ["symbol", "code", "stock_code"])
-        return str(value) if value is not None else ""
-
-    def _get_price(self, tick: Any) -> float:
-        return self._extract_number(
-            tick,
-            ["price", "current_price", "close"],
-            default=0.0,
+        return Signal(
+            symbol=symbol,
+            side=Side.BUY,
+            qty=1,
+            price=0,
+            order_type=OrderType.MARKET,
+            reason=reason,
         )
-
-    def _get_trade_volume(self, tick: Any) -> float:
-        return self._extract_number(
-            tick,
-            ["trade_volume", "volume", "acc_volume"],
-            default=0.0,
-        )
-
-    def _get_trade_strength(self, tick: Any) -> float:
-        return self._extract_number(
-            tick,
-            ["trade_strength", "strength", "execution_strength"],
-            default=0.0,
-        )
-
-    def _get_news_score(self, tick: Any) -> float:
-        return self._extract_number(tick, ["news_score"], default=0.0)
-
-    def _get_theme_score(self, tick: Any) -> float:
-        return self._extract_number(tick, ["theme_score"], default=0.0)
-
-    def _get_leader_score(self, tick: Any) -> float:
-        return self._extract_number(tick, ["leader_score"], default=0.0)
-
-    def _get_price_change_pct(self, tick: Any) -> float:
-        return self._extract_number(
-            tick,
-            ["price_change_pct", "change_pct", "rate"],
-            default=0.0,
-        )
-
-    def _get_volume_ratio(self, tick: Any, symbol: str) -> float:
-        direct = self._extract_number(
-            tick,
-            ["volume_ratio", "vol_ratio"],
-            default=None,
-        )
-        if direct is not None:
-            return direct
-
-        hist = self.tick_history[symbol]
-        if len(hist) < 4:
-            return 0.0
-
-        current_vol = self._get_trade_volume(tick)
-        prev = [x["trade_volume"] for x in list(hist)[-4:-1] if x["trade_volume"] > 0]
-
-        if not prev or current_vol <= 0:
-            return 0.0
-
-        avg_vol = sum(prev) / len(prev)
-        if avg_vol <= 0:
-            return 0.0
-
-        return current_vol / avg_vol
-
-    def _get_timestamp(self, tick: Any) -> datetime:
-        value = self._extract_value(tick, ["ts", "timestamp", "dt"])
-        if isinstance(value, datetime):
-            return value
-        return datetime.now()
-
-    def _extract_value(self, obj: Any, names, default=None):
-        if isinstance(obj, dict):
-            for name in names:
-                if name in obj and obj[name] is not None:
-                    return obj[name]
-            return default
-
-        for name in names:
-            if hasattr(obj, name):
-                value = getattr(obj, name)
-                if value is not None:
-                    return value
-        return default
-
-    def _extract_number(self, obj: Any, names, default=0.0):
-        value = self._extract_value(obj, names, default=None)
-        if value is None:
-            return default
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            return default

@@ -29,11 +29,23 @@ REBUY_COOLDOWN_SECONDS = 300
 # =========================
 PARTIAL_TAKE_PROFIT_PCT = 0.025   # +2.5%에서 일부만
 PARTIAL_TAKE_RATIO = 0.3          # 30%만 매도
-TAKE_PROFIT_PCT = 0.060           # +6%까지 열어둠
 TRAILING_STOP_PCT = 0.012         # 1.2% 트레일링 (조금 여유)
-STOP_LOSS_PCT = -0.018            # 그대로 유지
 BREAKEVEN_ENABLED = True
 TRAILING_STOP_ENABLED = True
+# TAKE_PROFIT_PCT = 0.060           # +6%까지 열어둠   :: 0.060
+# STOP_LOSS_PCT = -0.018            # 그대로 유지      :: -0.018 
+TAKE_PROFIT_PCT = 0.015           # +6%까지 열어둠   :: 0.060
+STOP_LOSS_PCT = -0.02             # 그대로 유지      :: -0.018 
+
+# 실전형  ==========================
+# TAKE_PROFIT_PCT = 0.02    # +2.0%
+# STOP_LOSS_PCT = -0.02     # -2.0%
+# 밸렌스형 =========================
+# TAKE_PROFIT_PCT = 0.02    # +2.0%
+# STOP_LOSS_PCT = -0.02     # -2.0%
+# 공격형 ===========================
+# TAKE_PROFIT_PCT = 0.03    # +3.0%
+# STOP_LOSS_PCT = -0.015    # -1.5%
 
 # =========================
 # 매도 미체결 / 재매도
