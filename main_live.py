@@ -160,6 +160,28 @@ def main():
                 "theme_score": 0.0,
                 "leader_score": 0.0,
             },
+            {
+                "symbol": "005930",
+                "price": 72300,
+                "trade_volume": 2200,
+                "price_change_pct": 2.0,
+                "trade_strength": 185.0,
+                "volume_ratio": 1.65,
+                "news_score": 2.0,
+                "theme_score": 0.0,
+                "leader_score": 0.0,
+            },
+            {
+                "symbol": "005930",
+                "price": 72600,
+                "trade_volume": 2400,
+                "price_change_pct": 2.2,
+                "trade_strength": 188.0,
+                "volume_ratio": 1.75,
+                "news_score": 2.0,
+                "theme_score": 0.0,
+                "leader_score": 0.0,
+            },
         ]
 
         interval_ms = 1000
