@@ -1,0 +1,98 @@
+STEP 2 분석 리포트
+============================================================
+source_csv: E:\prgm\python_open_api\CherryPulse-KR-01\replay_test_output\20260405_171544\results.csv
+generated_at: 2026-04-05 17:15:46
+
+[전체 요약]
+- total_runs: 25
+- total_trades: 20
+- total_wins: 10
+- total_losses: 10
+- overall_trade_win_rate_pct: 50.0
+- overall_avg_profit_pct: 3.0561
+- overall_avg_loss_pct: -0.5678
+- overall_expectancy_pct: 1.2441
+- overall_profit_factor: 5.3824
+- total_net_pnl: 17500.0
+- best_case: case4
+- worst_case: case2
+
+[case별 요약]
+case1
+  - risk_flag: OK
+  - runs: 5
+  - total_trades: 5
+  - wins/losses: 5/0
+  - run_win_rate_pct: 100.0
+  - trade_win_rate_pct: 100.0
+  - avg_net_pnl: 2100.0
+  - total_net_pnl: 10500.0
+  - avg_profit_pct: 2.9872
+  - avg_loss_pct: 0.0
+  - expectancy_pct: 2.9872
+  - profit_factor: 999.0
+  - note: 정상
+
+case2
+  - risk_flag: BAD
+  - runs: 5
+  - total_trades: 5
+  - wins/losses: 0/5
+  - run_win_rate_pct: 0.0
+  - trade_win_rate_pct: 0.0
+  - avg_net_pnl: -500.0
+  - total_net_pnl: -2500.0
+  - avg_profit_pct: 0.0
+  - avg_loss_pct: -0.7102
+  - expectancy_pct: -0.7102
+  - profit_factor: 0.0
+  - note: 총 순손익 음수 / 승률 낮음 / 기대값 음수
+
+case3
+  - risk_flag: BAD
+  - runs: 5
+  - total_trades: 5
+  - wins/losses: 0/5
+  - run_win_rate_pct: 0.0
+  - trade_win_rate_pct: 0.0
+  - avg_net_pnl: -300.0
+  - total_net_pnl: -1500.0
+  - avg_profit_pct: 0.0
+  - avg_loss_pct: -0.4255
+  - expectancy_pct: -0.4255
+  - profit_factor: 0.0
+  - note: 총 순손익 음수 / 승률 낮음 / 기대값 음수
+
+case4
+  - risk_flag: OK
+  - runs: 5
+  - total_trades: 5
+  - wins/losses: 5/0
+  - run_win_rate_pct: 100.0
+  - trade_win_rate_pct: 100.0
+  - avg_net_pnl: 2200.0
+  - total_net_pnl: 11000.0
+  - avg_profit_pct: 3.125
+  - avg_loss_pct: 0.0
+  - expectancy_pct: 3.125
+  - profit_factor: 999.0
+  - note: 정상
+
+case5
+  - risk_flag: CHECK
+  - runs: 5
+  - total_trades: 0
+  - wins/losses: 0/0
+  - run_win_rate_pct: 0.0
+  - trade_win_rate_pct: 0.0
+  - avg_net_pnl: 0.0
+  - total_net_pnl: 0.0
+  - avg_profit_pct: 0.0
+  - avg_loss_pct: 0.0
+  - expectancy_pct: 0.0
+  - profit_factor: 0.0
+  - note: 거래 없음
+
+[자동 판정]
+- BAD: case2, case3
+- CHECK: case5
