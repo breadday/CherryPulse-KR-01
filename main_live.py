@@ -19,11 +19,16 @@ from core.models import Signal, Side, OrderType
 import config_live as config
 from config_live import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, STRATEGY_CONFIG, ACCOUNT_PASSWORD
 from infra.telegram_notifier import TelegramNotifier
+from test_force_exit_helper import force_close_all_positions
 
 
 # -------------------------
 # 테스트 케이스 선택
 # -------------------------
+#TEST_NAME = "case1_profit_only"
+#TEST_NAME = "case2_stoploss_only"
+#TEST_NAME = "case3_fake_breakout"
+#TEST_NAME = "case4_rise_pullback_rise"
 TEST_NAME = "case5_overheat_spike"
 
 TEST_CASES = {
@@ -105,13 +110,19 @@ def main():
             logger=logger,
         )
 
-        telegram.debug_identity()
+        try:
+            telegram.debug_identity()
+        except Exception as e:
+            logger.warning(f"텔레그램 debug_identity 실패 | {e}")
 
-        ok = telegram.send_startup_test()
-        if ok:
-            logger.info("텔레그램 연결 테스트 성공")
-        else:
-            logger.warning("텔레그램 연결 테스트 실패 | token/chat_id 또는 네트워크 확인 필요")
+        try:
+            ok = telegram.send_startup_test()
+            if ok:
+                logger.info("텔레그램 연결 테스트 성공")
+            else:
+                logger.warning("텔레그램 연결 테스트 실패 | token/chat_id 또는 네트워크 확인 필요")
+        except Exception as e:
+            logger.warning(f"텔레그램 시작 테스트 실패 | {e}")
     else:
         logger.warning("텔레그램 설정 없음 | TELEGRAM_TOKEN / TELEGRAM_CHAT_ID 확인")
 
@@ -153,6 +164,18 @@ def main():
         logger.info("종료 신호 수신")
 
         try:
+            if config.DRY_RUN:
+                closed_count = force_close_all_positions(
+                    engine,
+                    logger=logger,
+                    reason="TEST_FORCE_EXIT"
+                )
+                logger.info(f"종료 전 테스트 강제청산 완료 | closed_count={closed_count}")
+                time.sleep(0.5)
+        except Exception as e:
+            logger.warning(f"종료 전 테스트 강제청산 실패 | {e}")
+
+        try:
             stream.unsubscribe_all()
             logger.info("실시간 구독 해제 완료")
         except Exception as e:
@@ -182,12 +205,25 @@ def main():
         test_ticks = TEST_CASES.get(TEST_NAME, TEST_CASES["case1_profit_only"])
         interval_ms = 1000
 
+        def finalize_test():
+            try:
+                logger.info("🧪 테스트 종료 전 강제청산 시작")
+                closed_count = force_close_all_positions(
+                    engine,
+                    logger=logger,
+                    reason="TEST_FORCE_EXIT"
+                )
+                logger.info(f"🧪 테스트 종료 전 강제청산 완료 | closed_count={closed_count}")
+            except Exception as e:
+                logger.exception(f"테스트 종료 전 강제청산 실패 | {e}")
+
         def push_tick(index: int):
             if shutting_down["flag"]:
                 return
 
             if index >= len(test_ticks):
                 logger.info("🧪 DRY_RUN 테스트 틱 주입 종료")
+                QTimer.singleShot(interval_ms, finalize_test)
                 return
 
             tick = test_ticks[index]
