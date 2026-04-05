@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-import config
+import config_live as config
 from core.models import Order, TickData, OrderStatus, Signal, Side, OrderType
 from core.order_manager import OrderManager
 from core.portfolio import Portfolio
@@ -39,6 +39,10 @@ class TradingEngine:
 
         self.min_tick_volume = 1
         self.max_symbol_position = 1
+        self.max_positions = 3
+        self.order_amount_per_trade = 0
+
+        self._load_runtime_config()
 
         self.broker.set_real_tick_callback(self.on_real_tick)
         self.broker.set_fill_callback(self.on_fill)
@@ -118,9 +122,258 @@ class TradingEngine:
     def _cfg(self, name, default):
         return getattr(config, name, default)
 
+    def _load_runtime_config(self):
+        self.order_cooldown_sec = max(
+            1,
+            self._safe_int(
+                self._cfg("ORDER_COOLDOWN_SECONDS", self._cfg("REBUY_COOLDOWN_SECONDS", 10)),
+                10,
+            ),
+        )
+        self.max_daily_orders = max(1, self._safe_int(self._cfg("MAX_DAILY_ORDERS", 20), 20))
+        self.min_tick_volume = max(1, self._safe_int(self._cfg("MIN_TICK_VOLUME", 1), 1))
+        self.max_symbol_position = max(
+            1,
+            self._safe_int(self._cfg("MAX_SYMBOL_POSITION", self._cfg("MAX_POSITIONS", 1)), 1),
+        )
+        self.max_positions = max(1, self._safe_int(self._cfg("MAX_POSITIONS", 3), 3))
+        self.order_amount_per_trade = max(
+            0,
+            self._safe_int(self._cfg("ORDER_AMOUNT_PER_TRADE", 0), 0),
+        )
+
+        self.logger.info(
+            "리스크 설정 로드 | "
+            f"cooldown={self.order_cooldown_sec}s "
+            f"max_daily_orders={self.max_daily_orders} "
+            f"min_tick_volume={self.min_tick_volume} "
+            f"max_symbol_position={self.max_symbol_position} "
+            f"max_positions={self.max_positions} "
+            f"order_amount_per_trade={self.order_amount_per_trade}"
+        )
+
+    def _notify_enabled(self, key: str, default: bool):
+        return bool(self._cfg(key, default))
+
+    def _should_notify_order_event(self, event: str, status: str = "") -> bool:
+        event = str(event or "")
+        status = str(status or "")
+        if event == "📈 주문 발생":
+            return self._notify_enabled("TELEGRAM_NOTIFY_ORDER_SUBMITTED", False)
+        if event == "🔻 자동매도 주문":
+            return self._notify_enabled("TELEGRAM_NOTIFY_AUTO_SELL_ORDER", False)
+        if event == "📉 청산신호":
+            return self._notify_enabled("TELEGRAM_NOTIFY_EXIT_SIGNAL", False)
+        if event == "❌ 주문 거부":
+            return self._notify_enabled("TELEGRAM_NOTIFY_ORDER_REJECTED", True)
+        if event == "✅ 체결":
+            if "PARTIAL" in status.upper():
+                return self._notify_enabled("TELEGRAM_NOTIFY_PARTIAL_FILL", True)
+            return self._notify_enabled("TELEGRAM_NOTIFY_FILL", True)
+        return True
+
+    def _current_open_symbols(self) -> int:
+        try:
+            return sum(
+                1
+                for pos in getattr(self.portfolio, "positions", {}).values()
+                if int(getattr(pos, "qty", 0)) > 0
+            )
+        except Exception:
+            return 0
+
+    def _estimate_order_amount(self, qty: int, price: float) -> int:
+        try:
+            return int(max(0, qty) * max(0, float(price)))
+        except Exception:
+            return 0
+
+    def _send_daily_summary(self, reason: str = "manual") -> bool:
+        try:
+            if not self.telegram or not self._cfg("ENABLE_TELEGRAM_LOG", False):
+                return False
+            if not self._notify_enabled("TELEGRAM_NOTIFY_DAILY_SUMMARY", True):
+                return False
+
+            summary = self.get_trade_summary()
+            open_symbols = self._current_open_symbols()
+
+            if hasattr(self.telegram, "send_daily_summary"):
+                return self.telegram.send_daily_summary(
+                    test_name=self.test_name,
+                    reason=reason,
+                    total_trades=summary.get("total_trades"),
+                    wins=summary.get("wins"),
+                    losses=summary.get("losses"),
+                    win_rate=summary.get("win_rate"),
+                    avg_profit_pct=summary.get("avg_profit_pct"),
+                    avg_loss_pct=summary.get("avg_loss_pct"),
+                    net_pnl=summary.get("net_pnl"),
+                    cash=getattr(self.portfolio, "cash", None),
+                    realized_pnl=getattr(self.portfolio, "realized_pnl", None),
+                    daily_order_count=self.daily_order_count,
+                    max_daily_orders=self.max_daily_orders,
+                    open_symbols=open_symbols,
+                )
+
+            return self.telegram.send(
+                "📊 일일 요약\n"
+                f"테스트: {self.test_name}\n"
+                f"사유: {reason}\n"
+                f"총거래: {summary.get('total_trades', 0)}\n"
+                f"승/패: {summary.get('wins', 0)}/{summary.get('losses', 0)}\n"
+                f"승률: {summary.get('win_rate', 0)}%\n"
+                f"순손익: {summary.get('net_pnl', 0)}\n"
+                f"예수금: {getattr(self.portfolio, 'cash', 0)}\n"
+                f"실현손익: {getattr(self.portfolio, 'realized_pnl', 0)}"
+            )
+        except Exception as e:
+            self.logger.warning(f"일일 요약 텔레그램 실패 | {e}")
+            return False
+
+    def _send_risk_status(self, reason: str = "startup") -> bool:
+        try:
+            if not self.telegram or not self._cfg("ENABLE_TELEGRAM_LOG", False):
+                return False
+            if not self._notify_enabled("TELEGRAM_NOTIFY_RISK_STATUS", True):
+                return False
+
+            if hasattr(self.telegram, "send_risk_status"):
+                return self.telegram.send_risk_status(
+                    reason=reason,
+                    max_positions=self.max_positions,
+                    max_symbol_position=self.max_symbol_position,
+                    max_daily_orders=self.max_daily_orders,
+                    order_amount_per_trade=self.order_amount_per_trade,
+                    order_cooldown_sec=self.order_cooldown_sec,
+                    min_tick_volume=self.min_tick_volume,
+                    cash=getattr(self.portfolio, "cash", None),
+                )
+
+            return self.telegram.send(
+                "🛡️ 리스크 설정\n"
+                f"사유: {reason}\n"
+                f"최대보유종목수: {self.max_positions}\n"
+                f"종목당 최대보유수: {self.max_symbol_position}\n"
+                f"일일주문한도: {self.max_daily_orders}\n"
+                f"주문금액한도: {self.order_amount_per_trade}\n"
+                f"주문쿨다운: {self.order_cooldown_sec}s\n"
+                f"최소틱거래량: {self.min_tick_volume}"
+            )
+        except Exception as e:
+            self.logger.warning(f"리스크 상태 텔레그램 실패 | {e}")
+            return False
+
     def _register_tick(self, symbol: str):
         self.tick_seq[symbol] = int(self.tick_seq.get(symbol, 0)) + 1
         return self.tick_seq[symbol]
+
+
+    def _symbol_label(self, symbol: str) -> str:
+        try:
+            if self.telegram and hasattr(self.telegram, "format_symbol"):
+                return self.telegram.format_symbol(symbol)
+        except Exception:
+            pass
+        return str(symbol)
+
+    def _notify_order_event(
+        self,
+        *,
+        event: str,
+        symbol: str,
+        side,
+        qty: int,
+        price: float,
+        status: str = "",
+        score=None,
+        reason: str = "",
+        pnl_pct=None,
+    ):
+        try:
+            if not self.telegram or not self._cfg("ENABLE_TELEGRAM_LOG", False):
+                return
+            if not self._should_notify_order_event(event=event, status=status):
+                return
+
+            side_text = self._side_value(side)
+            cash = getattr(self.portfolio, "cash", None)
+            realized_pnl = getattr(self.portfolio, "realized_pnl", None)
+
+            if hasattr(self.telegram, "send_order_event"):
+                self.telegram.send_order_event(
+                    event=event,
+                    symbol=symbol,
+                    side=side_text,
+                    qty=qty,
+                    price=price,
+                    status=status,
+                    score=score,
+                    reason=reason,
+                    daily_order_count=self.daily_order_count,
+                    max_daily_orders=self.max_daily_orders,
+                    cash=cash,
+                    realized_pnl=realized_pnl,
+                    pnl_pct=(float(pnl_pct) * 100.0) if pnl_pct is not None and abs(float(pnl_pct)) <= 1.0 else pnl_pct,
+                )
+            else:
+                self.telegram.send(
+                    f"{event}\n"
+                    f"종목: {self._symbol_label(symbol)}\n"
+                    f"방향: {side_text}\n"
+                    f"수량: {qty}\n"
+                    f"가격: {price}\n"
+                    f"상태: {status}\n"
+                    f"사유: {reason}\n"
+                    f"예수금: {cash}\n"
+                    f"실현손익: {realized_pnl}"
+                )
+        except Exception as e:
+            self.logger.warning(f"텔레그램 주문 알림 실패 | symbol={symbol} err={e}")
+
+    def _notify_trade_close(self, trade_item: dict):
+        try:
+            if not self.telegram or not self._cfg("ENABLE_TELEGRAM_LOG", False):
+                return
+            if not self._notify_enabled("TELEGRAM_NOTIFY_TRADE_CLOSE", True):
+                return
+
+            summary = self.get_trade_summary()
+            symbol = trade_item.get("symbol", "")
+            result = str(trade_item.get("result", ""))
+            pnl_pct = float(trade_item.get("pnl_pct", 0.0))
+            pnl = float(trade_item.get("pnl", 0.0))
+            qty = int(trade_item.get("qty", 0))
+            exit_price = float(trade_item.get("exit_price", 0.0))
+            reason = str(trade_item.get("exit_reason", ""))
+
+            if hasattr(self.telegram, "send_trade_close"):
+                self.telegram.send_trade_close(
+                    symbol=symbol,
+                    result=result,
+                    qty=qty,
+                    exit_price=exit_price,
+                    pnl=pnl,
+                    pnl_pct=pnl_pct,
+                    reason=reason,
+                    cash=getattr(self.portfolio, "cash", None),
+                    realized_pnl=getattr(self.portfolio, "realized_pnl", None),
+                    total_trades=summary.get("total_trades"),
+                    wins=summary.get("wins"),
+                    losses=summary.get("losses"),
+                    win_rate=summary.get("win_rate"),
+                    net_pnl=summary.get("net_pnl"),
+                )
+            else:
+                self.telegram.send(
+                    f"거래 종료\n"
+                    f"종목: {self._symbol_label(symbol)}\n"
+                    f"결과: {result}\n"
+                    f"손익: {pnl}\n"
+                    f"손익률: {pnl_pct:.2f}%"
+                )
+        except Exception as e:
+            self.logger.warning(f"텔레그램 거래종료 알림 실패 | {e}")
 
     # -------------------------
     # 거래 성과 집계 CSV 저장
@@ -278,6 +531,8 @@ class TradingEngine:
                 f"reason={trade_item['exit_reason']}"
             )
 
+            self._notify_trade_close(trade_item)
+
             summary = self.get_trade_summary()
             self.logger.info(
                 f"[PERFORMANCE] trades={summary['total_trades']} "
@@ -383,6 +638,7 @@ class TradingEngine:
         if not self.is_running:
             self.logger.info("이미 종료 상태")
             self.log_trade_summary(prefix="종료 전 성과 요약")
+            self._send_daily_summary(reason="already_stopped")
             try:
                 self.broker.shutdown()
             except Exception as e:
@@ -391,6 +647,7 @@ class TradingEngine:
 
         self.logger.info("엔진 종료 시작")
         self.log_trade_summary(prefix="종료 전 성과 요약")
+        self._send_daily_summary(reason="engine_stop")
         try:
             self.broker.shutdown()
         except Exception as e:
@@ -439,6 +696,7 @@ class TradingEngine:
                     f"포지션 반영 | symbol={symbol} qty={qty} avg_price={avg_price}"
                 )
 
+            self._send_risk_status(reason="sync_account")
             return {"deposit": deposit, "positions": positions}
 
         except Exception as e:
@@ -614,16 +872,16 @@ class TradingEngine:
                 f"price={price} avg={avg_price:.2f} qty={qty} pnl={pnl_pct:.2%}"
             )
 
-            if self.telegram and self._cfg("ENABLE_TELEGRAM_LOG", False):
-                self.telegram.send(
-                    f"📉 청산신호\n"
-                    f"종목: {symbol}\n"
-                    f"유형: {event}\n"
-                    f"현재가: {price}\n"
-                    f"평단: {avg_price:.2f}\n"
-                    f"수량: {qty}\n"
-                    f"손익률: {pnl_pct:.2%}"
-                )
+            self._notify_order_event(
+                event="📉 청산신호",
+                symbol=symbol,
+                side=Side.SELL,
+                qty=qty,
+                price=price,
+                status=event,
+                reason=event,
+                pnl_pct=pnl_pct,
+            )
         except Exception as e:
             self.logger.warning(f"청산 로그 기록 실패 | symbol={symbol} err={e}")
 
@@ -874,15 +1132,15 @@ class TradingEngine:
             if order.status == OrderStatus.SUBMITTED:
                 self._set_reentry_block(symbol, reason)
 
-            if self.telegram:
-                self.telegram.send(
-                    f"🔻 자동매도 주문\n"
-                    f"종목: {symbol}\n"
-                    f"수량: {qty}\n"
-                    f"사유: {reason}\n"
-                    f"내부주문번호: {order.order_id}\n"
-                    f"일일주문: {self.daily_order_count}/{self.max_daily_orders}"
-                )
+            self._notify_order_event(
+                event="🔻 자동매도 주문",
+                symbol=symbol,
+                side=Side.SELL,
+                qty=qty,
+                price=self.last_price_map.get(symbol, 0),
+                status=str(order.status),
+                reason=reason,
+            )
 
             if order.status == OrderStatus.REJECTED:
                 self.sell_in_progress.discard(symbol)
@@ -1134,19 +1392,42 @@ class TradingEngine:
 
         symbol = signal.symbol
         side_value = self._side_value(signal.side)
+        qty = max(0, self._safe_int(getattr(signal, "qty", 0), 0))
+        price = max(0, self._safe_float(getattr(tick, "price", 0), 0.0))
+        estimated_amount = self._estimate_order_amount(qty, price)
+        cash = float(getattr(self.portfolio, "cash", 0.0))
+
+        if qty <= 0:
+            return False, "주문수량 오류"
 
         if side_value == "BUY":
             ok, reason = self._can_reenter_buy(symbol)
             if not ok:
                 return False, reason
 
+            last_ts = float(self.last_order_time.get(symbol, 0))
+            now_ts = time.time()
+            if last_ts > 0 and now_ts - last_ts < self.order_cooldown_sec:
+                remain = max(1, int(self.order_cooldown_sec - (now_ts - last_ts)))
+                return False, f"주문 쿨다운 중({remain}초 남음)"
+
             pos = self.portfolio.get_position(symbol)
             hold_qty = int(getattr(pos, "qty", 0))
             if hold_qty >= self.max_symbol_position:
                 return False, "종목 최대 보유수 초과"
 
+            open_symbols = self._current_open_symbols()
+            if hold_qty <= 0 and open_symbols >= self.max_positions:
+                return False, "동시 보유 종목 수 초과"
+
             if getattr(tick, "volume", 0) < self.min_tick_volume:
                 return False, "틱 거래량 부족"
+
+            if self.order_amount_per_trade > 0 and estimated_amount > self.order_amount_per_trade:
+                return False, f"주문금액 한도 초과({estimated_amount}>{self.order_amount_per_trade})"
+
+            if estimated_amount > cash:
+                return False, f"예수금 부족({estimated_amount}>{int(cash)})"
 
         return True, "OK"
 
@@ -1221,36 +1502,42 @@ class TradingEngine:
                 f"score={entry_score}"
             )
 
-            if self.telegram:
-                self.telegram.send(
-                    f"📈 주문 발생\n"
-                    f"종목: {order.symbol}\n"
-                    f"방향: {order.side}\n"
-                    f"수량: {order.qty}\n"
-                    f"상태: {order.status}\n"
-                    f"점수: {entry_score}\n"
-                    f"사유: {signal.reason}\n"
-                    f"일일주문: {self.daily_order_count}/{self.max_daily_orders}"
-                )
+            self._notify_order_event(
+                event="📈 주문 발생",
+                symbol=order.symbol,
+                side=order.side,
+                qty=order.qty,
+                price=tick.price,
+                status=str(order.status),
+                score=entry_score,
+                reason=signal.reason,
+            )
 
             if order.status == OrderStatus.REJECTED:
                 self.logger.warning(f"주문 거부 | {order.symbol}")
-                if self.telegram:
-                    self.telegram.send(
-                        f"❌ 주문 거부\n"
-                        f"종목: {order.symbol}\n"
-                        f"방향: {order.side}\n"
-                        f"수량: {order.qty}\n"
-                        f"점수: {entry_score}\n"
-                        f"사유: {signal.reason}"
-                    )
+                self._notify_order_event(
+                    event="❌ 주문 거부",
+                    symbol=order.symbol,
+                    side=order.side,
+                    qty=order.qty,
+                    price=tick.price,
+                    status=str(order.status),
+                    score=entry_score,
+                    reason=signal.reason,
+                )
 
         except Exception as e:
             self.error_count += 1
             self.logger.exception(f"주문 처리 실패 | {e}")
             self._check_engine_protection()
-            if self.telegram:
-                self.telegram.send(f"🚨 주문 처리 실패\n{tick.symbol}\n{e}")
+            if self.telegram and self._cfg("ENABLE_TELEGRAM_LOG", False):
+                self.telegram.send(
+                    f"🚨 주문 처리 실패\n"
+                    f"종목: {self._symbol_label(tick.symbol)}\n"
+                    f"예수금: {getattr(self.portfolio, 'cash', 0):,.0f}\n"
+                    f"실현손익: {getattr(self.portfolio, 'realized_pnl', 0):,.0f}\n"
+                    f"에러: {e}"
+                )
 
     # -------------------------
     # 체결 반영
@@ -1298,6 +1585,18 @@ class TradingEngine:
                 )
 
             side_value = self._side_value(getattr(fill, "side", ""))
+            fill_status = "FILLED" if int(getattr(fill, "unfilled_qty", 0) or 0) == 0 else "PARTIAL"
+
+            self._notify_order_event(
+                event="✅ 체결",
+                symbol=fill.symbol,
+                side=side_value,
+                qty=int(getattr(fill, "fill_qty", 0)),
+                price=float(getattr(fill, "fill_price", 0.0)),
+                status=fill_status,
+                reason=f"order_id={getattr(fill, 'order_id', '')}",
+            )
+
             if side_value == "BUY":
                 self._start_trade_cycle_if_needed(symbol, qty_before, qty_after, avg_after)
             elif side_value == "SELL":

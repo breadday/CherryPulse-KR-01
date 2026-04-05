@@ -182,6 +182,11 @@ def main():
             logger.warning(f"실시간 구독 해제 실패 | {e}")
 
         try:
+            engine._send_daily_summary(reason="shutdown")
+        except Exception as e:
+            logger.warning(f"종료 전 일일요약 실패 | {e}")
+
+        try:
             engine.stop()
         except Exception as e:
             logger.warning(f"엔진 종료 실패 | {e}")
@@ -277,12 +282,26 @@ def main():
         )
 
         if telegram:
-            telegram.send(
-                f"📈 주문 발생\n"
-                f"종목: {signal_obj.symbol}\n"
-                f"수량: {signal_obj.qty}\n"
-                f"상태: {order.status}"
-            )
+            if hasattr(telegram, "send_order_event"):
+                telegram.send_order_event(
+                    event="📈 주문 발생",
+                    symbol=signal_obj.symbol,
+                    side="BUY",
+                    qty=signal_obj.qty,
+                    price=0,
+                    status=str(order.status),
+                    reason=signal_obj.reason,
+                )
+            else:
+                telegram.send(
+                    f"📈 주문 발생\n"
+                    f"종목: {telegram.format_symbol(signal_obj.symbol) if hasattr(telegram, 'format_symbol') else signal_obj.symbol}\n"
+                    f"방향: BUY\n"
+                    f"수량: {signal_obj.qty}\n"
+                    f"가격: 0\n"
+                    f"상태: {order.status}\n"
+                    f"사유: {signal_obj.reason}"
+                )
 
     def auto_shutdown():
         if shutting_down["flag"]:
@@ -326,6 +345,11 @@ def main():
     time.sleep(1.0)
     engine.sync_pending_orders(password=ACCOUNT_PASSWORD)
 
+    try:
+        engine._send_risk_status(reason="main_startup_check")
+    except Exception as e:
+        logger.warning(f"시작 리스크 상태 전송 실패 | {e}")
+
     # engine.health_check()
 
     stream.subscribe(["005930", "000660"])
@@ -342,3 +366,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
