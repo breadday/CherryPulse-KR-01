@@ -172,3 +172,23 @@ strategy도 같이 봐줘
 
 개발/디버깅: python main.py
 실전(모의투자 계좌 포함): python main_live.py
+
+
+python main_live_param.py --list-cases
+python main_live_param.py --mode dry --case case3
+python main_live_param.py --mode dry --case case1 --test-name my_case1_test
+python main_live_param.py --mode live
+python main_live_param.py --mode live --symbols 005930,000660,035720
+
+핵심 개선점은 이거야 ✌️🍵
+
+--mode dry | live 로 테스트/실전 분리
+--case case1 ~ case5 로 케이스 선택
+--test-name 으로 CSV 파일명 관리
+--symbols 로 구독 종목 변경
+--list-cases 로 케이스 목록 확인
+
+즉 이제는
+
+테스트할 때: 
+python main_live_param.py --mode dry --case case1
