@@ -1,0 +1,831 @@
+2026-04-05 17:15:44,015 | INFO | 재생 테스트 시작
+2026-04-05 17:15:44,016 | INFO | [RUN] case1 #1 symbol=T101
+2026-04-05 17:15:44,016 | INFO | FakeBroker connect
+2026-04-05 17:15:44,017 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,017 | INFO | [TICK] T101 tick_no=1 price=70000 vol=1000 chg=1.0 strength=150.0 vr=1.7 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,017 | INFO | [CHECK] T101 price=70000
+2026-04-05 17:15:44,019 | INFO | [TICK] T101 tick_no=2 price=70300 vol=1100 chg=1.8 strength=178.0 vr=1.85 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,019 | INFO | [CHECK] T101 price=70300
+2026-04-05 17:15:44,023 | INFO | [ORDER_READY] T101 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.80:strength=178.0:vr=1.85
+2026-04-05 17:15:44,025 | INFO | FakeBroker 주문 | id=SIM-a1d528c927 symbol=T101 side=BUY qty=1
+2026-04-05 17:15:44,026 | INFO | 체결 반영 | broker_id=SIM-a1d528c927 local_id=SIM-a1d528c927 symbol=T101 side=BUY qty=1 price=70300 unfilled=0 status=FILLED
+2026-04-05 17:15:44,026 | INFO | [TRADE_OPEN] symbol=T101 entry_price=70300.00 qty=1
+2026-04-05 17:15:44,026 | INFO | 주문 등록 | id=SIM-a1d528c927 symbol=T101 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,026 | INFO | [TICK] T101 tick_no=3 price=70650 vol=1200 chg=2.1 strength=182.0 vr=1.95 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,027 | INFO | [CHECK] T101 price=70650
+2026-04-05 17:15:44,027 | INFO | [TICK] T101 tick_no=4 price=71000 vol=1300 chg=2.5 strength=175.0 vr=1.88 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,027 | INFO | [CHECK] T101 price=71000
+2026-04-05 17:15:44,027 | INFO | [TICK] T101 tick_no=5 price=71500 vol=1400 chg=3.2 strength=168.0 vr=1.82 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,028 | INFO | [CHECK] T101 price=71500
+2026-04-05 17:15:44,028 | INFO | [TICK] T101 tick_no=6 price=72000 vol=1500 chg=3.8 strength=160.0 vr=1.75 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,028 | INFO | [CHECK] T101 price=72000
+2026-04-05 17:15:44,028 | INFO | [TICK] T101 tick_no=7 price=72400 vol=1600 chg=4.3 strength=155.0 vr=1.7 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,029 | INFO | [EXIT_CHECK] T101 event=PARTIAL_TAKE price=72400 avg=70300.00 qty=1 pnl=2.99%
+2026-04-05 17:15:44,029 | INFO | 부분익절 발생 | symbol=T101 qty=1 pnl=2.99%
+2026-04-05 17:15:44,030 | INFO | FakeBroker 주문 | id=SIM-324936e7bd symbol=T101 side=SELL qty=1
+2026-04-05 17:15:44,030 | INFO | 체결 반영 | broker_id=SIM-324936e7bd local_id=SIM-324936e7bd symbol=T101 side=SELL qty=1 price=72400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,035 | INFO | 거래로그 CSV 저장 | path=logs\trades_case1_r1_20260405.csv test_name=case1_r1 symbol=T101 result=WIN
+2026-04-05 17:15:44,035 | INFO | [TRADE_CLOSE] symbol=T101 result=WIN entry=70300.00 exit=72400.00 qty=1 pnl=2100.00 pnl_pct=2.9872% reason=부분익절
+2026-04-05 17:15:44,035 | INFO | [PERFORMANCE] trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=2.9872% avg_loss=0.0000% net_pnl=2100.00
+2026-04-05 17:15:44,035 | INFO | 자동매도 주문 등록 | symbol=T101 qty=1 order_id=SIM-324936e7bd reason=부분익절 status=FILLED
+2026-04-05 17:15:44,035 | INFO | [CHECK] T101 price=72400
+2026-04-05 17:15:44,036 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,036 | INFO | 종료 전 성과 요약 | trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=2.9872% avg_loss=0.0000% net_pnl=2100.00
+2026-04-05 17:15:44,036 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,036 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,036 | INFO | [DONE] case1 #1 trades=1 wins=1 losses=0 net_pnl=2100.0 final_qty=0
+2026-04-05 17:15:44,036 | INFO | [RUN] case1 #2 symbol=T102
+2026-04-05 17:15:44,036 | INFO | FakeBroker connect
+2026-04-05 17:15:44,036 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,037 | INFO | [TICK] T102 tick_no=1 price=70000 vol=1000 chg=1.0 strength=150.0 vr=1.7 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,037 | INFO | [CHECK] T102 price=70000
+2026-04-05 17:15:44,037 | INFO | [TICK] T102 tick_no=2 price=70300 vol=1100 chg=1.8 strength=178.0 vr=1.85 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,037 | INFO | [CHECK] T102 price=70300
+2026-04-05 17:15:44,037 | INFO | [ORDER_READY] T102 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.80:strength=178.0:vr=1.85
+2026-04-05 17:15:44,038 | INFO | FakeBroker 주문 | id=SIM-8789c211e5 symbol=T102 side=BUY qty=1
+2026-04-05 17:15:44,038 | INFO | 체결 반영 | broker_id=SIM-8789c211e5 local_id=SIM-8789c211e5 symbol=T102 side=BUY qty=1 price=70300 unfilled=0 status=FILLED
+2026-04-05 17:15:44,038 | INFO | [TRADE_OPEN] symbol=T102 entry_price=70300.00 qty=1
+2026-04-05 17:15:44,039 | INFO | 주문 등록 | id=SIM-8789c211e5 symbol=T102 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,039 | INFO | [TICK] T102 tick_no=3 price=70650 vol=1200 chg=2.1 strength=182.0 vr=1.95 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,039 | INFO | [CHECK] T102 price=70650
+2026-04-05 17:15:44,039 | INFO | [TICK] T102 tick_no=4 price=71000 vol=1300 chg=2.5 strength=175.0 vr=1.88 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,040 | INFO | [CHECK] T102 price=71000
+2026-04-05 17:15:44,040 | INFO | [TICK] T102 tick_no=5 price=71500 vol=1400 chg=3.2 strength=168.0 vr=1.82 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,040 | INFO | [CHECK] T102 price=71500
+2026-04-05 17:15:44,040 | INFO | [TICK] T102 tick_no=6 price=72000 vol=1500 chg=3.8 strength=160.0 vr=1.75 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,040 | INFO | [CHECK] T102 price=72000
+2026-04-05 17:15:44,040 | INFO | [TICK] T102 tick_no=7 price=72400 vol=1600 chg=4.3 strength=155.0 vr=1.7 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,041 | INFO | [EXIT_CHECK] T102 event=PARTIAL_TAKE price=72400 avg=70300.00 qty=1 pnl=2.99%
+2026-04-05 17:15:44,041 | INFO | 부분익절 발생 | symbol=T102 qty=1 pnl=2.99%
+2026-04-05 17:15:44,041 | INFO | FakeBroker 주문 | id=SIM-25695667b9 symbol=T102 side=SELL qty=1
+2026-04-05 17:15:44,041 | INFO | 체결 반영 | broker_id=SIM-25695667b9 local_id=SIM-25695667b9 symbol=T102 side=SELL qty=1 price=72400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,042 | INFO | 거래로그 CSV 저장 | path=logs\trades_case1_r2_20260405.csv test_name=case1_r2 symbol=T102 result=WIN
+2026-04-05 17:15:44,042 | INFO | [TRADE_CLOSE] symbol=T102 result=WIN entry=70300.00 exit=72400.00 qty=1 pnl=2100.00 pnl_pct=2.9872% reason=부분익절
+2026-04-05 17:15:44,043 | INFO | [PERFORMANCE] trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=2.9872% avg_loss=0.0000% net_pnl=2100.00
+2026-04-05 17:15:44,043 | INFO | 자동매도 주문 등록 | symbol=T102 qty=1 order_id=SIM-25695667b9 reason=부분익절 status=FILLED
+2026-04-05 17:15:44,043 | INFO | [CHECK] T102 price=72400
+2026-04-05 17:15:44,043 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,043 | INFO | 종료 전 성과 요약 | trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=2.9872% avg_loss=0.0000% net_pnl=2100.00
+2026-04-05 17:15:44,043 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,043 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,043 | INFO | [DONE] case1 #2 trades=1 wins=1 losses=0 net_pnl=2100.0 final_qty=0
+2026-04-05 17:15:44,044 | INFO | [RUN] case1 #3 symbol=T103
+2026-04-05 17:15:44,044 | INFO | FakeBroker connect
+2026-04-05 17:15:44,044 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,044 | INFO | [TICK] T103 tick_no=1 price=70000 vol=1000 chg=1.0 strength=150.0 vr=1.7 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,044 | INFO | [CHECK] T103 price=70000
+2026-04-05 17:15:44,044 | INFO | [TICK] T103 tick_no=2 price=70300 vol=1100 chg=1.8 strength=178.0 vr=1.85 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,044 | INFO | [CHECK] T103 price=70300
+2026-04-05 17:15:44,044 | INFO | [ORDER_READY] T103 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.80:strength=178.0:vr=1.85
+2026-04-05 17:15:44,045 | INFO | FakeBroker 주문 | id=SIM-f39af09378 symbol=T103 side=BUY qty=1
+2026-04-05 17:15:44,045 | INFO | 체결 반영 | broker_id=SIM-f39af09378 local_id=SIM-f39af09378 symbol=T103 side=BUY qty=1 price=70300 unfilled=0 status=FILLED
+2026-04-05 17:15:44,045 | INFO | [TRADE_OPEN] symbol=T103 entry_price=70300.00 qty=1
+2026-04-05 17:15:44,045 | INFO | 주문 등록 | id=SIM-f39af09378 symbol=T103 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,045 | INFO | [TICK] T103 tick_no=3 price=70650 vol=1200 chg=2.1 strength=182.0 vr=1.95 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,045 | INFO | [CHECK] T103 price=70650
+2026-04-05 17:15:44,045 | INFO | [TICK] T103 tick_no=4 price=71000 vol=1300 chg=2.5 strength=175.0 vr=1.88 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,045 | INFO | [CHECK] T103 price=71000
+2026-04-05 17:15:44,047 | INFO | [TICK] T103 tick_no=5 price=71500 vol=1400 chg=3.2 strength=168.0 vr=1.82 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,047 | INFO | [CHECK] T103 price=71500
+2026-04-05 17:15:44,047 | INFO | [TICK] T103 tick_no=6 price=72000 vol=1500 chg=3.8 strength=160.0 vr=1.75 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,047 | INFO | [CHECK] T103 price=72000
+2026-04-05 17:15:44,047 | INFO | [TICK] T103 tick_no=7 price=72400 vol=1600 chg=4.3 strength=155.0 vr=1.7 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,048 | INFO | [EXIT_CHECK] T103 event=PARTIAL_TAKE price=72400 avg=70300.00 qty=1 pnl=2.99%
+2026-04-05 17:15:44,048 | INFO | 부분익절 발생 | symbol=T103 qty=1 pnl=2.99%
+2026-04-05 17:15:44,048 | INFO | FakeBroker 주문 | id=SIM-35a2c653dd symbol=T103 side=SELL qty=1
+2026-04-05 17:15:44,048 | INFO | 체결 반영 | broker_id=SIM-35a2c653dd local_id=SIM-35a2c653dd symbol=T103 side=SELL qty=1 price=72400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,051 | INFO | 거래로그 CSV 저장 | path=logs\trades_case1_r3_20260405.csv test_name=case1_r3 symbol=T103 result=WIN
+2026-04-05 17:15:44,051 | INFO | [TRADE_CLOSE] symbol=T103 result=WIN entry=70300.00 exit=72400.00 qty=1 pnl=2100.00 pnl_pct=2.9872% reason=부분익절
+2026-04-05 17:15:44,052 | INFO | [PERFORMANCE] trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=2.9872% avg_loss=0.0000% net_pnl=2100.00
+2026-04-05 17:15:44,052 | INFO | 자동매도 주문 등록 | symbol=T103 qty=1 order_id=SIM-35a2c653dd reason=부분익절 status=FILLED
+2026-04-05 17:15:44,052 | INFO | [CHECK] T103 price=72400
+2026-04-05 17:15:44,054 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,054 | INFO | 종료 전 성과 요약 | trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=2.9872% avg_loss=0.0000% net_pnl=2100.00
+2026-04-05 17:15:44,054 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,054 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,054 | INFO | [DONE] case1 #3 trades=1 wins=1 losses=0 net_pnl=2100.0 final_qty=0
+2026-04-05 17:15:44,054 | INFO | [RUN] case1 #4 symbol=T104
+2026-04-05 17:15:44,055 | INFO | FakeBroker connect
+2026-04-05 17:15:44,055 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,055 | INFO | [TICK] T104 tick_no=1 price=70000 vol=1000 chg=1.0 strength=150.0 vr=1.7 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,055 | INFO | [CHECK] T104 price=70000
+2026-04-05 17:15:44,056 | INFO | [TICK] T104 tick_no=2 price=70300 vol=1100 chg=1.8 strength=178.0 vr=1.85 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,056 | INFO | [CHECK] T104 price=70300
+2026-04-05 17:15:44,056 | INFO | [ORDER_READY] T104 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.80:strength=178.0:vr=1.85
+2026-04-05 17:15:44,056 | INFO | FakeBroker 주문 | id=SIM-051a7e583e symbol=T104 side=BUY qty=1
+2026-04-05 17:15:44,056 | INFO | 체결 반영 | broker_id=SIM-051a7e583e local_id=SIM-051a7e583e symbol=T104 side=BUY qty=1 price=70300 unfilled=0 status=FILLED
+2026-04-05 17:15:44,056 | INFO | [TRADE_OPEN] symbol=T104 entry_price=70300.00 qty=1
+2026-04-05 17:15:44,056 | INFO | 주문 등록 | id=SIM-051a7e583e symbol=T104 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,056 | INFO | [TICK] T104 tick_no=3 price=70650 vol=1200 chg=2.1 strength=182.0 vr=1.95 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,056 | INFO | [CHECK] T104 price=70650
+2026-04-05 17:15:44,056 | INFO | [TICK] T104 tick_no=4 price=71000 vol=1300 chg=2.5 strength=175.0 vr=1.88 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,057 | INFO | [CHECK] T104 price=71000
+2026-04-05 17:15:44,057 | INFO | [TICK] T104 tick_no=5 price=71500 vol=1400 chg=3.2 strength=168.0 vr=1.82 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,057 | INFO | [CHECK] T104 price=71500
+2026-04-05 17:15:44,057 | INFO | [TICK] T104 tick_no=6 price=72000 vol=1500 chg=3.8 strength=160.0 vr=1.75 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,057 | INFO | [CHECK] T104 price=72000
+2026-04-05 17:15:44,057 | INFO | [TICK] T104 tick_no=7 price=72400 vol=1600 chg=4.3 strength=155.0 vr=1.7 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,057 | INFO | [EXIT_CHECK] T104 event=PARTIAL_TAKE price=72400 avg=70300.00 qty=1 pnl=2.99%
+2026-04-05 17:15:44,058 | INFO | 부분익절 발생 | symbol=T104 qty=1 pnl=2.99%
+2026-04-05 17:15:44,058 | INFO | FakeBroker 주문 | id=SIM-1c114fbddf symbol=T104 side=SELL qty=1
+2026-04-05 17:15:44,058 | INFO | 체결 반영 | broker_id=SIM-1c114fbddf local_id=SIM-1c114fbddf symbol=T104 side=SELL qty=1 price=72400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,060 | INFO | 거래로그 CSV 저장 | path=logs\trades_case1_r4_20260405.csv test_name=case1_r4 symbol=T104 result=WIN
+2026-04-05 17:15:44,060 | INFO | [TRADE_CLOSE] symbol=T104 result=WIN entry=70300.00 exit=72400.00 qty=1 pnl=2100.00 pnl_pct=2.9872% reason=부분익절
+2026-04-05 17:15:44,060 | INFO | [PERFORMANCE] trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=2.9872% avg_loss=0.0000% net_pnl=2100.00
+2026-04-05 17:15:44,060 | INFO | 자동매도 주문 등록 | symbol=T104 qty=1 order_id=SIM-1c114fbddf reason=부분익절 status=FILLED
+2026-04-05 17:15:44,060 | INFO | [CHECK] T104 price=72400
+2026-04-05 17:15:44,061 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,061 | INFO | 종료 전 성과 요약 | trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=2.9872% avg_loss=0.0000% net_pnl=2100.00
+2026-04-05 17:15:44,061 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,061 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,061 | INFO | [DONE] case1 #4 trades=1 wins=1 losses=0 net_pnl=2100.0 final_qty=0
+2026-04-05 17:15:44,061 | INFO | [RUN] case1 #5 symbol=T105
+2026-04-05 17:15:44,063 | INFO | FakeBroker connect
+2026-04-05 17:15:44,063 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,063 | INFO | [TICK] T105 tick_no=1 price=70000 vol=1000 chg=1.0 strength=150.0 vr=1.7 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,064 | INFO | [CHECK] T105 price=70000
+2026-04-05 17:15:44,064 | INFO | [TICK] T105 tick_no=2 price=70300 vol=1100 chg=1.8 strength=178.0 vr=1.85 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,064 | INFO | [CHECK] T105 price=70300
+2026-04-05 17:15:44,065 | INFO | [ORDER_READY] T105 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.80:strength=178.0:vr=1.85
+2026-04-05 17:15:44,065 | INFO | FakeBroker 주문 | id=SIM-436798953a symbol=T105 side=BUY qty=1
+2026-04-05 17:15:44,065 | INFO | 체결 반영 | broker_id=SIM-436798953a local_id=SIM-436798953a symbol=T105 side=BUY qty=1 price=70300 unfilled=0 status=FILLED
+2026-04-05 17:15:44,065 | INFO | [TRADE_OPEN] symbol=T105 entry_price=70300.00 qty=1
+2026-04-05 17:15:44,066 | INFO | 주문 등록 | id=SIM-436798953a symbol=T105 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,066 | INFO | [TICK] T105 tick_no=3 price=70650 vol=1200 chg=2.1 strength=182.0 vr=1.95 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,066 | INFO | [CHECK] T105 price=70650
+2026-04-05 17:15:44,066 | INFO | [TICK] T105 tick_no=4 price=71000 vol=1300 chg=2.5 strength=175.0 vr=1.88 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,066 | INFO | [CHECK] T105 price=71000
+2026-04-05 17:15:44,066 | INFO | [TICK] T105 tick_no=5 price=71500 vol=1400 chg=3.2 strength=168.0 vr=1.82 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,066 | INFO | [CHECK] T105 price=71500
+2026-04-05 17:15:44,066 | INFO | [TICK] T105 tick_no=6 price=72000 vol=1500 chg=3.8 strength=160.0 vr=1.75 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,067 | INFO | [CHECK] T105 price=72000
+2026-04-05 17:15:44,067 | INFO | [TICK] T105 tick_no=7 price=72400 vol=1600 chg=4.3 strength=155.0 vr=1.7 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,067 | INFO | [EXIT_CHECK] T105 event=PARTIAL_TAKE price=72400 avg=70300.00 qty=1 pnl=2.99%
+2026-04-05 17:15:44,067 | INFO | 부분익절 발생 | symbol=T105 qty=1 pnl=2.99%
+2026-04-05 17:15:44,067 | INFO | FakeBroker 주문 | id=SIM-ff8ae2bd63 symbol=T105 side=SELL qty=1
+2026-04-05 17:15:44,069 | INFO | 체결 반영 | broker_id=SIM-ff8ae2bd63 local_id=SIM-ff8ae2bd63 symbol=T105 side=SELL qty=1 price=72400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,070 | INFO | 거래로그 CSV 저장 | path=logs\trades_case1_r5_20260405.csv test_name=case1_r5 symbol=T105 result=WIN
+2026-04-05 17:15:44,071 | INFO | [TRADE_CLOSE] symbol=T105 result=WIN entry=70300.00 exit=72400.00 qty=1 pnl=2100.00 pnl_pct=2.9872% reason=부분익절
+2026-04-05 17:15:44,071 | INFO | [PERFORMANCE] trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=2.9872% avg_loss=0.0000% net_pnl=2100.00
+2026-04-05 17:15:44,071 | INFO | 자동매도 주문 등록 | symbol=T105 qty=1 order_id=SIM-ff8ae2bd63 reason=부분익절 status=FILLED
+2026-04-05 17:15:44,071 | INFO | [CHECK] T105 price=72400
+2026-04-05 17:15:44,071 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,072 | INFO | 종료 전 성과 요약 | trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=2.9872% avg_loss=0.0000% net_pnl=2100.00
+2026-04-05 17:15:44,072 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,072 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,072 | INFO | [DONE] case1 #5 trades=1 wins=1 losses=0 net_pnl=2100.0 final_qty=0
+2026-04-05 17:15:44,072 | INFO | [RUN] case2 #1 symbol=T201
+2026-04-05 17:15:44,073 | INFO | FakeBroker connect
+2026-04-05 17:15:44,073 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,073 | INFO | [TICK] T201 tick_no=1 price=70000 vol=1000 chg=1.0 strength=152.0 vr=1.72 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,073 | INFO | [CHECK] T201 price=70000
+2026-04-05 17:15:44,073 | INFO | [TICK] T201 tick_no=2 price=70400 vol=1100 chg=1.9 strength=180.0 vr=1.92 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,073 | INFO | [CHECK] T201 price=70400
+2026-04-05 17:15:44,074 | INFO | [ORDER_READY] T201 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.90:strength=180.0:vr=1.92
+2026-04-05 17:15:44,074 | INFO | FakeBroker 주문 | id=SIM-0ae0ccc044 symbol=T201 side=BUY qty=1
+2026-04-05 17:15:44,074 | INFO | 체결 반영 | broker_id=SIM-0ae0ccc044 local_id=SIM-0ae0ccc044 symbol=T201 side=BUY qty=1 price=70400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,075 | INFO | [TRADE_OPEN] symbol=T201 entry_price=70400.00 qty=1
+2026-04-05 17:15:44,075 | INFO | 주문 등록 | id=SIM-0ae0ccc044 symbol=T201 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,075 | INFO | [TICK] T201 tick_no=3 price=70300 vol=1200 chg=1.4 strength=150.0 vr=1.65 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,075 | INFO | [CHECK] T201 price=70300
+2026-04-05 17:15:44,076 | INFO | [TICK] T201 tick_no=4 price=69900 vol=1300 chg=0.4 strength=126.0 vr=1.35 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,076 | INFO | [EXIT_CHECK] T201 event=ENGINE_EARLY_STOP price=69900 avg=70400.00 qty=1 pnl=-0.71%
+2026-04-05 17:15:44,076 | INFO | 엔진 직접 약손절 발동 | symbol=T201 price=69900 avg_price=70400.0 qty=1 pnl_pct=-0.71% reason=engine_early_stop
+2026-04-05 17:15:44,076 | INFO | FakeBroker 주문 | id=SIM-24b7846e02 symbol=T201 side=SELL qty=1
+2026-04-05 17:15:44,077 | INFO | 체결 반영 | broker_id=SIM-24b7846e02 local_id=SIM-24b7846e02 symbol=T201 side=SELL qty=1 price=69900 unfilled=0 status=FILLED
+2026-04-05 17:15:44,078 | INFO | 거래로그 CSV 저장 | path=logs\trades_case2_r1_20260405.csv test_name=case2_r1 symbol=T201 result=LOSS
+2026-04-05 17:15:44,078 | INFO | [TRADE_CLOSE] symbol=T201 result=LOSS entry=70400.00 exit=69900.00 qty=1 pnl=-500.00 pnl_pct=-0.7102% reason=engine_early_stop
+2026-04-05 17:15:44,078 | INFO | [PERFORMANCE] trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.7102% net_pnl=-500.00
+2026-04-05 17:15:44,078 | INFO | 자동매도 주문 등록 | symbol=T201 qty=1 order_id=SIM-24b7846e02 reason=engine_early_stop status=FILLED
+2026-04-05 17:15:44,078 | INFO | [CHECK] T201 price=69900
+2026-04-05 17:15:44,078 | INFO | [TICK] T201 tick_no=5 price=69400 vol=1400 chg=-0.4 strength=110.0 vr=1.12 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,079 | INFO | [CHECK] T201 price=69400
+2026-04-05 17:15:44,079 | INFO | [TICK] T201 tick_no=6 price=68900 vol=1500 chg=-1.1 strength=95.0 vr=1.0 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,080 | INFO | [CHECK] T201 price=68900
+2026-04-05 17:15:44,080 | INFO | [TICK] T201 tick_no=7 price=68600 vol=1600 chg=-1.6 strength=90.0 vr=0.96 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,080 | INFO | [CHECK] T201 price=68600
+2026-04-05 17:15:44,080 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,080 | INFO | 종료 전 성과 요약 | trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.7102% net_pnl=-500.00
+2026-04-05 17:15:44,080 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,082 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,082 | INFO | [DONE] case2 #1 trades=1 wins=0 losses=1 net_pnl=-500.0 final_qty=0
+2026-04-05 17:15:44,082 | INFO | [RUN] case2 #2 symbol=T202
+2026-04-05 17:15:44,082 | INFO | FakeBroker connect
+2026-04-05 17:15:44,082 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,083 | INFO | [TICK] T202 tick_no=1 price=70000 vol=1000 chg=1.0 strength=152.0 vr=1.72 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,083 | INFO | [CHECK] T202 price=70000
+2026-04-05 17:15:44,083 | INFO | [TICK] T202 tick_no=2 price=70400 vol=1100 chg=1.9 strength=180.0 vr=1.92 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,083 | INFO | [CHECK] T202 price=70400
+2026-04-05 17:15:44,083 | INFO | [ORDER_READY] T202 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.90:strength=180.0:vr=1.92
+2026-04-05 17:15:44,084 | INFO | FakeBroker 주문 | id=SIM-aa48fac148 symbol=T202 side=BUY qty=1
+2026-04-05 17:15:44,084 | INFO | 체결 반영 | broker_id=SIM-aa48fac148 local_id=SIM-aa48fac148 symbol=T202 side=BUY qty=1 price=70400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,084 | INFO | [TRADE_OPEN] symbol=T202 entry_price=70400.00 qty=1
+2026-04-05 17:15:44,084 | INFO | 주문 등록 | id=SIM-aa48fac148 symbol=T202 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,084 | INFO | [TICK] T202 tick_no=3 price=70300 vol=1200 chg=1.4 strength=150.0 vr=1.65 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,085 | INFO | [CHECK] T202 price=70300
+2026-04-05 17:15:44,085 | INFO | [TICK] T202 tick_no=4 price=69900 vol=1300 chg=0.4 strength=126.0 vr=1.35 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,085 | INFO | [EXIT_CHECK] T202 event=ENGINE_EARLY_STOP price=69900 avg=70400.00 qty=1 pnl=-0.71%
+2026-04-05 17:15:44,085 | INFO | 엔진 직접 약손절 발동 | symbol=T202 price=69900 avg_price=70400.0 qty=1 pnl_pct=-0.71% reason=engine_early_stop
+2026-04-05 17:15:44,085 | INFO | FakeBroker 주문 | id=SIM-df5302d3af symbol=T202 side=SELL qty=1
+2026-04-05 17:15:44,086 | INFO | 체결 반영 | broker_id=SIM-df5302d3af local_id=SIM-df5302d3af symbol=T202 side=SELL qty=1 price=69900 unfilled=0 status=FILLED
+2026-04-05 17:15:44,087 | INFO | 거래로그 CSV 저장 | path=logs\trades_case2_r2_20260405.csv test_name=case2_r2 symbol=T202 result=LOSS
+2026-04-05 17:15:44,087 | INFO | [TRADE_CLOSE] symbol=T202 result=LOSS entry=70400.00 exit=69900.00 qty=1 pnl=-500.00 pnl_pct=-0.7102% reason=engine_early_stop
+2026-04-05 17:15:44,087 | INFO | [PERFORMANCE] trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.7102% net_pnl=-500.00
+2026-04-05 17:15:44,087 | INFO | 자동매도 주문 등록 | symbol=T202 qty=1 order_id=SIM-df5302d3af reason=engine_early_stop status=FILLED
+2026-04-05 17:15:44,087 | INFO | [CHECK] T202 price=69900
+2026-04-05 17:15:44,088 | INFO | [TICK] T202 tick_no=5 price=69400 vol=1400 chg=-0.4 strength=110.0 vr=1.12 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,088 | INFO | [CHECK] T202 price=69400
+2026-04-05 17:15:44,088 | INFO | [TICK] T202 tick_no=6 price=68900 vol=1500 chg=-1.1 strength=95.0 vr=1.0 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,088 | INFO | [CHECK] T202 price=68900
+2026-04-05 17:15:44,088 | INFO | [TICK] T202 tick_no=7 price=68600 vol=1600 chg=-1.6 strength=90.0 vr=0.96 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,090 | INFO | [CHECK] T202 price=68600
+2026-04-05 17:15:44,090 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,090 | INFO | 종료 전 성과 요약 | trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.7102% net_pnl=-500.00
+2026-04-05 17:15:44,090 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,091 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,091 | INFO | [DONE] case2 #2 trades=1 wins=0 losses=1 net_pnl=-500.0 final_qty=0
+2026-04-05 17:15:44,091 | INFO | [RUN] case2 #3 symbol=T203
+2026-04-05 17:15:44,091 | INFO | FakeBroker connect
+2026-04-05 17:15:44,092 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,092 | INFO | [TICK] T203 tick_no=1 price=70000 vol=1000 chg=1.0 strength=152.0 vr=1.72 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,092 | INFO | [CHECK] T203 price=70000
+2026-04-05 17:15:44,092 | INFO | [TICK] T203 tick_no=2 price=70400 vol=1100 chg=1.9 strength=180.0 vr=1.92 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,093 | INFO | [CHECK] T203 price=70400
+2026-04-05 17:15:44,093 | INFO | [ORDER_READY] T203 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.90:strength=180.0:vr=1.92
+2026-04-05 17:15:44,093 | INFO | FakeBroker 주문 | id=SIM-8b7c665e87 symbol=T203 side=BUY qty=1
+2026-04-05 17:15:44,093 | INFO | 체결 반영 | broker_id=SIM-8b7c665e87 local_id=SIM-8b7c665e87 symbol=T203 side=BUY qty=1 price=70400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,094 | INFO | [TRADE_OPEN] symbol=T203 entry_price=70400.00 qty=1
+2026-04-05 17:15:44,094 | INFO | 주문 등록 | id=SIM-8b7c665e87 symbol=T203 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,094 | INFO | [TICK] T203 tick_no=3 price=70300 vol=1200 chg=1.4 strength=150.0 vr=1.65 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,094 | INFO | [CHECK] T203 price=70300
+2026-04-05 17:15:44,094 | INFO | [TICK] T203 tick_no=4 price=69900 vol=1300 chg=0.4 strength=126.0 vr=1.35 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,094 | INFO | [EXIT_CHECK] T203 event=ENGINE_EARLY_STOP price=69900 avg=70400.00 qty=1 pnl=-0.71%
+2026-04-05 17:15:44,095 | INFO | 엔진 직접 약손절 발동 | symbol=T203 price=69900 avg_price=70400.0 qty=1 pnl_pct=-0.71% reason=engine_early_stop
+2026-04-05 17:15:44,095 | INFO | FakeBroker 주문 | id=SIM-a181e5561c symbol=T203 side=SELL qty=1
+2026-04-05 17:15:44,095 | INFO | 체결 반영 | broker_id=SIM-a181e5561c local_id=SIM-a181e5561c symbol=T203 side=SELL qty=1 price=69900 unfilled=0 status=FILLED
+2026-04-05 17:15:44,096 | INFO | 거래로그 CSV 저장 | path=logs\trades_case2_r3_20260405.csv test_name=case2_r3 symbol=T203 result=LOSS
+2026-04-05 17:15:44,096 | INFO | [TRADE_CLOSE] symbol=T203 result=LOSS entry=70400.00 exit=69900.00 qty=1 pnl=-500.00 pnl_pct=-0.7102% reason=engine_early_stop
+2026-04-05 17:15:44,097 | INFO | [PERFORMANCE] trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.7102% net_pnl=-500.00
+2026-04-05 17:15:44,097 | INFO | 자동매도 주문 등록 | symbol=T203 qty=1 order_id=SIM-a181e5561c reason=engine_early_stop status=FILLED
+2026-04-05 17:15:44,097 | INFO | [CHECK] T203 price=69900
+2026-04-05 17:15:44,098 | INFO | [TICK] T203 tick_no=5 price=69400 vol=1400 chg=-0.4 strength=110.0 vr=1.12 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,098 | INFO | [CHECK] T203 price=69400
+2026-04-05 17:15:44,098 | INFO | [TICK] T203 tick_no=6 price=68900 vol=1500 chg=-1.1 strength=95.0 vr=1.0 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,098 | INFO | [CHECK] T203 price=68900
+2026-04-05 17:15:44,099 | INFO | [TICK] T203 tick_no=7 price=68600 vol=1600 chg=-1.6 strength=90.0 vr=0.96 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,099 | INFO | [CHECK] T203 price=68600
+2026-04-05 17:15:44,099 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,099 | INFO | 종료 전 성과 요약 | trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.7102% net_pnl=-500.00
+2026-04-05 17:15:44,099 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,099 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,100 | INFO | [DONE] case2 #3 trades=1 wins=0 losses=1 net_pnl=-500.0 final_qty=0
+2026-04-05 17:15:44,100 | INFO | [RUN] case2 #4 symbol=T204
+2026-04-05 17:15:44,100 | INFO | FakeBroker connect
+2026-04-05 17:15:44,100 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,100 | INFO | [TICK] T204 tick_no=1 price=70000 vol=1000 chg=1.0 strength=152.0 vr=1.72 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,100 | INFO | [CHECK] T204 price=70000
+2026-04-05 17:15:44,100 | INFO | [TICK] T204 tick_no=2 price=70400 vol=1100 chg=1.9 strength=180.0 vr=1.92 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,100 | INFO | [CHECK] T204 price=70400
+2026-04-05 17:15:44,100 | INFO | [ORDER_READY] T204 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.90:strength=180.0:vr=1.92
+2026-04-05 17:15:44,102 | INFO | FakeBroker 주문 | id=SIM-bf63e65c6c symbol=T204 side=BUY qty=1
+2026-04-05 17:15:44,102 | INFO | 체결 반영 | broker_id=SIM-bf63e65c6c local_id=SIM-bf63e65c6c symbol=T204 side=BUY qty=1 price=70400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,102 | INFO | [TRADE_OPEN] symbol=T204 entry_price=70400.00 qty=1
+2026-04-05 17:15:44,102 | INFO | 주문 등록 | id=SIM-bf63e65c6c symbol=T204 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,102 | INFO | [TICK] T204 tick_no=3 price=70300 vol=1200 chg=1.4 strength=150.0 vr=1.65 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,102 | INFO | [CHECK] T204 price=70300
+2026-04-05 17:15:44,102 | INFO | [TICK] T204 tick_no=4 price=69900 vol=1300 chg=0.4 strength=126.0 vr=1.35 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,102 | INFO | [EXIT_CHECK] T204 event=ENGINE_EARLY_STOP price=69900 avg=70400.00 qty=1 pnl=-0.71%
+2026-04-05 17:15:44,102 | INFO | 엔진 직접 약손절 발동 | symbol=T204 price=69900 avg_price=70400.0 qty=1 pnl_pct=-0.71% reason=engine_early_stop
+2026-04-05 17:15:44,102 | INFO | FakeBroker 주문 | id=SIM-8dc9e482e5 symbol=T204 side=SELL qty=1
+2026-04-05 17:15:44,102 | INFO | 체결 반영 | broker_id=SIM-8dc9e482e5 local_id=SIM-8dc9e482e5 symbol=T204 side=SELL qty=1 price=69900 unfilled=0 status=FILLED
+2026-04-05 17:15:44,104 | INFO | 거래로그 CSV 저장 | path=logs\trades_case2_r4_20260405.csv test_name=case2_r4 symbol=T204 result=LOSS
+2026-04-05 17:15:44,104 | INFO | [TRADE_CLOSE] symbol=T204 result=LOSS entry=70400.00 exit=69900.00 qty=1 pnl=-500.00 pnl_pct=-0.7102% reason=engine_early_stop
+2026-04-05 17:15:44,104 | INFO | [PERFORMANCE] trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.7102% net_pnl=-500.00
+2026-04-05 17:15:44,105 | INFO | 자동매도 주문 등록 | symbol=T204 qty=1 order_id=SIM-8dc9e482e5 reason=engine_early_stop status=FILLED
+2026-04-05 17:15:44,105 | INFO | [CHECK] T204 price=69900
+2026-04-05 17:15:44,105 | INFO | [TICK] T204 tick_no=5 price=69400 vol=1400 chg=-0.4 strength=110.0 vr=1.12 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,105 | INFO | [CHECK] T204 price=69400
+2026-04-05 17:15:44,105 | INFO | [TICK] T204 tick_no=6 price=68900 vol=1500 chg=-1.1 strength=95.0 vr=1.0 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,105 | INFO | [CHECK] T204 price=68900
+2026-04-05 17:15:44,106 | INFO | [TICK] T204 tick_no=7 price=68600 vol=1600 chg=-1.6 strength=90.0 vr=0.96 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,106 | INFO | [CHECK] T204 price=68600
+2026-04-05 17:15:44,106 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,106 | INFO | 종료 전 성과 요약 | trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.7102% net_pnl=-500.00
+2026-04-05 17:15:44,106 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,106 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,106 | INFO | [DONE] case2 #4 trades=1 wins=0 losses=1 net_pnl=-500.0 final_qty=0
+2026-04-05 17:15:44,106 | INFO | [RUN] case2 #5 symbol=T205
+2026-04-05 17:15:44,107 | INFO | FakeBroker connect
+2026-04-05 17:15:44,107 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,107 | INFO | [TICK] T205 tick_no=1 price=70000 vol=1000 chg=1.0 strength=152.0 vr=1.72 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,107 | INFO | [CHECK] T205 price=70000
+2026-04-05 17:15:44,107 | INFO | [TICK] T205 tick_no=2 price=70400 vol=1100 chg=1.9 strength=180.0 vr=1.92 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,107 | INFO | [CHECK] T205 price=70400
+2026-04-05 17:15:44,107 | INFO | [ORDER_READY] T205 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.90:strength=180.0:vr=1.92
+2026-04-05 17:15:44,107 | INFO | FakeBroker 주문 | id=SIM-1599813a21 symbol=T205 side=BUY qty=1
+2026-04-05 17:15:44,108 | INFO | 체결 반영 | broker_id=SIM-1599813a21 local_id=SIM-1599813a21 symbol=T205 side=BUY qty=1 price=70400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,108 | INFO | [TRADE_OPEN] symbol=T205 entry_price=70400.00 qty=1
+2026-04-05 17:15:44,108 | INFO | 주문 등록 | id=SIM-1599813a21 symbol=T205 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,108 | INFO | [TICK] T205 tick_no=3 price=70300 vol=1200 chg=1.4 strength=150.0 vr=1.65 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,108 | INFO | [CHECK] T205 price=70300
+2026-04-05 17:15:44,108 | INFO | [TICK] T205 tick_no=4 price=69900 vol=1300 chg=0.4 strength=126.0 vr=1.35 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,108 | INFO | [EXIT_CHECK] T205 event=ENGINE_EARLY_STOP price=69900 avg=70400.00 qty=1 pnl=-0.71%
+2026-04-05 17:15:44,108 | INFO | 엔진 직접 약손절 발동 | symbol=T205 price=69900 avg_price=70400.0 qty=1 pnl_pct=-0.71% reason=engine_early_stop
+2026-04-05 17:15:44,109 | INFO | FakeBroker 주문 | id=SIM-7a59ec5b9b symbol=T205 side=SELL qty=1
+2026-04-05 17:15:44,109 | INFO | 체결 반영 | broker_id=SIM-7a59ec5b9b local_id=SIM-7a59ec5b9b symbol=T205 side=SELL qty=1 price=69900 unfilled=0 status=FILLED
+2026-04-05 17:15:44,110 | INFO | 거래로그 CSV 저장 | path=logs\trades_case2_r5_20260405.csv test_name=case2_r5 symbol=T205 result=LOSS
+2026-04-05 17:15:44,110 | INFO | [TRADE_CLOSE] symbol=T205 result=LOSS entry=70400.00 exit=69900.00 qty=1 pnl=-500.00 pnl_pct=-0.7102% reason=engine_early_stop
+2026-04-05 17:15:44,110 | INFO | [PERFORMANCE] trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.7102% net_pnl=-500.00
+2026-04-05 17:15:44,110 | INFO | 자동매도 주문 등록 | symbol=T205 qty=1 order_id=SIM-7a59ec5b9b reason=engine_early_stop status=FILLED
+2026-04-05 17:15:44,111 | INFO | [CHECK] T205 price=69900
+2026-04-05 17:15:44,111 | INFO | [TICK] T205 tick_no=5 price=69400 vol=1400 chg=-0.4 strength=110.0 vr=1.12 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,111 | INFO | [CHECK] T205 price=69400
+2026-04-05 17:15:44,111 | INFO | [TICK] T205 tick_no=6 price=68900 vol=1500 chg=-1.1 strength=95.0 vr=1.0 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,111 | INFO | [CHECK] T205 price=68900
+2026-04-05 17:15:44,111 | INFO | [TICK] T205 tick_no=7 price=68600 vol=1600 chg=-1.6 strength=90.0 vr=0.96 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,113 | INFO | [CHECK] T205 price=68600
+2026-04-05 17:15:44,113 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,113 | INFO | 종료 전 성과 요약 | trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.7102% net_pnl=-500.00
+2026-04-05 17:15:44,113 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,113 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,113 | INFO | [DONE] case2 #5 trades=1 wins=0 losses=1 net_pnl=-500.0 final_qty=0
+2026-04-05 17:15:44,114 | INFO | [RUN] case3 #1 symbol=T301
+2026-04-05 17:15:44,114 | INFO | FakeBroker connect
+2026-04-05 17:15:44,114 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,114 | INFO | [TICK] T301 tick_no=1 price=70000 vol=1000 chg=1.1 strength=155.0 vr=1.75 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,115 | INFO | [CHECK] T301 price=70000
+2026-04-05 17:15:44,115 | INFO | [TICK] T301 tick_no=2 price=70500 vol=1100 chg=2.0 strength=182.0 vr=1.95 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,115 | INFO | [CHECK] T301 price=70500
+2026-04-05 17:15:44,115 | INFO | [ORDER_READY] T301 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=2.00:strength=182.0:vr=1.95
+2026-04-05 17:15:44,115 | INFO | FakeBroker 주문 | id=SIM-00782d1c9b symbol=T301 side=BUY qty=1
+2026-04-05 17:15:44,115 | INFO | 체결 반영 | broker_id=SIM-00782d1c9b local_id=SIM-00782d1c9b symbol=T301 side=BUY qty=1 price=70500 unfilled=0 status=FILLED
+2026-04-05 17:15:44,116 | INFO | [TRADE_OPEN] symbol=T301 entry_price=70500.00 qty=1
+2026-04-05 17:15:44,116 | INFO | 주문 등록 | id=SIM-00782d1c9b symbol=T301 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,116 | INFO | [TICK] T301 tick_no=3 price=70600 vol=1200 chg=2.1 strength=178.0 vr=1.9 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,116 | INFO | [CHECK] T301 price=70600
+2026-04-05 17:15:44,116 | INFO | [TICK] T301 tick_no=4 price=70200 vol=1300 chg=1.0 strength=120.0 vr=1.3 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,116 | INFO | [EXIT_CHECK] T301 event=ENGINE_EARLY_STOP price=70200 avg=70500.00 qty=1 pnl=-0.43%
+2026-04-05 17:15:44,116 | INFO | 엔진 직접 약손절 발동 | symbol=T301 price=70200 avg_price=70500.0 qty=1 pnl_pct=-0.43% reason=engine_early_stop
+2026-04-05 17:15:44,116 | INFO | FakeBroker 주문 | id=SIM-3d64e16cc4 symbol=T301 side=SELL qty=1
+2026-04-05 17:15:44,117 | INFO | 체결 반영 | broker_id=SIM-3d64e16cc4 local_id=SIM-3d64e16cc4 symbol=T301 side=SELL qty=1 price=70200 unfilled=0 status=FILLED
+2026-04-05 17:15:44,118 | INFO | 거래로그 CSV 저장 | path=logs\trades_case3_r1_20260405.csv test_name=case3_r1 symbol=T301 result=LOSS
+2026-04-05 17:15:44,120 | INFO | [TRADE_CLOSE] symbol=T301 result=LOSS entry=70500.00 exit=70200.00 qty=1 pnl=-300.00 pnl_pct=-0.4255% reason=engine_early_stop
+2026-04-05 17:15:44,120 | INFO | [PERFORMANCE] trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.4255% net_pnl=-300.00
+2026-04-05 17:15:44,120 | INFO | 자동매도 주문 등록 | symbol=T301 qty=1 order_id=SIM-3d64e16cc4 reason=engine_early_stop status=FILLED
+2026-04-05 17:15:44,120 | INFO | [CHECK] T301 price=70200
+2026-04-05 17:15:44,120 | INFO | [TICK] T301 tick_no=5 price=69900 vol=1400 chg=0.1 strength=100.0 vr=1.12 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,121 | INFO | [CHECK] T301 price=69900
+2026-04-05 17:15:44,121 | INFO | [TICK] T301 tick_no=6 price=69700 vol=1500 chg=-0.2 strength=92.0 vr=1.02 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,121 | INFO | [CHECK] T301 price=69700
+2026-04-05 17:15:44,121 | INFO | [TICK] T301 tick_no=7 price=69600 vol=1600 chg=-0.4 strength=88.0 vr=0.98 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,121 | INFO | [CHECK] T301 price=69600
+2026-04-05 17:15:44,122 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,122 | INFO | 종료 전 성과 요약 | trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.4255% net_pnl=-300.00
+2026-04-05 17:15:44,122 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,122 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,122 | INFO | [DONE] case3 #1 trades=1 wins=0 losses=1 net_pnl=-300.0 final_qty=0
+2026-04-05 17:15:44,122 | INFO | [RUN] case3 #2 symbol=T302
+2026-04-05 17:15:44,122 | INFO | FakeBroker connect
+2026-04-05 17:15:44,122 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,123 | INFO | [TICK] T302 tick_no=1 price=70000 vol=1000 chg=1.1 strength=155.0 vr=1.75 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,123 | INFO | [CHECK] T302 price=70000
+2026-04-05 17:15:44,123 | INFO | [TICK] T302 tick_no=2 price=70500 vol=1100 chg=2.0 strength=182.0 vr=1.95 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,123 | INFO | [CHECK] T302 price=70500
+2026-04-05 17:15:44,123 | INFO | [ORDER_READY] T302 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=2.00:strength=182.0:vr=1.95
+2026-04-05 17:15:44,123 | INFO | FakeBroker 주문 | id=SIM-7dd582c439 symbol=T302 side=BUY qty=1
+2026-04-05 17:15:44,123 | INFO | 체결 반영 | broker_id=SIM-7dd582c439 local_id=SIM-7dd582c439 symbol=T302 side=BUY qty=1 price=70500 unfilled=0 status=FILLED
+2026-04-05 17:15:44,124 | INFO | [TRADE_OPEN] symbol=T302 entry_price=70500.00 qty=1
+2026-04-05 17:15:44,124 | INFO | 주문 등록 | id=SIM-7dd582c439 symbol=T302 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,124 | INFO | [TICK] T302 tick_no=3 price=70600 vol=1200 chg=2.1 strength=178.0 vr=1.9 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,124 | INFO | [CHECK] T302 price=70600
+2026-04-05 17:15:44,124 | INFO | [TICK] T302 tick_no=4 price=70200 vol=1300 chg=1.0 strength=120.0 vr=1.3 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,124 | INFO | [EXIT_CHECK] T302 event=ENGINE_EARLY_STOP price=70200 avg=70500.00 qty=1 pnl=-0.43%
+2026-04-05 17:15:44,124 | INFO | 엔진 직접 약손절 발동 | symbol=T302 price=70200 avg_price=70500.0 qty=1 pnl_pct=-0.43% reason=engine_early_stop
+2026-04-05 17:15:44,124 | INFO | FakeBroker 주문 | id=SIM-cd563b44cc symbol=T302 side=SELL qty=1
+2026-04-05 17:15:44,125 | INFO | 체결 반영 | broker_id=SIM-cd563b44cc local_id=SIM-cd563b44cc symbol=T302 side=SELL qty=1 price=70200 unfilled=0 status=FILLED
+2026-04-05 17:15:44,126 | INFO | 거래로그 CSV 저장 | path=logs\trades_case3_r2_20260405.csv test_name=case3_r2 symbol=T302 result=LOSS
+2026-04-05 17:15:44,126 | INFO | [TRADE_CLOSE] symbol=T302 result=LOSS entry=70500.00 exit=70200.00 qty=1 pnl=-300.00 pnl_pct=-0.4255% reason=engine_early_stop
+2026-04-05 17:15:44,126 | INFO | [PERFORMANCE] trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.4255% net_pnl=-300.00
+2026-04-05 17:15:44,127 | INFO | 자동매도 주문 등록 | symbol=T302 qty=1 order_id=SIM-cd563b44cc reason=engine_early_stop status=FILLED
+2026-04-05 17:15:44,127 | INFO | [CHECK] T302 price=70200
+2026-04-05 17:15:44,127 | INFO | [TICK] T302 tick_no=5 price=69900 vol=1400 chg=0.1 strength=100.0 vr=1.12 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,127 | INFO | [CHECK] T302 price=69900
+2026-04-05 17:15:44,127 | INFO | [TICK] T302 tick_no=6 price=69700 vol=1500 chg=-0.2 strength=92.0 vr=1.02 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,127 | INFO | [CHECK] T302 price=69700
+2026-04-05 17:15:44,127 | INFO | [TICK] T302 tick_no=7 price=69600 vol=1600 chg=-0.4 strength=88.0 vr=0.98 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,127 | INFO | [CHECK] T302 price=69600
+2026-04-05 17:15:44,128 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,128 | INFO | 종료 전 성과 요약 | trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.4255% net_pnl=-300.00
+2026-04-05 17:15:44,128 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,128 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,128 | INFO | [DONE] case3 #2 trades=1 wins=0 losses=1 net_pnl=-300.0 final_qty=0
+2026-04-05 17:15:44,128 | INFO | [RUN] case3 #3 symbol=T303
+2026-04-05 17:15:44,128 | INFO | FakeBroker connect
+2026-04-05 17:15:44,128 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,129 | INFO | [TICK] T303 tick_no=1 price=70000 vol=1000 chg=1.1 strength=155.0 vr=1.75 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,129 | INFO | [CHECK] T303 price=70000
+2026-04-05 17:15:44,129 | INFO | [TICK] T303 tick_no=2 price=70500 vol=1100 chg=2.0 strength=182.0 vr=1.95 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,131 | INFO | [CHECK] T303 price=70500
+2026-04-05 17:15:44,131 | INFO | [ORDER_READY] T303 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=2.00:strength=182.0:vr=1.95
+2026-04-05 17:15:44,131 | INFO | FakeBroker 주문 | id=SIM-53a9b24b88 symbol=T303 side=BUY qty=1
+2026-04-05 17:15:44,131 | INFO | 체결 반영 | broker_id=SIM-53a9b24b88 local_id=SIM-53a9b24b88 symbol=T303 side=BUY qty=1 price=70500 unfilled=0 status=FILLED
+2026-04-05 17:15:44,132 | INFO | [TRADE_OPEN] symbol=T303 entry_price=70500.00 qty=1
+2026-04-05 17:15:44,132 | INFO | 주문 등록 | id=SIM-53a9b24b88 symbol=T303 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,132 | INFO | [TICK] T303 tick_no=3 price=70600 vol=1200 chg=2.1 strength=178.0 vr=1.9 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,132 | INFO | [CHECK] T303 price=70600
+2026-04-05 17:15:44,132 | INFO | [TICK] T303 tick_no=4 price=70200 vol=1300 chg=1.0 strength=120.0 vr=1.3 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,132 | INFO | [EXIT_CHECK] T303 event=ENGINE_EARLY_STOP price=70200 avg=70500.00 qty=1 pnl=-0.43%
+2026-04-05 17:15:44,132 | INFO | 엔진 직접 약손절 발동 | symbol=T303 price=70200 avg_price=70500.0 qty=1 pnl_pct=-0.43% reason=engine_early_stop
+2026-04-05 17:15:44,133 | INFO | FakeBroker 주문 | id=SIM-141dc448d1 symbol=T303 side=SELL qty=1
+2026-04-05 17:15:44,133 | INFO | 체결 반영 | broker_id=SIM-141dc448d1 local_id=SIM-141dc448d1 symbol=T303 side=SELL qty=1 price=70200 unfilled=0 status=FILLED
+2026-04-05 17:15:44,134 | INFO | 거래로그 CSV 저장 | path=logs\trades_case3_r3_20260405.csv test_name=case3_r3 symbol=T303 result=LOSS
+2026-04-05 17:15:44,134 | INFO | [TRADE_CLOSE] symbol=T303 result=LOSS entry=70500.00 exit=70200.00 qty=1 pnl=-300.00 pnl_pct=-0.4255% reason=engine_early_stop
+2026-04-05 17:15:44,134 | INFO | [PERFORMANCE] trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.4255% net_pnl=-300.00
+2026-04-05 17:15:44,134 | INFO | 자동매도 주문 등록 | symbol=T303 qty=1 order_id=SIM-141dc448d1 reason=engine_early_stop status=FILLED
+2026-04-05 17:15:44,135 | INFO | [CHECK] T303 price=70200
+2026-04-05 17:15:44,135 | INFO | [TICK] T303 tick_no=5 price=69900 vol=1400 chg=0.1 strength=100.0 vr=1.12 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,135 | INFO | [CHECK] T303 price=69900
+2026-04-05 17:15:44,135 | INFO | [TICK] T303 tick_no=6 price=69700 vol=1500 chg=-0.2 strength=92.0 vr=1.02 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,135 | INFO | [CHECK] T303 price=69700
+2026-04-05 17:15:44,135 | INFO | [TICK] T303 tick_no=7 price=69600 vol=1600 chg=-0.4 strength=88.0 vr=0.98 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,137 | INFO | [CHECK] T303 price=69600
+2026-04-05 17:15:44,137 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,137 | INFO | 종료 전 성과 요약 | trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.4255% net_pnl=-300.00
+2026-04-05 17:15:44,137 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,137 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,137 | INFO | [DONE] case3 #3 trades=1 wins=0 losses=1 net_pnl=-300.0 final_qty=0
+2026-04-05 17:15:44,137 | INFO | [RUN] case3 #4 symbol=T304
+2026-04-05 17:15:44,137 | INFO | FakeBroker connect
+2026-04-05 17:15:44,137 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,137 | INFO | [TICK] T304 tick_no=1 price=70000 vol=1000 chg=1.1 strength=155.0 vr=1.75 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,138 | INFO | [CHECK] T304 price=70000
+2026-04-05 17:15:44,138 | INFO | [TICK] T304 tick_no=2 price=70500 vol=1100 chg=2.0 strength=182.0 vr=1.95 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,138 | INFO | [CHECK] T304 price=70500
+2026-04-05 17:15:44,138 | INFO | [ORDER_READY] T304 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=2.00:strength=182.0:vr=1.95
+2026-04-05 17:15:44,138 | INFO | FakeBroker 주문 | id=SIM-798a2c3f8f symbol=T304 side=BUY qty=1
+2026-04-05 17:15:44,138 | INFO | 체결 반영 | broker_id=SIM-798a2c3f8f local_id=SIM-798a2c3f8f symbol=T304 side=BUY qty=1 price=70500 unfilled=0 status=FILLED
+2026-04-05 17:15:44,139 | INFO | [TRADE_OPEN] symbol=T304 entry_price=70500.00 qty=1
+2026-04-05 17:15:44,139 | INFO | 주문 등록 | id=SIM-798a2c3f8f symbol=T304 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,139 | INFO | [TICK] T304 tick_no=3 price=70600 vol=1200 chg=2.1 strength=178.0 vr=1.9 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,139 | INFO | [CHECK] T304 price=70600
+2026-04-05 17:15:44,139 | INFO | [TICK] T304 tick_no=4 price=70200 vol=1300 chg=1.0 strength=120.0 vr=1.3 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,139 | INFO | [EXIT_CHECK] T304 event=ENGINE_EARLY_STOP price=70200 avg=70500.00 qty=1 pnl=-0.43%
+2026-04-05 17:15:44,139 | INFO | 엔진 직접 약손절 발동 | symbol=T304 price=70200 avg_price=70500.0 qty=1 pnl_pct=-0.43% reason=engine_early_stop
+2026-04-05 17:15:44,139 | INFO | FakeBroker 주문 | id=SIM-5c26989db1 symbol=T304 side=SELL qty=1
+2026-04-05 17:15:44,139 | INFO | 체결 반영 | broker_id=SIM-5c26989db1 local_id=SIM-5c26989db1 symbol=T304 side=SELL qty=1 price=70200 unfilled=0 status=FILLED
+2026-04-05 17:15:44,141 | INFO | 거래로그 CSV 저장 | path=logs\trades_case3_r4_20260405.csv test_name=case3_r4 symbol=T304 result=LOSS
+2026-04-05 17:15:44,141 | INFO | [TRADE_CLOSE] symbol=T304 result=LOSS entry=70500.00 exit=70200.00 qty=1 pnl=-300.00 pnl_pct=-0.4255% reason=engine_early_stop
+2026-04-05 17:15:44,141 | INFO | [PERFORMANCE] trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.4255% net_pnl=-300.00
+2026-04-05 17:15:44,141 | INFO | 자동매도 주문 등록 | symbol=T304 qty=1 order_id=SIM-5c26989db1 reason=engine_early_stop status=FILLED
+2026-04-05 17:15:44,142 | INFO | [CHECK] T304 price=70200
+2026-04-05 17:15:44,142 | INFO | [TICK] T304 tick_no=5 price=69900 vol=1400 chg=0.1 strength=100.0 vr=1.12 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,142 | INFO | [CHECK] T304 price=69900
+2026-04-05 17:15:44,142 | INFO | [TICK] T304 tick_no=6 price=69700 vol=1500 chg=-0.2 strength=92.0 vr=1.02 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,142 | INFO | [CHECK] T304 price=69700
+2026-04-05 17:15:44,142 | INFO | [TICK] T304 tick_no=7 price=69600 vol=1600 chg=-0.4 strength=88.0 vr=0.98 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,142 | INFO | [CHECK] T304 price=69600
+2026-04-05 17:15:44,143 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,143 | INFO | 종료 전 성과 요약 | trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.4255% net_pnl=-300.00
+2026-04-05 17:15:44,143 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,143 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,143 | INFO | [DONE] case3 #4 trades=1 wins=0 losses=1 net_pnl=-300.0 final_qty=0
+2026-04-05 17:15:44,143 | INFO | [RUN] case3 #5 symbol=T305
+2026-04-05 17:15:44,143 | INFO | FakeBroker connect
+2026-04-05 17:15:44,143 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,143 | INFO | [TICK] T305 tick_no=1 price=70000 vol=1000 chg=1.1 strength=155.0 vr=1.75 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,143 | INFO | [CHECK] T305 price=70000
+2026-04-05 17:15:44,145 | INFO | [TICK] T305 tick_no=2 price=70500 vol=1100 chg=2.0 strength=182.0 vr=1.95 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,145 | INFO | [CHECK] T305 price=70500
+2026-04-05 17:15:44,145 | INFO | [ORDER_READY] T305 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=2.00:strength=182.0:vr=1.95
+2026-04-05 17:15:44,145 | INFO | FakeBroker 주문 | id=SIM-f309116a01 symbol=T305 side=BUY qty=1
+2026-04-05 17:15:44,145 | INFO | 체결 반영 | broker_id=SIM-f309116a01 local_id=SIM-f309116a01 symbol=T305 side=BUY qty=1 price=70500 unfilled=0 status=FILLED
+2026-04-05 17:15:44,146 | INFO | [TRADE_OPEN] symbol=T305 entry_price=70500.00 qty=1
+2026-04-05 17:15:44,146 | INFO | 주문 등록 | id=SIM-f309116a01 symbol=T305 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,146 | INFO | [TICK] T305 tick_no=3 price=70600 vol=1200 chg=2.1 strength=178.0 vr=1.9 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,146 | INFO | [CHECK] T305 price=70600
+2026-04-05 17:15:44,146 | INFO | [TICK] T305 tick_no=4 price=70200 vol=1300 chg=1.0 strength=120.0 vr=1.3 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,146 | INFO | [EXIT_CHECK] T305 event=ENGINE_EARLY_STOP price=70200 avg=70500.00 qty=1 pnl=-0.43%
+2026-04-05 17:15:44,147 | INFO | 엔진 직접 약손절 발동 | symbol=T305 price=70200 avg_price=70500.0 qty=1 pnl_pct=-0.43% reason=engine_early_stop
+2026-04-05 17:15:44,147 | INFO | FakeBroker 주문 | id=SIM-a243b28afb symbol=T305 side=SELL qty=1
+2026-04-05 17:15:44,147 | INFO | 체결 반영 | broker_id=SIM-a243b28afb local_id=SIM-a243b28afb symbol=T305 side=SELL qty=1 price=70200 unfilled=0 status=FILLED
+2026-04-05 17:15:44,150 | INFO | 거래로그 CSV 저장 | path=logs\trades_case3_r5_20260405.csv test_name=case3_r5 symbol=T305 result=LOSS
+2026-04-05 17:15:44,150 | INFO | [TRADE_CLOSE] symbol=T305 result=LOSS entry=70500.00 exit=70200.00 qty=1 pnl=-300.00 pnl_pct=-0.4255% reason=engine_early_stop
+2026-04-05 17:15:44,150 | INFO | [PERFORMANCE] trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.4255% net_pnl=-300.00
+2026-04-05 17:15:44,150 | INFO | 자동매도 주문 등록 | symbol=T305 qty=1 order_id=SIM-a243b28afb reason=engine_early_stop status=FILLED
+2026-04-05 17:15:44,150 | INFO | [CHECK] T305 price=70200
+2026-04-05 17:15:44,152 | INFO | [TICK] T305 tick_no=5 price=69900 vol=1400 chg=0.1 strength=100.0 vr=1.12 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,152 | INFO | [CHECK] T305 price=69900
+2026-04-05 17:15:44,152 | INFO | [TICK] T305 tick_no=6 price=69700 vol=1500 chg=-0.2 strength=92.0 vr=1.02 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,152 | INFO | [CHECK] T305 price=69700
+2026-04-05 17:15:44,152 | INFO | [TICK] T305 tick_no=7 price=69600 vol=1600 chg=-0.4 strength=88.0 vr=0.98 news=0.2 theme=0.0 leader=0.1
+2026-04-05 17:15:44,152 | INFO | [CHECK] T305 price=69600
+2026-04-05 17:15:44,152 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,152 | INFO | 종료 전 성과 요약 | trades=1 wins=0 losses=1 win_rate=0.00% avg_profit=0.0000% avg_loss=-0.4255% net_pnl=-300.00
+2026-04-05 17:15:44,153 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,153 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,153 | INFO | [DONE] case3 #5 trades=1 wins=0 losses=1 net_pnl=-300.0 final_qty=0
+2026-04-05 17:15:44,153 | INFO | [RUN] case4 #1 symbol=T401
+2026-04-05 17:15:44,153 | INFO | FakeBroker connect
+2026-04-05 17:15:44,153 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,153 | INFO | [TICK] T401 tick_no=1 price=70000 vol=1000 chg=1.0 strength=148.0 vr=1.68 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,154 | INFO | [CHECK] T401 price=70000
+2026-04-05 17:15:44,154 | INFO | [TICK] T401 tick_no=2 price=70400 vol=1100 chg=1.9 strength=176.0 vr=1.88 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,154 | INFO | [CHECK] T401 price=70400
+2026-04-05 17:15:44,154 | INFO | [ORDER_READY] T401 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.90:strength=176.0:vr=1.88
+2026-04-05 17:15:44,154 | INFO | FakeBroker 주문 | id=SIM-da92de2608 symbol=T401 side=BUY qty=1
+2026-04-05 17:15:44,154 | INFO | 체결 반영 | broker_id=SIM-da92de2608 local_id=SIM-da92de2608 symbol=T401 side=BUY qty=1 price=70400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,154 | INFO | [TRADE_OPEN] symbol=T401 entry_price=70400.00 qty=1
+2026-04-05 17:15:44,154 | INFO | 주문 등록 | id=SIM-da92de2608 symbol=T401 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,154 | INFO | [TICK] T401 tick_no=3 price=70800 vol=1200 chg=2.3 strength=180.0 vr=1.92 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,155 | INFO | [CHECK] T401 price=70800
+2026-04-05 17:15:44,155 | INFO | [TICK] T401 tick_no=4 price=71500 vol=1300 chg=3.1 strength=172.0 vr=1.85 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,155 | INFO | [CHECK] T401 price=71500
+2026-04-05 17:15:44,155 | INFO | [TICK] T401 tick_no=5 price=72000 vol=1400 chg=3.6 strength=168.0 vr=1.82 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,155 | INFO | [CHECK] T401 price=72000
+2026-04-05 17:15:44,155 | INFO | [TICK] T401 tick_no=6 price=72600 vol=1500 chg=4.1 strength=166.0 vr=1.78 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,155 | INFO | [EXIT_CHECK] T401 event=PARTIAL_TAKE price=72600 avg=70400.00 qty=1 pnl=3.12%
+2026-04-05 17:15:44,155 | INFO | 부분익절 발생 | symbol=T401 qty=1 pnl=3.12%
+2026-04-05 17:15:44,156 | INFO | FakeBroker 주문 | id=SIM-4c53cccb7d symbol=T401 side=SELL qty=1
+2026-04-05 17:15:44,156 | INFO | 체결 반영 | broker_id=SIM-4c53cccb7d local_id=SIM-4c53cccb7d symbol=T401 side=SELL qty=1 price=72600 unfilled=0 status=FILLED
+2026-04-05 17:15:44,157 | INFO | 거래로그 CSV 저장 | path=logs\trades_case4_r1_20260405.csv test_name=case4_r1 symbol=T401 result=WIN
+2026-04-05 17:15:44,157 | INFO | [TRADE_CLOSE] symbol=T401 result=WIN entry=70400.00 exit=72600.00 qty=1 pnl=2200.00 pnl_pct=3.1250% reason=부분익절
+2026-04-05 17:15:44,157 | INFO | [PERFORMANCE] trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=3.1250% avg_loss=0.0000% net_pnl=2200.00
+2026-04-05 17:15:44,157 | INFO | 자동매도 주문 등록 | symbol=T401 qty=1 order_id=SIM-4c53cccb7d reason=부분익절 status=FILLED
+2026-04-05 17:15:44,157 | INFO | [CHECK] T401 price=72600
+2026-04-05 17:15:44,157 | INFO | [TICK] T401 tick_no=7 price=73100 vol=1600 chg=4.5 strength=160.0 vr=1.72 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,158 | INFO | [CHECK] T401 price=73100
+2026-04-05 17:15:44,158 | INFO | [TICK] T401 tick_no=8 price=72300 vol=1700 chg=3.0 strength=128.0 vr=1.42 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,158 | INFO | [CHECK] T401 price=72300
+2026-04-05 17:15:44,158 | INFO | [TICK] T401 tick_no=9 price=71900 vol=1800 chg=2.3 strength=120.0 vr=1.35 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,158 | INFO | [CHECK] T401 price=71900
+2026-04-05 17:15:44,158 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,158 | INFO | 종료 전 성과 요약 | trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=3.1250% avg_loss=0.0000% net_pnl=2200.00
+2026-04-05 17:15:44,158 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,158 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,160 | INFO | [DONE] case4 #1 trades=1 wins=1 losses=0 net_pnl=2200.0 final_qty=0
+2026-04-05 17:15:44,160 | INFO | [RUN] case4 #2 symbol=T402
+2026-04-05 17:15:44,160 | INFO | FakeBroker connect
+2026-04-05 17:15:44,160 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,160 | INFO | [TICK] T402 tick_no=1 price=70000 vol=1000 chg=1.0 strength=148.0 vr=1.68 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,160 | INFO | [CHECK] T402 price=70000
+2026-04-05 17:15:44,160 | INFO | [TICK] T402 tick_no=2 price=70400 vol=1100 chg=1.9 strength=176.0 vr=1.88 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,160 | INFO | [CHECK] T402 price=70400
+2026-04-05 17:15:44,160 | INFO | [ORDER_READY] T402 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.90:strength=176.0:vr=1.88
+2026-04-05 17:15:44,161 | INFO | FakeBroker 주문 | id=SIM-fd603e0169 symbol=T402 side=BUY qty=1
+2026-04-05 17:15:44,161 | INFO | 체결 반영 | broker_id=SIM-fd603e0169 local_id=SIM-fd603e0169 symbol=T402 side=BUY qty=1 price=70400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,161 | INFO | [TRADE_OPEN] symbol=T402 entry_price=70400.00 qty=1
+2026-04-05 17:15:44,161 | INFO | 주문 등록 | id=SIM-fd603e0169 symbol=T402 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,161 | INFO | [TICK] T402 tick_no=3 price=70800 vol=1200 chg=2.3 strength=180.0 vr=1.92 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,161 | INFO | [CHECK] T402 price=70800
+2026-04-05 17:15:44,161 | INFO | [TICK] T402 tick_no=4 price=71500 vol=1300 chg=3.1 strength=172.0 vr=1.85 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,162 | INFO | [CHECK] T402 price=71500
+2026-04-05 17:15:44,162 | INFO | [TICK] T402 tick_no=5 price=72000 vol=1400 chg=3.6 strength=168.0 vr=1.82 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,162 | INFO | [CHECK] T402 price=72000
+2026-04-05 17:15:44,162 | INFO | [TICK] T402 tick_no=6 price=72600 vol=1500 chg=4.1 strength=166.0 vr=1.78 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,162 | INFO | [EXIT_CHECK] T402 event=PARTIAL_TAKE price=72600 avg=70400.00 qty=1 pnl=3.12%
+2026-04-05 17:15:44,162 | INFO | 부분익절 발생 | symbol=T402 qty=1 pnl=3.12%
+2026-04-05 17:15:44,162 | INFO | FakeBroker 주문 | id=SIM-0012e8f86f symbol=T402 side=SELL qty=1
+2026-04-05 17:15:44,162 | INFO | 체결 반영 | broker_id=SIM-0012e8f86f local_id=SIM-0012e8f86f symbol=T402 side=SELL qty=1 price=72600 unfilled=0 status=FILLED
+2026-04-05 17:15:44,164 | INFO | 거래로그 CSV 저장 | path=logs\trades_case4_r2_20260405.csv test_name=case4_r2 symbol=T402 result=WIN
+2026-04-05 17:15:44,165 | INFO | [TRADE_CLOSE] symbol=T402 result=WIN entry=70400.00 exit=72600.00 qty=1 pnl=2200.00 pnl_pct=3.1250% reason=부분익절
+2026-04-05 17:15:44,165 | INFO | [PERFORMANCE] trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=3.1250% avg_loss=0.0000% net_pnl=2200.00
+2026-04-05 17:15:44,165 | INFO | 자동매도 주문 등록 | symbol=T402 qty=1 order_id=SIM-0012e8f86f reason=부분익절 status=FILLED
+2026-04-05 17:15:44,165 | INFO | [CHECK] T402 price=72600
+2026-04-05 17:15:44,166 | INFO | [TICK] T402 tick_no=7 price=73100 vol=1600 chg=4.5 strength=160.0 vr=1.72 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,166 | INFO | [CHECK] T402 price=73100
+2026-04-05 17:15:44,166 | INFO | [TICK] T402 tick_no=8 price=72300 vol=1700 chg=3.0 strength=128.0 vr=1.42 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,166 | INFO | [CHECK] T402 price=72300
+2026-04-05 17:15:44,166 | INFO | [TICK] T402 tick_no=9 price=71900 vol=1800 chg=2.3 strength=120.0 vr=1.35 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,167 | INFO | [CHECK] T402 price=71900
+2026-04-05 17:15:44,167 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,167 | INFO | 종료 전 성과 요약 | trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=3.1250% avg_loss=0.0000% net_pnl=2200.00
+2026-04-05 17:15:44,167 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,167 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,167 | INFO | [DONE] case4 #2 trades=1 wins=1 losses=0 net_pnl=2200.0 final_qty=0
+2026-04-05 17:15:44,167 | INFO | [RUN] case4 #3 symbol=T403
+2026-04-05 17:15:44,167 | INFO | FakeBroker connect
+2026-04-05 17:15:44,167 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,169 | INFO | [TICK] T403 tick_no=1 price=70000 vol=1000 chg=1.0 strength=148.0 vr=1.68 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,169 | INFO | [CHECK] T403 price=70000
+2026-04-05 17:15:44,169 | INFO | [TICK] T403 tick_no=2 price=70400 vol=1100 chg=1.9 strength=176.0 vr=1.88 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,169 | INFO | [CHECK] T403 price=70400
+2026-04-05 17:15:44,169 | INFO | [ORDER_READY] T403 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.90:strength=176.0:vr=1.88
+2026-04-05 17:15:44,169 | INFO | FakeBroker 주문 | id=SIM-d9a137087b symbol=T403 side=BUY qty=1
+2026-04-05 17:15:44,169 | INFO | 체결 반영 | broker_id=SIM-d9a137087b local_id=SIM-d9a137087b symbol=T403 side=BUY qty=1 price=70400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,170 | INFO | [TRADE_OPEN] symbol=T403 entry_price=70400.00 qty=1
+2026-04-05 17:15:44,170 | INFO | 주문 등록 | id=SIM-d9a137087b symbol=T403 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,170 | INFO | [TICK] T403 tick_no=3 price=70800 vol=1200 chg=2.3 strength=180.0 vr=1.92 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,170 | INFO | [CHECK] T403 price=70800
+2026-04-05 17:15:44,170 | INFO | [TICK] T403 tick_no=4 price=71500 vol=1300 chg=3.1 strength=172.0 vr=1.85 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,170 | INFO | [CHECK] T403 price=71500
+2026-04-05 17:15:44,170 | INFO | [TICK] T403 tick_no=5 price=72000 vol=1400 chg=3.6 strength=168.0 vr=1.82 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,170 | INFO | [CHECK] T403 price=72000
+2026-04-05 17:15:44,170 | INFO | [TICK] T403 tick_no=6 price=72600 vol=1500 chg=4.1 strength=166.0 vr=1.78 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,171 | INFO | [EXIT_CHECK] T403 event=PARTIAL_TAKE price=72600 avg=70400.00 qty=1 pnl=3.12%
+2026-04-05 17:15:44,171 | INFO | 부분익절 발생 | symbol=T403 qty=1 pnl=3.12%
+2026-04-05 17:15:44,171 | INFO | FakeBroker 주문 | id=SIM-35c4019abc symbol=T403 side=SELL qty=1
+2026-04-05 17:15:44,171 | INFO | 체결 반영 | broker_id=SIM-35c4019abc local_id=SIM-35c4019abc symbol=T403 side=SELL qty=1 price=72600 unfilled=0 status=FILLED
+2026-04-05 17:15:44,173 | INFO | 거래로그 CSV 저장 | path=logs\trades_case4_r3_20260405.csv test_name=case4_r3 symbol=T403 result=WIN
+2026-04-05 17:15:44,173 | INFO | [TRADE_CLOSE] symbol=T403 result=WIN entry=70400.00 exit=72600.00 qty=1 pnl=2200.00 pnl_pct=3.1250% reason=부분익절
+2026-04-05 17:15:44,173 | INFO | [PERFORMANCE] trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=3.1250% avg_loss=0.0000% net_pnl=2200.00
+2026-04-05 17:15:44,173 | INFO | 자동매도 주문 등록 | symbol=T403 qty=1 order_id=SIM-35c4019abc reason=부분익절 status=FILLED
+2026-04-05 17:15:44,173 | INFO | [CHECK] T403 price=72600
+2026-04-05 17:15:44,174 | INFO | [TICK] T403 tick_no=7 price=73100 vol=1600 chg=4.5 strength=160.0 vr=1.72 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,174 | INFO | [CHECK] T403 price=73100
+2026-04-05 17:15:44,174 | INFO | [TICK] T403 tick_no=8 price=72300 vol=1700 chg=3.0 strength=128.0 vr=1.42 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,174 | INFO | [CHECK] T403 price=72300
+2026-04-05 17:15:44,174 | INFO | [TICK] T403 tick_no=9 price=71900 vol=1800 chg=2.3 strength=120.0 vr=1.35 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,174 | INFO | [CHECK] T403 price=71900
+2026-04-05 17:15:44,174 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,174 | INFO | 종료 전 성과 요약 | trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=3.1250% avg_loss=0.0000% net_pnl=2200.00
+2026-04-05 17:15:44,174 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,174 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,175 | INFO | [DONE] case4 #3 trades=1 wins=1 losses=0 net_pnl=2200.0 final_qty=0
+2026-04-05 17:15:44,175 | INFO | [RUN] case4 #4 symbol=T404
+2026-04-05 17:15:44,175 | INFO | FakeBroker connect
+2026-04-05 17:15:44,175 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,175 | INFO | [TICK] T404 tick_no=1 price=70000 vol=1000 chg=1.0 strength=148.0 vr=1.68 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,175 | INFO | [CHECK] T404 price=70000
+2026-04-05 17:15:44,175 | INFO | [TICK] T404 tick_no=2 price=70400 vol=1100 chg=1.9 strength=176.0 vr=1.88 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,175 | INFO | [CHECK] T404 price=70400
+2026-04-05 17:15:44,175 | INFO | [ORDER_READY] T404 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.90:strength=176.0:vr=1.88
+2026-04-05 17:15:44,176 | INFO | FakeBroker 주문 | id=SIM-eb3394bd45 symbol=T404 side=BUY qty=1
+2026-04-05 17:15:44,176 | INFO | 체결 반영 | broker_id=SIM-eb3394bd45 local_id=SIM-eb3394bd45 symbol=T404 side=BUY qty=1 price=70400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,176 | INFO | [TRADE_OPEN] symbol=T404 entry_price=70400.00 qty=1
+2026-04-05 17:15:44,176 | INFO | 주문 등록 | id=SIM-eb3394bd45 symbol=T404 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,176 | INFO | [TICK] T404 tick_no=3 price=70800 vol=1200 chg=2.3 strength=180.0 vr=1.92 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,176 | INFO | [CHECK] T404 price=70800
+2026-04-05 17:15:44,176 | INFO | [TICK] T404 tick_no=4 price=71500 vol=1300 chg=3.1 strength=172.0 vr=1.85 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,177 | INFO | [CHECK] T404 price=71500
+2026-04-05 17:15:44,177 | INFO | [TICK] T404 tick_no=5 price=72000 vol=1400 chg=3.6 strength=168.0 vr=1.82 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,177 | INFO | [CHECK] T404 price=72000
+2026-04-05 17:15:44,177 | INFO | [TICK] T404 tick_no=6 price=72600 vol=1500 chg=4.1 strength=166.0 vr=1.78 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,177 | INFO | [EXIT_CHECK] T404 event=PARTIAL_TAKE price=72600 avg=70400.00 qty=1 pnl=3.12%
+2026-04-05 17:15:44,177 | INFO | 부분익절 발생 | symbol=T404 qty=1 pnl=3.12%
+2026-04-05 17:15:44,177 | INFO | FakeBroker 주문 | id=SIM-ffd6f2c4db symbol=T404 side=SELL qty=1
+2026-04-05 17:15:44,177 | INFO | 체결 반영 | broker_id=SIM-ffd6f2c4db local_id=SIM-ffd6f2c4db symbol=T404 side=SELL qty=1 price=72600 unfilled=0 status=FILLED
+2026-04-05 17:15:44,179 | INFO | 거래로그 CSV 저장 | path=logs\trades_case4_r4_20260405.csv test_name=case4_r4 symbol=T404 result=WIN
+2026-04-05 17:15:44,179 | INFO | [TRADE_CLOSE] symbol=T404 result=WIN entry=70400.00 exit=72600.00 qty=1 pnl=2200.00 pnl_pct=3.1250% reason=부분익절
+2026-04-05 17:15:44,179 | INFO | [PERFORMANCE] trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=3.1250% avg_loss=0.0000% net_pnl=2200.00
+2026-04-05 17:15:44,180 | INFO | 자동매도 주문 등록 | symbol=T404 qty=1 order_id=SIM-ffd6f2c4db reason=부분익절 status=FILLED
+2026-04-05 17:15:44,180 | INFO | [CHECK] T404 price=72600
+2026-04-05 17:15:44,180 | INFO | [TICK] T404 tick_no=7 price=73100 vol=1600 chg=4.5 strength=160.0 vr=1.72 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,181 | INFO | [CHECK] T404 price=73100
+2026-04-05 17:15:44,181 | INFO | [TICK] T404 tick_no=8 price=72300 vol=1700 chg=3.0 strength=128.0 vr=1.42 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,181 | INFO | [CHECK] T404 price=72300
+2026-04-05 17:15:44,181 | INFO | [TICK] T404 tick_no=9 price=71900 vol=1800 chg=2.3 strength=120.0 vr=1.35 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,181 | INFO | [CHECK] T404 price=71900
+2026-04-05 17:15:44,181 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,182 | INFO | 종료 전 성과 요약 | trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=3.1250% avg_loss=0.0000% net_pnl=2200.00
+2026-04-05 17:15:44,182 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,182 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,182 | INFO | [DONE] case4 #4 trades=1 wins=1 losses=0 net_pnl=2200.0 final_qty=0
+2026-04-05 17:15:44,182 | INFO | [RUN] case4 #5 symbol=T405
+2026-04-05 17:15:44,182 | INFO | FakeBroker connect
+2026-04-05 17:15:44,183 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,183 | INFO | [TICK] T405 tick_no=1 price=70000 vol=1000 chg=1.0 strength=148.0 vr=1.68 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,183 | INFO | [CHECK] T405 price=70000
+2026-04-05 17:15:44,183 | INFO | [TICK] T405 tick_no=2 price=70400 vol=1100 chg=1.9 strength=176.0 vr=1.88 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,183 | INFO | [CHECK] T405 price=70400
+2026-04-05 17:15:44,185 | INFO | [ORDER_READY] T405 side=BUY qty=1 score=None reason=momentum_entry:instant_breakout_ok:chg=1.90:strength=176.0:vr=1.88
+2026-04-05 17:15:44,185 | INFO | FakeBroker 주문 | id=SIM-2bd9977231 symbol=T405 side=BUY qty=1
+2026-04-05 17:15:44,185 | INFO | 체결 반영 | broker_id=SIM-2bd9977231 local_id=SIM-2bd9977231 symbol=T405 side=BUY qty=1 price=70400 unfilled=0 status=FILLED
+2026-04-05 17:15:44,185 | INFO | [TRADE_OPEN] symbol=T405 entry_price=70400.00 qty=1
+2026-04-05 17:15:44,185 | INFO | 주문 등록 | id=SIM-2bd9977231 symbol=T405 side=BUY qty=1 count=1/20 score=None
+2026-04-05 17:15:44,185 | INFO | [TICK] T405 tick_no=3 price=70800 vol=1200 chg=2.3 strength=180.0 vr=1.92 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,186 | INFO | [CHECK] T405 price=70800
+2026-04-05 17:15:44,186 | INFO | [TICK] T405 tick_no=4 price=71500 vol=1300 chg=3.1 strength=172.0 vr=1.85 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,186 | INFO | [CHECK] T405 price=71500
+2026-04-05 17:15:44,186 | INFO | [TICK] T405 tick_no=5 price=72000 vol=1400 chg=3.6 strength=168.0 vr=1.82 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,186 | INFO | [CHECK] T405 price=72000
+2026-04-05 17:15:44,186 | INFO | [TICK] T405 tick_no=6 price=72600 vol=1500 chg=4.1 strength=166.0 vr=1.78 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,187 | INFO | [EXIT_CHECK] T405 event=PARTIAL_TAKE price=72600 avg=70400.00 qty=1 pnl=3.12%
+2026-04-05 17:15:44,187 | INFO | 부분익절 발생 | symbol=T405 qty=1 pnl=3.12%
+2026-04-05 17:15:44,187 | INFO | FakeBroker 주문 | id=SIM-12beef1f86 symbol=T405 side=SELL qty=1
+2026-04-05 17:15:44,187 | INFO | 체결 반영 | broker_id=SIM-12beef1f86 local_id=SIM-12beef1f86 symbol=T405 side=SELL qty=1 price=72600 unfilled=0 status=FILLED
+2026-04-05 17:15:44,188 | INFO | 거래로그 CSV 저장 | path=logs\trades_case4_r5_20260405.csv test_name=case4_r5 symbol=T405 result=WIN
+2026-04-05 17:15:44,188 | INFO | [TRADE_CLOSE] symbol=T405 result=WIN entry=70400.00 exit=72600.00 qty=1 pnl=2200.00 pnl_pct=3.1250% reason=부분익절
+2026-04-05 17:15:44,189 | INFO | [PERFORMANCE] trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=3.1250% avg_loss=0.0000% net_pnl=2200.00
+2026-04-05 17:15:44,189 | INFO | 자동매도 주문 등록 | symbol=T405 qty=1 order_id=SIM-12beef1f86 reason=부분익절 status=FILLED
+2026-04-05 17:15:44,189 | INFO | [CHECK] T405 price=72600
+2026-04-05 17:15:44,189 | INFO | [TICK] T405 tick_no=7 price=73100 vol=1600 chg=4.5 strength=160.0 vr=1.72 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,189 | INFO | [CHECK] T405 price=73100
+2026-04-05 17:15:44,189 | INFO | [TICK] T405 tick_no=8 price=72300 vol=1700 chg=3.0 strength=128.0 vr=1.42 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,190 | INFO | [CHECK] T405 price=72300
+2026-04-05 17:15:44,190 | INFO | [TICK] T405 tick_no=9 price=71900 vol=1800 chg=2.3 strength=120.0 vr=1.35 news=0.2 theme=0.1 leader=0.1
+2026-04-05 17:15:44,190 | INFO | [CHECK] T405 price=71900
+2026-04-05 17:15:44,190 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,190 | INFO | 종료 전 성과 요약 | trades=1 wins=1 losses=0 win_rate=100.00% avg_profit=3.1250% avg_loss=0.0000% net_pnl=2200.00
+2026-04-05 17:15:44,190 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,190 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,190 | INFO | [DONE] case4 #5 trades=1 wins=1 losses=0 net_pnl=2200.0 final_qty=0
+2026-04-05 17:15:44,190 | INFO | [RUN] case5 #1 symbol=T501
+2026-04-05 17:15:44,192 | INFO | FakeBroker connect
+2026-04-05 17:15:44,192 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,192 | INFO | [TICK] T501 tick_no=1 price=70000 vol=1000 chg=0.3 strength=110.0 vr=1.1 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,192 | INFO | [CHECK] T501 price=70000
+2026-04-05 17:15:44,192 | INFO | [TICK] T501 tick_no=2 price=70100 vol=1100 chg=0.4 strength=115.0 vr=1.18 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,193 | INFO | [CHECK] T501 price=70100
+2026-04-05 17:15:44,193 | INFO | [TICK] T501 tick_no=3 price=70080 vol=1200 chg=0.25 strength=112.0 vr=1.12 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,193 | INFO | [CHECK] T501 price=70080
+2026-04-05 17:15:44,193 | INFO | [TICK] T501 tick_no=4 price=70120 vol=1300 chg=0.35 strength=114.0 vr=1.16 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,193 | INFO | [CHECK] T501 price=70120
+2026-04-05 17:15:44,193 | INFO | [TICK] T501 tick_no=5 price=70090 vol=1400 chg=0.2 strength=109.0 vr=1.08 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,193 | INFO | [CHECK] T501 price=70090
+2026-04-05 17:15:44,193 | INFO | [TICK] T501 tick_no=6 price=70110 vol=1500 chg=0.2 strength=108.0 vr=1.05 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,193 | INFO | [CHECK] T501 price=70110
+2026-04-05 17:15:44,193 | INFO | [TICK] T501 tick_no=7 price=70070 vol=1600 chg=0.05 strength=105.0 vr=1.0 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,194 | INFO | [CHECK] T501 price=70070
+2026-04-05 17:15:44,194 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,194 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-05 17:15:44,194 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,194 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,194 | INFO | [DONE] case5 #1 trades=0 wins=0 losses=0 net_pnl=0.0 final_qty=0
+2026-04-05 17:15:44,194 | INFO | [RUN] case5 #2 symbol=T502
+2026-04-05 17:15:44,194 | INFO | FakeBroker connect
+2026-04-05 17:15:44,194 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,194 | INFO | [TICK] T502 tick_no=1 price=70000 vol=1000 chg=0.3 strength=110.0 vr=1.1 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,194 | INFO | [CHECK] T502 price=70000
+2026-04-05 17:15:44,195 | INFO | [TICK] T502 tick_no=2 price=70100 vol=1100 chg=0.4 strength=115.0 vr=1.18 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,195 | INFO | [CHECK] T502 price=70100
+2026-04-05 17:15:44,195 | INFO | [TICK] T502 tick_no=3 price=70080 vol=1200 chg=0.25 strength=112.0 vr=1.12 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,195 | INFO | [CHECK] T502 price=70080
+2026-04-05 17:15:44,195 | INFO | [TICK] T502 tick_no=4 price=70120 vol=1300 chg=0.35 strength=114.0 vr=1.16 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,195 | INFO | [CHECK] T502 price=70120
+2026-04-05 17:15:44,195 | INFO | [TICK] T502 tick_no=5 price=70090 vol=1400 chg=0.2 strength=109.0 vr=1.08 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,195 | INFO | [CHECK] T502 price=70090
+2026-04-05 17:15:44,195 | INFO | [TICK] T502 tick_no=6 price=70110 vol=1500 chg=0.2 strength=108.0 vr=1.05 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,196 | INFO | [CHECK] T502 price=70110
+2026-04-05 17:15:44,196 | INFO | [TICK] T502 tick_no=7 price=70070 vol=1600 chg=0.05 strength=105.0 vr=1.0 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,196 | INFO | [CHECK] T502 price=70070
+2026-04-05 17:15:44,196 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,196 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-05 17:15:44,196 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,196 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,197 | INFO | [DONE] case5 #2 trades=0 wins=0 losses=0 net_pnl=0.0 final_qty=0
+2026-04-05 17:15:44,197 | INFO | [RUN] case5 #3 symbol=T503
+2026-04-05 17:15:44,197 | INFO | FakeBroker connect
+2026-04-05 17:15:44,197 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,197 | INFO | [TICK] T503 tick_no=1 price=70000 vol=1000 chg=0.3 strength=110.0 vr=1.1 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,197 | INFO | [CHECK] T503 price=70000
+2026-04-05 17:15:44,198 | INFO | [TICK] T503 tick_no=2 price=70100 vol=1100 chg=0.4 strength=115.0 vr=1.18 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,198 | INFO | [CHECK] T503 price=70100
+2026-04-05 17:15:44,198 | INFO | [TICK] T503 tick_no=3 price=70080 vol=1200 chg=0.25 strength=112.0 vr=1.12 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,198 | INFO | [CHECK] T503 price=70080
+2026-04-05 17:15:44,198 | INFO | [TICK] T503 tick_no=4 price=70120 vol=1300 chg=0.35 strength=114.0 vr=1.16 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,199 | INFO | [CHECK] T503 price=70120
+2026-04-05 17:15:44,199 | INFO | [TICK] T503 tick_no=5 price=70090 vol=1400 chg=0.2 strength=109.0 vr=1.08 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,199 | INFO | [CHECK] T503 price=70090
+2026-04-05 17:15:44,199 | INFO | [TICK] T503 tick_no=6 price=70110 vol=1500 chg=0.2 strength=108.0 vr=1.05 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,199 | INFO | [CHECK] T503 price=70110
+2026-04-05 17:15:44,199 | INFO | [TICK] T503 tick_no=7 price=70070 vol=1600 chg=0.05 strength=105.0 vr=1.0 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,199 | INFO | [CHECK] T503 price=70070
+2026-04-05 17:15:44,199 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,199 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-05 17:15:44,201 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,201 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,201 | INFO | [DONE] case5 #3 trades=0 wins=0 losses=0 net_pnl=0.0 final_qty=0
+2026-04-05 17:15:44,201 | INFO | [RUN] case5 #4 symbol=T504
+2026-04-05 17:15:44,201 | INFO | FakeBroker connect
+2026-04-05 17:15:44,201 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,201 | INFO | [TICK] T504 tick_no=1 price=70000 vol=1000 chg=0.3 strength=110.0 vr=1.1 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,201 | INFO | [CHECK] T504 price=70000
+2026-04-05 17:15:44,202 | INFO | [TICK] T504 tick_no=2 price=70100 vol=1100 chg=0.4 strength=115.0 vr=1.18 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,202 | INFO | [CHECK] T504 price=70100
+2026-04-05 17:15:44,202 | INFO | [TICK] T504 tick_no=3 price=70080 vol=1200 chg=0.25 strength=112.0 vr=1.12 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,202 | INFO | [CHECK] T504 price=70080
+2026-04-05 17:15:44,202 | INFO | [TICK] T504 tick_no=4 price=70120 vol=1300 chg=0.35 strength=114.0 vr=1.16 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,202 | INFO | [CHECK] T504 price=70120
+2026-04-05 17:15:44,202 | INFO | [TICK] T504 tick_no=5 price=70090 vol=1400 chg=0.2 strength=109.0 vr=1.08 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,202 | INFO | [CHECK] T504 price=70090
+2026-04-05 17:15:44,202 | INFO | [TICK] T504 tick_no=6 price=70110 vol=1500 chg=0.2 strength=108.0 vr=1.05 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,202 | INFO | [CHECK] T504 price=70110
+2026-04-05 17:15:44,202 | INFO | [TICK] T504 tick_no=7 price=70070 vol=1600 chg=0.05 strength=105.0 vr=1.0 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,203 | INFO | [CHECK] T504 price=70070
+2026-04-05 17:15:44,203 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,203 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-05 17:15:44,203 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,203 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,203 | INFO | [DONE] case5 #4 trades=0 wins=0 losses=0 net_pnl=0.0 final_qty=0
+2026-04-05 17:15:44,203 | INFO | [RUN] case5 #5 symbol=T505
+2026-04-05 17:15:44,203 | INFO | FakeBroker connect
+2026-04-05 17:15:44,203 | INFO | 브로커 연결 완료
+2026-04-05 17:15:44,203 | INFO | [TICK] T505 tick_no=1 price=70000 vol=1000 chg=0.3 strength=110.0 vr=1.1 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,204 | INFO | [CHECK] T505 price=70000
+2026-04-05 17:15:44,204 | INFO | [TICK] T505 tick_no=2 price=70100 vol=1100 chg=0.4 strength=115.0 vr=1.18 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,204 | INFO | [CHECK] T505 price=70100
+2026-04-05 17:15:44,204 | INFO | [TICK] T505 tick_no=3 price=70080 vol=1200 chg=0.25 strength=112.0 vr=1.12 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,205 | INFO | [CHECK] T505 price=70080
+2026-04-05 17:15:44,205 | INFO | [TICK] T505 tick_no=4 price=70120 vol=1300 chg=0.35 strength=114.0 vr=1.16 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,205 | INFO | [CHECK] T505 price=70120
+2026-04-05 17:15:44,205 | INFO | [TICK] T505 tick_no=5 price=70090 vol=1400 chg=0.2 strength=109.0 vr=1.08 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,205 | INFO | [CHECK] T505 price=70090
+2026-04-05 17:15:44,205 | INFO | [TICK] T505 tick_no=6 price=70110 vol=1500 chg=0.2 strength=108.0 vr=1.05 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,205 | INFO | [CHECK] T505 price=70110
+2026-04-05 17:15:44,205 | INFO | [TICK] T505 tick_no=7 price=70070 vol=1600 chg=0.05 strength=105.0 vr=1.0 news=0.2 theme=0.0 leader=0.0
+2026-04-05 17:15:44,206 | INFO | [CHECK] T505 price=70070
+2026-04-05 17:15:44,206 | INFO | 엔진 종료 시작
+2026-04-05 17:15:44,206 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-05 17:15:44,206 | INFO | FakeBroker shutdown
+2026-04-05 17:15:44,206 | INFO | 엔진 종료 완료
+2026-04-05 17:15:44,206 | INFO | [DONE] case5 #5 trades=0 wins=0 losses=0 net_pnl=0.0 final_qty=0

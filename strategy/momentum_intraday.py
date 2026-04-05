@@ -1,3 +1,28 @@
+# strategy/momentum_intraday.py
+# 최종 밸런스 완성판 전략
+#
+# 목표
+# 1) case1 회복
+# 2) case2 재악화 최소화
+# 3) case3 손실 더 빠르게 축소
+# 4) case4 유지
+#
+# 핵심 변경
+# - confirm_ticks_required: 2 유지
+# - instant_entry_trade_strength: 180 -> 175
+# - instant_entry_price_change_pct: 1.8 -> 1.7
+# - instant_entry_volume_ratio: 1.8 -> 1.7
+# - confirm_strength_ratio: 0.95 유지
+# - confirm_price_change_keep_ratio: 0.90 유지
+# - early_exit_max_hold_ticks: 3 -> 2
+# - early_exit_price_drop_pct: -0.1 -> -0.05
+# - early_exit_strength_keep_ratio: 0.90 유지
+# - early_peak_retrace_pct: 0.7 -> 0.5
+#
+# 적용 후 실행
+#   python run_replay_cases_final.py --repeat 5
+#   python analyze_replay_results.py --latest
+
 from datetime import datetime, timedelta
 from core.models import Signal, Side, OrderType
 
@@ -33,36 +58,35 @@ class MomentumIntradayStrategy:
         # -------------------------
         # 진입 최적화 파라미터
         # -------------------------
-        self.confirm_ticks_required = self.config.get("confirm_ticks_required", 1)
-        self.confirm_strength_ratio = self.config.get("confirm_strength_ratio", 0.93)
+        self.confirm_ticks_required = self.config.get("confirm_ticks_required", 2)
+        self.confirm_strength_ratio = self.config.get("confirm_strength_ratio", 0.95)
         self.min_confirm_price_change_pct = self.config.get(
             "min_confirm_price_change_pct",
             self.min_price_change_pct
         )
 
         self.instant_entry_trade_strength = self.config.get("instant_entry_trade_strength", 175)
-        self.instant_entry_price_change_pct = self.config.get("instant_entry_price_change_pct", 1.8)
+        self.instant_entry_price_change_pct = self.config.get("instant_entry_price_change_pct", 1.7)
         self.instant_entry_volume_ratio = self.config.get("instant_entry_volume_ratio", 1.7)
 
         self.max_chase_price_change_pct = self.config.get("max_chase_price_change_pct", 7.0)
-        self.confirm_price_change_keep_ratio = self.config.get("confirm_price_change_keep_ratio", 0.85)
+        self.confirm_price_change_keep_ratio = self.config.get("confirm_price_change_keep_ratio", 0.90)
         self.max_prev_tick_pullback_pct = self.config.get("max_prev_tick_pullback_pct", 0.2)
 
         # -------------------------
-        # 조기 실패 청산 파라미터 (CASE2 대응 확장)
+        # 조기 실패 청산 파라미터
         # -------------------------
         self.early_exit_enabled = self.config.get("early_exit_enabled", True)
-        self.early_exit_max_hold_ticks = self.config.get("early_exit_max_hold_ticks", 4)
-        self.early_exit_price_drop_pct = self.config.get("early_exit_price_drop_pct", -0.2)
-        self.early_exit_strength_keep_ratio = self.config.get("early_exit_strength_keep_ratio", 0.85)
+        self.early_exit_max_hold_ticks = self.config.get("early_exit_max_hold_ticks", 2)
+        self.early_exit_price_drop_pct = self.config.get("early_exit_price_drop_pct", -0.05)
+        self.early_exit_strength_keep_ratio = self.config.get("early_exit_strength_keep_ratio", 0.90)
         self.early_exit_min_price_change_keep_ratio = self.config.get(
             "early_exit_min_price_change_keep_ratio", 0.75
         )
 
-        # 진입 후 초기 구간 최고가 대비 되밀림 청산
         self.early_peak_retrace_enabled = self.config.get("early_peak_retrace_enabled", True)
-        self.early_peak_retrace_max_hold_ticks = self.config.get("early_peak_retrace_max_hold_ticks", 4)
-        self.early_peak_retrace_pct = self.config.get("early_peak_retrace_pct", 1.0)
+        self.early_peak_retrace_max_hold_ticks = self.config.get("early_peak_retrace_max_hold_ticks", 2)
+        self.early_peak_retrace_pct = self.config.get("early_peak_retrace_pct", 0.5)
 
         # -------------------------
         # 내부 상태
@@ -331,9 +355,6 @@ class MomentumIntradayStrategy:
             highest_return_pct = pnl_pct
             position["highest_return_pct"] = highest_return_pct
 
-        # -------------------------
-        # 조기 실패 청산 (감시 4틱 확장)
-        # -------------------------
         if self.early_exit_enabled and symbol:
             ctx = self.entry_context.get(symbol)
             if ctx:
@@ -370,9 +391,6 @@ class MomentumIntradayStrategy:
                         "pnl_pct": pnl_pct,
                     }
 
-                # -------------------------
-                # 초기 피크 대비 되밀림 청산
-                # -------------------------
                 if self.early_peak_retrace_enabled and ticks_from_entry <= self.early_peak_retrace_max_hold_ticks:
                     if peak_price_after_entry > 0:
                         retrace_pct = ((peak_price_after_entry - current_price) / peak_price_after_entry) * 100.0
