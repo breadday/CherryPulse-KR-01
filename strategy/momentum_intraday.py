@@ -49,16 +49,20 @@ class MomentumIntradayStrategy:
         self.max_prev_tick_pullback_pct = self.config.get("max_prev_tick_pullback_pct", 0.2)
 
         # -------------------------
-        # 조기 실패 청산 파라미터
-        # 전략 파일만 수정하기 위해 내부 상태로 관리
+        # 조기 실패 청산 파라미터 (CASE2 대응 확장)
         # -------------------------
         self.early_exit_enabled = self.config.get("early_exit_enabled", True)
-        self.early_exit_max_hold_ticks = self.config.get("early_exit_max_hold_ticks", 2)
-        self.early_exit_price_drop_pct = self.config.get("early_exit_price_drop_pct", -0.4)
-        self.early_exit_strength_keep_ratio = self.config.get("early_exit_strength_keep_ratio", 0.75)
+        self.early_exit_max_hold_ticks = self.config.get("early_exit_max_hold_ticks", 4)
+        self.early_exit_price_drop_pct = self.config.get("early_exit_price_drop_pct", -0.2)
+        self.early_exit_strength_keep_ratio = self.config.get("early_exit_strength_keep_ratio", 0.85)
         self.early_exit_min_price_change_keep_ratio = self.config.get(
-            "early_exit_min_price_change_keep_ratio", 0.6
+            "early_exit_min_price_change_keep_ratio", 0.75
         )
+
+        # 진입 후 초기 구간 최고가 대비 되밀림 청산
+        self.early_peak_retrace_enabled = self.config.get("early_peak_retrace_enabled", True)
+        self.early_peak_retrace_max_hold_ticks = self.config.get("early_peak_retrace_max_hold_ticks", 4)
+        self.early_peak_retrace_pct = self.config.get("early_peak_retrace_pct", 1.0)
 
         # -------------------------
         # 내부 상태
@@ -191,6 +195,7 @@ class MomentumIntradayStrategy:
                 "entry_signal_price_change_pct": price_change_pct,
                 "entry_signal_volume_ratio": volume_ratio,
                 "entry_type": "instant_breakout",
+                "peak_price_after_entry": price,
             }
             return Signal(
                 symbol=symbol,
@@ -285,6 +290,7 @@ class MomentumIntradayStrategy:
             "entry_signal_price_change_pct": price_change_pct,
             "entry_signal_volume_ratio": volume_ratio,
             "entry_type": "confirmed_entry",
+            "peak_price_after_entry": price,
         }
 
         return Signal(
@@ -326,7 +332,7 @@ class MomentumIntradayStrategy:
             position["highest_return_pct"] = highest_return_pct
 
         # -------------------------
-        # 조기 실패 청산
+        # 조기 실패 청산 (감시 4틱 확장)
         # -------------------------
         if self.early_exit_enabled and symbol:
             ctx = self.entry_context.get(symbol)
@@ -339,6 +345,11 @@ class MomentumIntradayStrategy:
                 signal_price_change_pct = float(ctx.get("entry_signal_price_change_pct", 0.0))
                 current_strength = float(market_data.get("trade_strength", 0.0))
                 current_price_change_pct = float(market_data.get("price_change_pct", 0.0))
+
+                peak_price_after_entry = float(ctx.get("peak_price_after_entry", current_price))
+                if current_price > peak_price_after_entry:
+                    peak_price_after_entry = current_price
+                    ctx["peak_price_after_entry"] = current_price
 
                 strength_fail = (
                     signal_strength > 0
@@ -358,6 +369,19 @@ class MomentumIntradayStrategy:
                         "reason": "early_failure_exit",
                         "pnl_pct": pnl_pct,
                     }
+
+                # -------------------------
+                # 초기 피크 대비 되밀림 청산
+                # -------------------------
+                if self.early_peak_retrace_enabled and ticks_from_entry <= self.early_peak_retrace_max_hold_ticks:
+                    if peak_price_after_entry > 0:
+                        retrace_pct = ((peak_price_after_entry - current_price) / peak_price_after_entry) * 100.0
+                        if retrace_pct >= self.early_peak_retrace_pct and (strength_fail or momentum_fail):
+                            return {
+                                "action": "FULL_SELL",
+                                "reason": "early_peak_retrace_exit",
+                                "pnl_pct": pnl_pct,
+                            }
 
         if pnl_pct <= self.stop_loss_pct:
             return {
