@@ -1,3 +1,5 @@
+# config_live.py
+
 import os
 from dotenv import load_dotenv
 
@@ -7,7 +9,7 @@ load_dotenv()
 # 기본 실행 설정
 # =========================
 LIVE_MODE = True
-DRY_RUN = True
+DRY_RUN = False          #  False : 실전모드 / True : 테스트 모드
 ACCOUNT_PASSWORD = os.getenv("ACCOUNT_PASSWORD", "0000")
 
 # =========================
@@ -20,7 +22,7 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 # 주문 / 자금 관리
 # =========================
 MAX_POSITIONS = 3
-ORDER_AMOUNT_PER_TRADE = 500000
+ORDER_AMOUNT_PER_TRADE = 500000     #  주문 금액  500,000
 REBUY_COOLDOWN_SECONDS = 300
 
 
@@ -32,10 +34,10 @@ PARTIAL_TAKE_RATIO = 0.3          # 30%만 매도
 TRAILING_STOP_PCT = 0.012         # 1.2% 트레일링 (조금 여유)
 BREAKEVEN_ENABLED = True
 TRAILING_STOP_ENABLED = True
-# TAKE_PROFIT_PCT = 0.060           # +6%까지 열어둠   :: 0.060
-# STOP_LOSS_PCT = -0.018            # 그대로 유지      :: -0.018 
-TAKE_PROFIT_PCT = 0.015           # +6%까지 열어둠   :: 0.060
-STOP_LOSS_PCT = -0.02             # 그대로 유지      :: -0.018 
+TAKE_PROFIT_PCT = 0.02            # +6%까지 열어둠   :: 0.060
+STOP_LOSS_PCT = -0.015            # 그대로 유지      :: -0.018 
+# TAKE_PROFIT_PCT = 0.015           # +6%까지 열어둠   :: 0.060
+# STOP_LOSS_PCT = -0.02             # 그대로 유지      :: -0.018 
 
 # 실전형  ==========================
 # TAKE_PROFIT_PCT = 0.02    # +2.0%
@@ -82,7 +84,7 @@ STRATEGY_CONFIG = {
     "watchlist": [],
 
     # 기본 진입 조건
-    "min_trade_strength": 120,
+    "min_trade_strength": 110,         # 120
     "min_price_change_pct": 0.3,
 
     # 거래량 조건
@@ -92,7 +94,7 @@ STRATEGY_CONFIG = {
 
     # 점수 필터
     "use_score_filter": True,
-    "min_entry_score": 62,
+    "min_entry_score": 58,      #  62
 
     # 강한 모멘텀 조건
     "strong_momentum_trade_strength": 140,
@@ -120,7 +122,6 @@ STRATEGY_CONFIG = {
     "require_price_above_recent_avg": True,
 
     # 포지션 / 재진입
-    "max_positions": 1,
     "entry_cooldown_sec": 30,
     "allow_reentry": False,
 }

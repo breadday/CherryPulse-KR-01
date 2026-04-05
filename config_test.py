@@ -15,8 +15,8 @@ ACCOUNT_PASSWORD = os.getenv("ACCOUNT_PASSWORD", "0000")
 # -------------------------
 # 실행 모드 (테스트)
 # -------------------------
-DRY_RUN = True
-LIVE_MODE = False
+DRY_RUN = True        # Ttue : 테스트 모드 , False : 실전모드
+LIVE_MODE = False  
 
 # -------------------------
 # 매도 전략
