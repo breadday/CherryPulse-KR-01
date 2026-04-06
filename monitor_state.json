@@ -1,8 +1,8 @@
 {
-  "started_at": "2026-04-05 17:22:42",
-  "last_line_at": "",
-  "total_lines": 0,
-  "total_errors": 0,
+  "started_at": "2026-04-06 23:00:01",
+  "last_line_at": "2026-04-06 23:07:59",
+  "total_lines": 40,
+  "total_errors": 10,
   "total_warnings": 0,
   "total_orders": 0,
   "total_trades": 0,
@@ -24,6 +24,6 @@
   "last_tick_symbol": "",
   "engine_protected": false,
   "active_trade_symbols": {},
-  "alerts_sent": 0,
-  "saved_at": "2026-04-05 17:23:03"
+  "alerts_sent": 6,
+  "saved_at": "2026-04-06 23:57:06"
 }
