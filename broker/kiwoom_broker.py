@@ -1,3 +1,5 @@
+# broker/kiwoom_broker.py
+
 from collections import defaultdict, deque
 from PyQt5.QtCore import QObject, QEventLoop
 from PyQt5.QAxContainer import QAxWidget
@@ -26,6 +28,8 @@ class KiwoomBroker(QObject):
         self.deposit_screen_no = "7000"
         self.balance_screen_no = "7100"
         self.pending_screen_no = "7200"
+        self.daily_screen_no = "7300"
+        self.investor_screen_no = "7400"
 
         self.on_real_tick_callback = None
         self.on_fill_callback = None
@@ -37,6 +41,14 @@ class KiwoomBroker(QObject):
 
         self._pending_orders_result = []
         self._pending_orders_password = ""
+
+        self._daily_candles_result = []
+        self._daily_candles_symbol = ""
+        self._daily_candles_target_count = 0
+        self._daily_candles_prev_next = "0"
+
+        self._investor_flow_result = {}
+        self._investor_flow_symbol = ""
 
         # -------------------------
         # TR 요청 속도 제한
@@ -307,6 +319,14 @@ class KiwoomBroker(QObject):
                 self._handle_opt10075(sTrCode, sRQName, sPrevNext)
                 return
 
+            if sRQName == "opt10081_req":
+                self._handle_opt10081(sTrCode, sRQName, sPrevNext)
+                return
+
+            if sRQName == "opt10060_req":
+                self._handle_opt10060(sTrCode, sRQName, sPrevNext)
+                return
+
         except Exception as e:
             self.logger.exception(f"TR 처리 오류 | rq={sRQName} tr={sTrCode} err={e}")
             if self.tr_loop and self.tr_loop.isRunning():
@@ -461,6 +481,114 @@ class KiwoomBroker(QObject):
         if self.tr_loop and self.tr_loop.isRunning():
             self.tr_loop.quit()
 
+    def _handle_opt10081(self, sTrCode: str, sRQName: str, sPrevNext: str):
+        count = self.ocx.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
+        target_count = max(1, int(self._daily_candles_target_count or 20))
+
+        self.logger.info(
+            f"opt10081 수신 | symbol={self._daily_candles_symbol} rows={count} | "
+            f"target_count={target_count} | sPrevNext={sPrevNext}"
+        )
+
+        existing_count = len(self._daily_candles_result)
+        remaining = max(0, target_count - existing_count)
+        rows_to_read = min(int(count), remaining)
+
+        for i in range(rows_to_read):
+            date = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "일자"
+            ).strip()
+            open_price = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "시가"
+            ).strip()
+            high_price = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "고가"
+            ).strip()
+            low_price = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "저가"
+            ).strip()
+            close_price = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "현재가"
+            ).strip()
+            volume = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "거래량"
+            ).strip()
+            trade_value = self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, i, "거래대금"
+            ).strip()
+
+            self._daily_candles_result.append(
+                {
+                    "date": date,
+                    "open": self._to_int(open_price),
+                    "high": self._to_int(high_price),
+                    "low": self._to_int(low_price),
+                    "close": self._to_int(close_price),
+                    "volume": self._to_int(volume),
+                    "trade_value": self._to_int(trade_value),
+                }
+            )
+
+        self._daily_candles_prev_next = str(sPrevNext).strip() or "0"
+
+        if len(self._daily_candles_result) >= target_count:
+            self.logger.info(
+                f"opt10081 목표 개수 충족 | symbol={self._daily_candles_symbol} "
+                f"collected={len(self._daily_candles_result)}"
+            )
+            if self.tr_loop and self.tr_loop.isRunning():
+                self.tr_loop.quit()
+            return
+
+        need_more = self._daily_candles_prev_next == "2"
+
+        if need_more:
+            self._request_daily_candles(
+                symbol=self._daily_candles_symbol,
+                count=self._daily_candles_target_count,
+                prev_next=2,
+            )
+            return
+
+        if self.tr_loop and self.tr_loop.isRunning():
+            self.tr_loop.quit()
+
+    def _handle_opt10060(self, sTrCode: str, sRQName: str, sPrevNext: str):
+        self.logger.info(f"opt10060 수신 | symbol={self._investor_flow_symbol} | sPrevNext={sPrevNext}")
+
+        def _get(item_name: str):
+            return self.ocx.dynamicCall(
+                "GetCommData(QString, QString, int, QString)",
+                sTrCode, sRQName, 0, item_name
+            ).strip()
+
+        self._investor_flow_result = {
+            "symbol": self._investor_flow_symbol,
+            "date": _get("일자"),
+            "current_price": self._to_int(_get("현재가")),
+            "trade_value": self._to_int(_get("누적거래대금")),
+            "individual": self._to_int(_get("개인투자자")),
+            "foreign": self._to_int(_get("외국인투자자")),
+            "institution": self._to_int(_get("기관계")),
+            "financial_investment": self._to_int(_get("금융투자")),
+            "insurance": self._to_int(_get("보험")),
+            "investment_trust": self._to_int(_get("투신")),
+            "pension": self._to_int(_get("연기금등")),
+            "private_fund": self._to_int(_get("사모펀드")),
+            "state": self._to_int(_get("국가")),
+            "corporate": self._to_int(_get("기타법인")),
+        }
+
+        if self.tr_loop and self.tr_loop.isRunning():
+            self.tr_loop.quit()
+
     # -------------------------
     # 계좌 조회
     # -------------------------
@@ -548,6 +676,68 @@ class KiwoomBroker(QObject):
             prev_next=int(prev_next),
             screen_no=self.pending_screen_no,
         )
+
+    def get_daily_candles(self, symbol: str, count: int = 20, base_date: str = ""):
+        self.logger.info(f"get_daily_candles 호출 | symbol={symbol} count={count} base_date={base_date}")
+
+        self._daily_candles_result = []
+        self._daily_candles_symbol = str(symbol).strip()
+        self._daily_candles_target_count = int(count)
+        self._daily_candles_prev_next = "0"
+
+        self._request_daily_candles(
+            symbol=self._daily_candles_symbol,
+            count=count,
+            prev_next=0,
+            base_date=base_date,
+        )
+
+        self.logger.info(
+            f"get_daily_candles 완료 | symbol={symbol} count={len(self._daily_candles_result)}"
+        )
+        return self._daily_candles_result[:count]
+
+    def _request_daily_candles(self, symbol: str, count: int, prev_next: int = 0, base_date: str = ""):
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "종목코드", str(symbol))
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "기준일자", str(base_date or ""))
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "수정주가구분", "1")
+
+        self.tr_loop = QEventLoop()
+        self._comm_rq_data_with_retry(
+            rqname="opt10081_req",
+            trcode="opt10081",
+            prev_next=int(prev_next),
+            screen_no=self.daily_screen_no,
+        )
+        self.tr_loop.exec_()
+
+    def get_investor_flow(self, symbol: str, date_yyyymmdd: str):
+        self.logger.info(f"get_investor_flow 호출 | symbol={symbol} date={date_yyyymmdd}")
+
+        self._investor_flow_symbol = str(symbol).strip()
+        self._investor_flow_result = {}
+
+        self.tr_loop = QEventLoop()
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "일자", str(date_yyyymmdd))
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "종목코드", str(symbol))
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "금액수량구분", "1")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "매매구분", "0")
+        self.ocx.dynamicCall("SetInputValue(QString, QString)", "단위구분", "1")
+
+        self._comm_rq_data_with_retry(
+            rqname="opt10060_req",
+            trcode="opt10060",
+            prev_next=0,
+            screen_no=self.investor_screen_no,
+        )
+        self.tr_loop.exec_()
+
+        self.logger.info(
+            f"get_investor_flow 완료 | symbol={symbol} "
+            f"foreign={self._investor_flow_result.get('foreign', 0)} "
+            f"institution={self._investor_flow_result.get('institution', 0)}"
+        )
+        return self._investor_flow_result.copy()
 
     def _parse_order_side(self, order_gubun: str):
         text = str(order_gubun).strip().replace("+", "").replace("-", "")

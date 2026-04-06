@@ -125,3 +125,13 @@ STRATEGY_CONFIG = {
     "entry_cooldown_sec": 30,
     "allow_reentry": False,
 }
+
+# =========================
+# 오전 7시 종목 선정 연동
+# =========================
+SELECTED_STOCKS_FILE = "selected_stocks.json"
+SELECTION_CANDIDATES_FILE = "selection_candidates.json"
+SELECTION_UNIVERSE_FILE = "selection_universe.json"
+SELECTION_NEWS_OVERRIDES_FILE = "selection_news_overrides.json"
+DEFAULT_FALLBACK_SYMBOLS = ["005930", "000660"]
+SELECTION_TOP_N = 3
