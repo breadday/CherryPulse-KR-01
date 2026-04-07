@@ -51,6 +51,23 @@ class KiwoomBroker(QObject):
         self._investor_flow_symbol = ""
 
         # -------------------------
+        # 조건검색
+        # -------------------------
+        self.condition_screen_no = "7500"
+        self.condition_loop = None
+        self._condition_loaded = False
+        self._condition_list = []
+        self._condition_name_to_index = {}
+        self._condition_result_codes = []
+        self._condition_target_name = ""
+        self._condition_active_name = ""
+        self._condition_active_index = -1
+        self.registered_real_codes = set()
+
+        self.on_condition_initial_callback = None
+        self.on_condition_realtime_callback = None
+
+        # -------------------------
         # TR 요청 속도 제한
         # -------------------------
         self.tr_interval_sec = 0.7
@@ -89,6 +106,9 @@ class KiwoomBroker(QObject):
         self.ocx.OnReceiveChejanData.connect(self._on_receive_chejan_data)
         self.ocx.OnReceiveMsg.connect(self._on_receive_msg)
         self.ocx.OnReceiveTrData.connect(self._on_receive_tr_data)
+        self.ocx.OnReceiveConditionVer.connect(self._on_receive_condition_ver)
+        self.ocx.OnReceiveTrCondition.connect(self._on_receive_tr_condition)
+        self.ocx.OnReceiveRealCondition.connect(self._on_receive_real_condition)
 
     # -------------------------
     # TR 속도 제한 대기
@@ -760,36 +780,6 @@ class KiwoomBroker(QObject):
     # -------------------------
     # 실시간
     # -------------------------
-    def register_real(self, codes):
-        code_str = ";".join(codes)
-
-        # 10: 현재가
-        # 12: 등락율
-        # 13: 누적거래량
-        # 15: 거래량(체결량 계열)
-        # 16: 시가
-        # 17: 고가
-        # 18: 저가
-        # 228: 체결강도
-        fid_list = "10;12;13;15;16;17;18;228"
-
-        ret = self.ocx.dynamicCall(
-            "SetRealReg(QString, QString, QString, QString)",
-            self.real_screen_no,
-            code_str,
-            fid_list,
-            "0"
-        )
-
-        self.logger.info(f"실시간 등록 | codes={code_str} fids={fid_list} ret={ret}")
-
-    def remove_real(self, code="ALL"):
-        self.ocx.dynamicCall(
-            "SetRealRemove(QString, QString)",
-            self.real_screen_no,
-            code
-        )
-
     def _avg(self, values):
         if not values:
             return 0.0
@@ -1078,6 +1068,258 @@ class KiwoomBroker(QObject):
         if self.on_msg_callback:
             self.on_msg_callback(msg)
 
+
+    # -------------------------
+    # 조건검색
+    # -------------------------
+    def load_condition_list(self):
+        self.logger.info("조건검색 목록 로드 시작")
+        self._condition_loaded = False
+        self._condition_list = []
+        self._condition_name_to_index = {}
+        self.condition_loop = QEventLoop()
+
+        ret = self.ocx.dynamicCall("GetConditionLoad()")
+        self.logger.info(f"GetConditionLoad 호출 | ret={ret}")
+
+        if ret != 1:
+            self.condition_loop = None
+            raise RuntimeError(f"GetConditionLoad 실패 | ret={ret}")
+
+        self.condition_loop.exec_()
+
+        if not self._condition_loaded:
+            raise RuntimeError("조건검색 목록 로드 실패")
+
+        self.logger.info(f"조건검색 목록 로드 완료 | count={len(self._condition_list)}")
+        return list(self._condition_list)
+
+    def get_condition_list(self):
+        return list(self._condition_list)
+
+    def send_condition_by_name(self, condition_name: str, search: int = 1):
+        target_name = str(condition_name).strip()
+        if not target_name:
+            raise ValueError("condition_name 이 비어 있습니다.")
+
+        if not self._condition_loaded:
+            self.load_condition_list()
+
+        if target_name not in self._condition_name_to_index:
+            names = ", ".join(name for _, name in self._condition_list)
+            raise RuntimeError(
+                f"조건식 미존재 | target={target_name} available=[{names}]"
+            )
+
+        index = int(self._condition_name_to_index[target_name])
+        self._condition_target_name = target_name
+        self._condition_result_codes = []
+        self.condition_loop = QEventLoop()
+
+        ret = self.ocx.dynamicCall(
+            "SendCondition(QString, QString, int, int)",
+            self.condition_screen_no,
+            target_name,
+            index,
+            int(search),
+        )
+        self.logger.info(
+            f"SendCondition 호출 | screen={self.condition_screen_no} name={target_name} "
+            f"index={index} search={search} ret={ret}"
+        )
+
+        if ret != 1:
+            self.condition_loop = None
+            raise RuntimeError(
+                f"SendCondition 실패 | condition_name={target_name} index={index} ret={ret}"
+            )
+
+        self.condition_loop.exec_()
+
+        self._condition_active_name = target_name
+        self._condition_active_index = index
+
+        codes = list(self._condition_result_codes)
+        self.logger.info(
+            f"조건검색 초기 결과 수신 완료 | name={target_name} count={len(codes)}"
+        )
+        return codes
+
+    def stop_condition(self, condition_name: str = ""):
+        target_name = str(condition_name or self._condition_active_name).strip()
+        if not target_name:
+            return
+
+        index = self._condition_name_to_index.get(target_name, self._condition_active_index)
+        if index is None or int(index) < 0:
+            return
+
+        self.ocx.dynamicCall(
+            "SendConditionStop(QString, QString, int)",
+            self.condition_screen_no,
+            target_name,
+            int(index),
+        )
+        self.logger.info(
+            f"SendConditionStop 호출 | screen={self.condition_screen_no} "
+            f"name={target_name} index={index}"
+        )
+
+    def register_real(self, codes):
+        clean_codes = []
+        for code in codes or []:
+            c = self._clean_code(code)
+            if c:
+                clean_codes.append(c)
+
+        self.registered_real_codes = set(clean_codes)
+        self._apply_real_registration()
+
+    def register_real_add(self, code: str):
+        clean_code = self._clean_code(code)
+        if not clean_code:
+            return
+
+        if clean_code in self.registered_real_codes:
+            return
+
+        self.registered_real_codes.add(clean_code)
+        self._apply_real_registration()
+
+    def register_real_remove(self, code: str):
+        clean_code = self._clean_code(code)
+        if not clean_code:
+            return
+
+        if clean_code not in self.registered_real_codes:
+            return
+
+        self.registered_real_codes.remove(clean_code)
+        self._apply_real_registration()
+
+    def remove_real(self, code="ALL"):
+        if code == "ALL":
+            self.registered_real_codes = set()
+
+        self.ocx.dynamicCall(
+            "SetRealRemove(QString, QString)",
+            self.real_screen_no,
+            code
+        )
+
+    def _apply_real_registration(self):
+        self.ocx.dynamicCall(
+            "SetRealRemove(QString, QString)",
+            self.real_screen_no,
+            "ALL"
+        )
+
+        if not self.registered_real_codes:
+            self.logger.info("실시간 등록 해제 | codes=(empty)")
+            return
+
+        code_str = ";".join(sorted(self.registered_real_codes))
+
+        # 10: 현재가
+        # 12: 등락율
+        # 13: 누적거래량
+        # 15: 거래량(체결량 계열)
+        # 16: 시가
+        # 17: 고가
+        # 18: 저가
+        # 228: 체결강도
+        fid_list = "10;12;13;15;16;17;18;228"
+
+        ret = self.ocx.dynamicCall(
+            "SetRealReg(QString, QString, QString, QString)",
+            self.real_screen_no,
+            code_str,
+            fid_list,
+            "0"
+        )
+
+        self.logger.info(
+            f"실시간 등록 | codes={code_str} fids={fid_list} ret={ret}"
+        )
+
+    def _on_receive_condition_ver(self, ret, msg):
+        self.logger.info(f"OnReceiveConditionVer | ret={ret} msg={msg}")
+
+        try:
+            if int(ret) != 1:
+                self._condition_loaded = False
+                return
+
+            raw = self.ocx.dynamicCall("GetConditionNameList()")
+            items = []
+            name_to_index = {}
+
+            for part in str(raw).split(";"):
+                part = part.strip()
+                if not part:
+                    continue
+                if "^" not in part:
+                    continue
+
+                idx_str, name = part.split("^", 1)
+                idx = int(str(idx_str).strip())
+                cond_name = str(name).strip()
+
+                items.append((idx, cond_name))
+                name_to_index[cond_name] = idx
+
+            self._condition_list = items
+            self._condition_name_to_index = name_to_index
+            self._condition_loaded = True
+        except Exception as e:
+            self._condition_loaded = False
+            self.logger.exception(f"조건검색 목록 처리 오류 | err={e}")
+        finally:
+            if self.condition_loop and self.condition_loop.isRunning():
+                self.condition_loop.exit()
+                self.condition_loop = None
+
+    def _on_receive_tr_condition(self, screen_no, code_list, condition_name, index, next_):
+        codes = []
+        for code in str(code_list).split(";"):
+            clean_code = self._clean_code(code)
+            if clean_code:
+                codes.append(clean_code)
+
+        self._condition_result_codes = codes
+        self.logger.info(
+            f"OnReceiveTrCondition | screen={screen_no} name={condition_name} "
+            f"index={index} count={len(codes)} next={next_}"
+        )
+
+        if callable(self.on_condition_initial_callback):
+            try:
+                self.on_condition_initial_callback(condition_name, list(codes))
+            except Exception as e:
+                self.logger.exception(f"조건검색 초기 콜백 오류 | err={e}")
+
+        if self.condition_loop and self.condition_loop.isRunning():
+            self.condition_loop.exit()
+            self.condition_loop = None
+
+    def _on_receive_real_condition(self, code, event_type, condition_name, condition_index):
+        clean_code = self._clean_code(code)
+        ev = str(event_type).strip()
+        self.logger.info(
+            f"OnReceiveRealCondition | code={clean_code} event={ev} "
+            f"name={condition_name} index={condition_index}"
+        )
+
+        if callable(self.on_condition_realtime_callback):
+            try:
+                self.on_condition_realtime_callback(
+                    clean_code,
+                    ev,
+                    str(condition_name).strip(),
+                    int(condition_index),
+                )
+            except Exception as e:
+                self.logger.exception(f"조건검색 실시간 콜백 오류 | err={e}")
     # -------------------------
     # 콜백 등록
     # -------------------------
@@ -1090,12 +1332,23 @@ class KiwoomBroker(QObject):
     def set_msg_callback(self, cb):
         self.on_msg_callback = cb
 
+    def set_condition_initial_callback(self, cb):
+        self.on_condition_initial_callback = cb
+
+    def set_condition_realtime_callback(self, cb):
+        self.on_condition_realtime_callback = cb
+
     # -------------------------
     # 종료
     # -------------------------
     def shutdown(self):
         self.logger.info("브로커 종료 시작")
         self.is_shutting_down = True
+
+        try:
+            self.stop_condition()
+        except Exception:
+            pass
 
         try:
             self.remove_real("ALL")
@@ -1111,6 +1364,12 @@ class KiwoomBroker(QObject):
         try:
             if self.tr_loop and self.tr_loop.isRunning():
                 self.tr_loop.quit()
+        except Exception:
+            pass
+
+        try:
+            if self.condition_loop and self.condition_loop.isRunning():
+                self.condition_loop.quit()
         except Exception:
             pass
 

@@ -1,91 +1,39 @@
+# -*- coding: utf-8 -*-
 # main_live.py
+"""
+주도주_스나이퍼 조건검색 편입 종목만 자동 매수하도록 만든 실행 파일.
+- 고정 종목 subscribe 제거
+- 실시간 조건검색 편입(I) 종목만 엔진에 전달
+- 조건 이탈(D) 종목은 신규 진입만 차단하고,
+  이미 보유 중인 종목은 청산 관리를 위해 틱을 계속 전달
+- LIVE 모드에서 3초 뒤 테스트 주문 넣던 로직 제거
+"""
 
-import sys
 import os
 import signal
+import sys
 import time
 from datetime import datetime
 
-from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer
-
-from broker.kiwoom_broker import KiwoomBroker
-from data.market_stream import MarketStream
-from engine import TradingEngine
-from strategy.momentum_intraday import MomentumIntradayStrategy
-from utils.logger import setup_logger
-from core.models import Signal, Side, OrderType
+from PyQt5.QtWidgets import QApplication
 
 import config_live as config
-from config_live import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, STRATEGY_CONFIG, ACCOUNT_PASSWORD
+from broker.kiwoom_broker import KiwoomBroker
+from core.models import Side
+from engine import TradingEngine
 from infra.telegram_notifier import TelegramNotifier
+from strategy.momentum_intraday import MomentumIntradayStrategy
 from test_force_exit_helper import force_close_all_positions
+from utils.logger import setup_logger
+from config_live import (
+    ACCOUNT_PASSWORD,
+    STRATEGY_CONFIG,
+    TELEGRAM_CHAT_ID,
+    TELEGRAM_TOKEN,
+)
 
-
-# -------------------------
-# 테스트 케이스 선택
-# -------------------------
-TEST_NAME = "case1_profit_only"
-#TEST_NAME = "case2_stoploss_only"
-#TEST_NAME = "case3_fake_breakout"
-#TEST_NAME = "case4_rise_pullback_rise"
-#TEST_NAME = "case5_overheat_spike"
-
-TEST_CASES = {
-    # CASE 1: 순수 상승 → 익절 확인용
-    "case1_profit_only": [
-        {"symbol": "005930", "price": 70000, "trade_volume": 1000, "price_change_pct": 0.8, "trade_strength": 130.0, "volume_ratio": 1.00, "news_score": 0.5, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 70500, "trade_volume": 1500, "price_change_pct": 1.2, "trade_strength": 150.0, "volume_ratio": 1.20, "news_score": 1.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 71000, "trade_volume": 1800, "price_change_pct": 1.6, "trade_strength": 170.0, "volume_ratio": 1.40, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 71500, "trade_volume": 2000, "price_change_pct": 2.0, "trade_strength": 180.0, "volume_ratio": 1.60, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 72500, "trade_volume": 2200, "price_change_pct": 2.5, "trade_strength": 185.0, "volume_ratio": 1.80, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 73500, "trade_volume": 2500, "price_change_pct": 3.5, "trade_strength": 190.0, "volume_ratio": 2.00, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 74500, "trade_volume": 2700, "price_change_pct": 4.5, "trade_strength": 195.0, "volume_ratio": 2.20, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-    ],
-
-    # CASE 2: 순수 하락 → 손절 확인용
-    "case2_stoploss_only": [
-        {"symbol": "000660", "price": 120000, "trade_volume": 1100, "price_change_pct": 0.9, "trade_strength": 135.0, "volume_ratio": 1.00, "news_score": 0.5, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "000660", "price": 121500, "trade_volume": 1500, "price_change_pct": 1.2, "trade_strength": 150.0, "volume_ratio": 1.18, "news_score": 1.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "000660", "price": 122800, "trade_volume": 1800, "price_change_pct": 1.5, "trade_strength": 168.0, "volume_ratio": 1.32, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "000660", "price": 123500, "trade_volume": 2100, "price_change_pct": 1.8, "trade_strength": 178.0, "volume_ratio": 1.48, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "000660", "price": 124000, "trade_volume": 2300, "price_change_pct": 2.0, "trade_strength": 185.0, "volume_ratio": 1.62, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "000660", "price": 119500, "trade_volume": 2700, "price_change_pct": -1.2, "trade_strength": 85.0, "volume_ratio": 1.10, "news_score": 0.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "000660", "price": 118500, "trade_volume": 2900, "price_change_pct": -2.0, "trade_strength": 82.0, "volume_ratio": 1.20, "news_score": 0.0, "theme_score": 0.0, "leader_score": 0.0},
-    ],
-
-    # CASE 3: 상승 후 급반락 → 가짜 돌파
-    "case3_fake_breakout": [
-        {"symbol": "005930", "price": 70000, "trade_volume": 1000, "price_change_pct": 0.8, "trade_strength": 130.0, "volume_ratio": 1.00, "news_score": 0.5, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 70500, "trade_volume": 1500, "price_change_pct": 1.2, "trade_strength": 150.0, "volume_ratio": 1.20, "news_score": 1.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 71000, "trade_volume": 1800, "price_change_pct": 1.6, "trade_strength": 170.0, "volume_ratio": 1.40, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 71500, "trade_volume": 2000, "price_change_pct": 2.0, "trade_strength": 180.0, "volume_ratio": 1.60, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 71800, "trade_volume": 2100, "price_change_pct": 2.2, "trade_strength": 183.0, "volume_ratio": 1.70, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 70000, "trade_volume": 2800, "price_change_pct": -0.5, "trade_strength": 90.0, "volume_ratio": 1.20, "news_score": 0.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 69500, "trade_volume": 3000, "price_change_pct": -1.2, "trade_strength": 82.0, "volume_ratio": 1.25, "news_score": 0.0, "theme_score": 0.0, "leader_score": 0.0},
-    ],
-
-    # CASE 4: 상승 → 횡보 → 재상승
-    "case4_rise_pullback_rise": [
-        {"symbol": "005930", "price": 70000, "trade_volume": 1000, "price_change_pct": 0.8, "trade_strength": 130.0, "volume_ratio": 1.00, "news_score": 0.5, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 70400, "trade_volume": 1350, "price_change_pct": 1.0, "trade_strength": 145.0, "volume_ratio": 1.15, "news_score": 1.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 70900, "trade_volume": 1650, "price_change_pct": 1.4, "trade_strength": 160.0, "volume_ratio": 1.28, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 71300, "trade_volume": 1900, "price_change_pct": 1.8, "trade_strength": 176.0, "volume_ratio": 1.45, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 71200, "trade_volume": 1800, "price_change_pct": 1.7, "trade_strength": 150.0, "volume_ratio": 1.20, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 71400, "trade_volume": 1850, "price_change_pct": 1.9, "trade_strength": 158.0, "volume_ratio": 1.22, "news_score": 1.5, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 72500, "trade_volume": 2400, "price_change_pct": 2.8, "trade_strength": 188.0, "volume_ratio": 1.85, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 73500, "trade_volume": 2600, "price_change_pct": 3.6, "trade_strength": 193.0, "volume_ratio": 2.00, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-    ],
-
-    # CASE 5: 이미 과열 급등 → 추격 방지 테스트
-    "case5_overheat_spike": [
-        {"symbol": "005930", "price": 70000, "trade_volume": 1000, "price_change_pct": 0.8, "trade_strength": 130.0, "volume_ratio": 1.00, "news_score": 0.5, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 72000, "trade_volume": 2200, "price_change_pct": 3.0, "trade_strength": 185.0, "volume_ratio": 1.80, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 73800, "trade_volume": 2600, "price_change_pct": 5.0, "trade_strength": 195.0, "volume_ratio": 2.20, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 75000, "trade_volume": 3000, "price_change_pct": 7.0, "trade_strength": 205.0, "volume_ratio": 2.50, "news_score": 2.0, "theme_score": 0.0, "leader_score": 0.0},
-        {"symbol": "005930", "price": 74200, "trade_volume": 2800, "price_change_pct": 5.9, "trade_strength": 150.0, "volume_ratio": 1.90, "news_score": 1.0, "theme_score": 0.0, "leader_score": 0.0},
-    ],
-}
+CONDITION_NAME = "주도주_스나이퍼"
 
 
 def is_market_open():
@@ -95,12 +43,39 @@ def is_market_open():
     return market_open <= now <= market_close
 
 
+def _safe_has_position(engine: TradingEngine, symbol: str) -> bool:
+    try:
+        pos = engine.portfolio.get_position(symbol)
+        qty = float(getattr(pos, "qty", 0) or 0)
+        return qty > 0
+    except Exception:
+        return False
+
+
+def _safe_has_open_order(engine: TradingEngine, symbol: str) -> bool:
+    try:
+        order = engine.order_manager.get_open_order_by_symbol(symbol)
+        if order is None:
+            return False
+
+        remain = getattr(order, "unfilled_qty", None)
+        qty = getattr(order, "qty", 0)
+        filled_qty = getattr(order, "filled_qty", 0)
+
+        if remain is not None:
+            return float(remain or 0) > 0
+
+        return float(qty or 0) > float(filled_qty or 0)
+    except Exception:
+        return False
+
+
 def main():
     app = QApplication(sys.argv)
 
     logger = setup_logger("CherryPulse-Live")
     logger.info("프로그램 시작")
-    logger.info(f"선택된 테스트 케이스 | TEST_NAME={TEST_NAME}")
+    logger.info(f"조건검색 기반 실행 | condition_name={CONDITION_NAME}")
 
     telegram = None
     if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
@@ -109,7 +84,6 @@ def main():
             chat_id=TELEGRAM_CHAT_ID,
             logger=logger,
         )
-
         try:
             telegram.debug_identity()
         except Exception as e:
@@ -139,7 +113,7 @@ def main():
 
     broker = KiwoomBroker(
         logger=logger,
-        account_no="8122731511"
+        account_no="8122731511",
     )
 
     strategy = MomentumIntradayStrategy(config=STRATEGY_CONFIG)
@@ -149,14 +123,114 @@ def main():
         strategy,
         logger,
         telegram=telegram,
-        test_name=TEST_NAME,
+        test_name=CONDITION_NAME,
     )
 
-    stream = MarketStream(broker, logger)
-
     shutting_down = {"flag": False}
+    active_condition_codes = set()
+    ever_seen_codes = set()
+    dropped_codes = set()
 
-    def shutdown(*args):
+    def should_route_tick(symbol: str) -> bool:
+        if symbol in active_condition_codes:
+            return True
+        if _safe_has_position(engine, symbol):
+            return True
+        if _safe_has_open_order(engine, symbol):
+            return True
+        return False
+
+    def on_filtered_real_tick(raw_tick: dict):
+        symbol = str(raw_tick.get("symbol", "")).strip()
+        if not symbol:
+            return
+
+        if not should_route_tick(symbol):
+            return
+
+        try:
+            engine.on_real_tick(raw_tick)
+        except Exception as e:
+            logger.exception(f"조건필터 틱 처리 실패 | symbol={symbol} err={e}")
+
+    def subscribe_initial_condition(condition_name: str, codes: list[str]):
+        clean_codes = sorted({str(x).strip() for x in codes if str(x).strip()})
+        active_condition_codes.clear()
+        active_condition_codes.update(clean_codes)
+        ever_seen_codes.update(clean_codes)
+
+        broker.register_real(clean_codes)
+
+        logger.info(
+            f"조건검색 초기 편입 반영 | name={condition_name} count={len(clean_codes)} "
+            f"codes={','.join(clean_codes) if clean_codes else '(empty)'}"
+        )
+
+        if telegram:
+            try:
+                telegram.send(
+                    f"🎯 조건검색 초기 편입\n"
+                    f"조건식: {condition_name}\n"
+                    f"종목수: {len(clean_codes)}\n"
+                    f"종목: {', '.join(clean_codes[:20]) if clean_codes else '(없음)'}"
+                )
+            except Exception as e:
+                logger.warning(f"텔레그램 초기 편입 전송 실패 | {e}")
+
+    def on_condition_realtime(code: str, event_type: str, condition_name: str, condition_index: int):
+        symbol = str(code).strip()
+        event = str(event_type).strip()
+
+        if not symbol:
+            return
+
+        if event == "I":
+            active_condition_codes.add(symbol)
+            ever_seen_codes.add(symbol)
+            dropped_codes.discard(symbol)
+            broker.register_real_add(symbol)
+
+            logger.info(
+                f"조건검색 편입 | name={condition_name} index={condition_index} symbol={symbol} "
+                f"active_count={len(active_condition_codes)}"
+            )
+
+            if telegram:
+                try:
+                    telegram.send(
+                        f"✅ 조건 편입\n"
+                        f"조건식: {condition_name}\n"
+                        f"종목: {symbol}"
+                    )
+                except Exception as e:
+                    logger.warning(f"텔레그램 편입 전송 실패 | {e}")
+
+            return
+
+        if event == "D":
+            active_condition_codes.discard(symbol)
+            dropped_codes.add(symbol)
+
+            logger.info(
+                f"조건검색 이탈 | name={condition_name} index={condition_index} symbol={symbol} "
+                f"active_count={len(active_condition_codes)}"
+            )
+
+            # 이미 보유/미체결이면 실시간은 유지
+            if not _safe_has_position(engine, symbol) and not _safe_has_open_order(engine, symbol):
+                broker.register_real_remove(symbol)
+
+            if telegram:
+                try:
+                    telegram.send(
+                        f"⚪ 조건 이탈\n"
+                        f"조건식: {condition_name}\n"
+                        f"종목: {symbol}"
+                    )
+                except Exception as e:
+                    logger.warning(f"텔레그램 이탈 전송 실패 | {e}")
+
+    def shutdown(*_args):
         if shutting_down["flag"]:
             return
         shutting_down["flag"] = True
@@ -164,11 +238,16 @@ def main():
         logger.info("종료 신호 수신")
 
         try:
+            broker.stop_condition(CONDITION_NAME)
+        except Exception as e:
+            logger.warning(f"조건검색 중지 실패 | {e}")
+
+        try:
             if config.DRY_RUN:
                 closed_count = force_close_all_positions(
                     engine,
                     logger=logger,
-                    reason="TEST_FORCE_EXIT"
+                    reason="TEST_FORCE_EXIT",
                 )
                 logger.info(f"종료 전 테스트 강제청산 완료 | closed_count={closed_count}")
                 time.sleep(0.5)
@@ -176,15 +255,10 @@ def main():
             logger.warning(f"종료 전 테스트 강제청산 실패 | {e}")
 
         try:
-            stream.unsubscribe_all()
+            broker.remove_real("ALL")
             logger.info("실시간 구독 해제 완료")
         except Exception as e:
             logger.warning(f"실시간 구독 해제 실패 | {e}")
-
-        try:
-            engine._send_daily_summary(reason="shutdown")
-        except Exception as e:
-            logger.warning(f"종료 전 일일요약 실패 | {e}")
 
         try:
             engine.stop()
@@ -193,115 +267,12 @@ def main():
 
         logger.info("프로그램 종료")
         if telegram:
-            telegram.send("🛑 자동매매 종료")
+            try:
+                telegram.send("🛑 자동매매 종료")
+            except Exception:
+                pass
 
         os._exit(0)
-
-    def inject_test_ticks():
-        if shutting_down["flag"]:
-            return
-
-        if not config.DRY_RUN:
-            logger.info("LIVE 모드에서는 테스트 틱 주입 안 함")
-            return
-
-        logger.info("🧪 DRY_RUN 테스트 틱 주입 시작")
-
-        test_ticks = TEST_CASES.get(TEST_NAME, TEST_CASES["case1_profit_only"])
-        interval_ms = 1000
-
-        def finalize_test():
-            try:
-                logger.info("🧪 테스트 종료 전 강제청산 시작")
-                closed_count = force_close_all_positions(
-                    engine,
-                    logger=logger,
-                    reason="TEST_FORCE_EXIT"
-                )
-                logger.info(f"🧪 테스트 종료 전 강제청산 완료 | closed_count={closed_count}")
-            except Exception as e:
-                logger.exception(f"테스트 종료 전 강제청산 실패 | {e}")
-
-        def push_tick(index: int):
-            if shutting_down["flag"]:
-                return
-
-            if index >= len(test_ticks):
-                logger.info("🧪 DRY_RUN 테스트 틱 주입 종료")
-                QTimer.singleShot(interval_ms, finalize_test)
-                return
-
-            tick = test_ticks[index]
-            logger.info(
-                f"🧪 테스트틱 주입 | case={TEST_NAME} symbol={tick['symbol']} "
-                f"price={tick['price']} vol={tick['trade_volume']} "
-                f"chg={tick.get('price_change_pct', 0.0)} "
-                f"strength={tick.get('trade_strength', 0.0)} "
-                f"vr={tick.get('volume_ratio', 0.0)}"
-            )
-
-            try:
-                engine.on_real_tick(tick)
-            except Exception as e:
-                logger.exception(f"테스트틱 처리 실패 | idx={index} err={e}")
-                return
-
-            QTimer.singleShot(interval_ms, lambda: push_tick(index + 1))
-
-        push_tick(0)
-
-    def test_order():
-        if shutting_down["flag"]:
-            return
-
-        if not config.DRY_RUN and not is_market_open():
-            logger.info("장 외 시간 → 주문 스킵")
-            return
-
-        if config.DRY_RUN and not is_market_open():
-            logger.info("DRY_RUN 장외 테스트 허용 | 테스트 주문 진행")
-
-        logger.info("🔥 테스트 주문 실행")
-
-        signal_obj = Signal(
-            symbol="005930",
-            side=Side.BUY,
-            qty=1,
-            price=0,
-            order_type=OrderType.MARKET,
-            reason="1주 테스트 매수"
-        )
-
-        if telegram:
-            telegram.send("🔥 테스트 주문 실행")
-
-        order = broker.place_order(signal_obj)
-
-        logger.info(
-            f"테스트 주문 결과 | order_id={order.order_id} status={order.status}"
-        )
-
-        if telegram:
-            if hasattr(telegram, "send_order_event"):
-                telegram.send_order_event(
-                    event="📈 주문 발생",
-                    symbol=signal_obj.symbol,
-                    side="BUY",
-                    qty=signal_obj.qty,
-                    price=0,
-                    status=str(order.status),
-                    reason=signal_obj.reason,
-                )
-            else:
-                telegram.send(
-                    f"📈 주문 발생\n"
-                    f"종목: {telegram.format_symbol(signal_obj.symbol) if hasattr(telegram, 'format_symbol') else signal_obj.symbol}\n"
-                    f"방향: BUY\n"
-                    f"수량: {signal_obj.qty}\n"
-                    f"가격: 0\n"
-                    f"상태: {order.status}\n"
-                    f"사유: {signal_obj.reason}"
-                )
 
     def auto_shutdown():
         if shutting_down["flag"]:
@@ -317,6 +288,32 @@ def main():
             logger.info("🛑 장 종료 시간 도달 → 자동 종료")
             shutdown()
 
+    def start_condition_search():
+        if shutting_down["flag"]:
+            return
+
+        try:
+            broker.load_condition_list()
+            codes = broker.send_condition_by_name(CONDITION_NAME, search=1)
+            subscribe_initial_condition(CONDITION_NAME, codes)
+        except Exception as e:
+            logger.exception(f"조건검색 시작 실패 | condition_name={CONDITION_NAME} err={e}")
+            if telegram:
+                try:
+                    telegram.send(
+                        f"🚨 조건검색 시작 실패\n"
+                        f"조건식: {CONDITION_NAME}\n"
+                        f"에러: {e}"
+                    )
+                except Exception:
+                    pass
+
+    # 콜백 연결
+    broker.set_condition_initial_callback(subscribe_initial_condition)
+    broker.set_condition_realtime_callback(on_condition_realtime)
+
+    # engine.start()가 broker real tick callback을 engine.on_real_tick으로 설정하므로,
+    # 엔진 시작 후 조건필터 래퍼로 한 번 더 덮어쓴다.
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
@@ -333,10 +330,10 @@ def main():
     order_manage_timer.timeout.connect(engine.manage_pending_orders)
 
     engine.start()
+    broker.set_real_tick_callback(on_filtered_real_tick)
 
     broker.show_account_window()
     logger.info("계좌비밀번호 창에서 저장 후 사용하세요.")
-
     logger.info("계좌 동기화 시작")
 
     time.sleep(1.5)
@@ -345,25 +342,15 @@ def main():
     time.sleep(1.0)
     engine.sync_pending_orders(password=ACCOUNT_PASSWORD)
 
-    try:
-        engine._send_risk_status(reason="main_startup_check")
-    except Exception as e:
-        logger.warning(f"시작 리스크 상태 전송 실패 | {e}")
+    engine.health_check()
 
-    # engine.health_check()
+    # 기존 main_live의 고정종목 subscribe / 실전 테스트주문은 제거하고
+    # 조건검색 기반 구독만 시작한다.
+    QTimer.singleShot(1000, start_condition_search)
 
-    stream.subscribe(["005930", "000660"])
-
-    if config.DRY_RUN:
-        QTimer.singleShot(3000, inject_test_ticks)
-    else:
-        QTimer.singleShot(3000, test_order)
-
-    logger.info("실시간 엔진 시작")
-
+    logger.info("실시간 엔진 시작 | mode=condition_only")
     sys.exit(app.exec_())
 
 
 if __name__ == "__main__":
     main()
-
