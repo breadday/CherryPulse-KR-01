@@ -287,6 +287,14 @@ class KiwoomBroker(QObject):
         self.logger.info("계좌비밀번호 입력창 호출")
         self.ocx.dynamicCall('KOA_Functions(QString, QString)', "ShowAccountWindow", "")
 
+
+    def get_code_name(self, code: str) -> str:
+        try:
+            name = self.ocx.dynamicCall("GetMasterCodeName(QString)", str(code).strip())
+            return str(name).strip()
+        except Exception:
+            return ""
+
     def _on_event_connect(self, err_code):
         self.logger.info(f"OnEventConnect 호출 | err_code={err_code}")
 
