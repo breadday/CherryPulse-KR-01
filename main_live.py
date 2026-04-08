@@ -1,25 +1,14 @@
 # -*- coding: utf-8 -*-
 # main_live.py
-"""
-조건검색 + 주도주_스나이퍼 최적화 버전
-
-핵심 포인트
-- 고정 종목 subscribe 제거
-- 주도주_스나이퍼 조건검색 편입(I) 종목만 신규 진입 대상으로 사용
-- 조건 이탈(D) 종목은 신규 진입만 차단하고,
-  이미 보유/미체결인 종목은 청산 관리를 위해 틱을 계속 전달
-- test_force_exit_helper.py 가 없어도 실행되도록 안전 fallback 제공
-- 장 시작 전 너무 이른 조건검색 호출을 피하기 위해 시작 시각 예약 기능 추가
-- 조건검색 초기 결과가 비어도 자동 재시도
-"""
-
 from __future__ import annotations
 
+import json
 import os
 import signal
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Iterable
 
 from PyQt5.QtCore import QTimer
@@ -54,11 +43,10 @@ CONDITION_SEARCH_START_HHMM = "08:50"
 AUTO_SHUTDOWN_HHMM = "15:20"
 CONDITION_RETRY_MS = 60_000
 MAX_TELEGRAM_SYMBOLS = 20
+SNAPSHOT_FILE = "condition_snapshot.json"
 
 
-class ConditionUniverse:
-    """조건검색 편입 종목 집합 관리"""
-
+class CodeUniverse:
     def __init__(self):
         self.active_codes: set[str] = set()
 
@@ -105,16 +93,18 @@ class MainLiveApp:
 
         self.shutting_down = False
         self.condition_started = False
-        self.condition_universe = ConditionUniverse()
+
+        self.snapshot_universe = CodeUniverse()
+        self.condition_universe = CodeUniverse()
 
         self.heartbeat = QTimer()
         self.shutdown_timer = QTimer()
         self.order_manage_timer = QTimer()
         self.condition_timer = QTimer()
 
-    # --------------------------------------------------
-    # 기본 유틸
-    # --------------------------------------------------
+        self.snapshot_path = Path(__file__).resolve().parent / SNAPSHOT_FILE
+        self._last_wait_log_hhmm = ""
+
     def _build_telegram(self):
         telegram = None
         if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
@@ -147,22 +137,6 @@ class MainLiveApp:
             self.telegram.send(text)
         except Exception as e:
             self.logger.warning(f"텔레그램 전송 실패 | {e}")
-
-    def _format_code_display(self, code: str) -> str:
-        symbol = str(code).strip()
-        if not symbol:
-            return ""
-        try:
-            name = self.broker.get_code_name(symbol)
-        except Exception:
-            name = ""
-        return f"{symbol}({name})" if name else symbol
-
-    def _format_code_display_list(self, codes: Iterable[str], limit: int | None = None) -> list[str]:
-        items = [str(x).strip() for x in codes if str(x).strip()]
-        if limit is not None:
-            items = items[:limit]
-        return [self._format_code_display(code) for code in items]
 
     @staticmethod
     def _now_hhmm() -> str:
@@ -197,7 +171,28 @@ class MainLiveApp:
         except Exception:
             return False
 
+    def _all_watch_codes(self) -> list[str]:
+        merged = set(self.snapshot_universe.snapshot()) | set(self.condition_universe.snapshot())
+        return sorted(merged)
+
+    def _format_display_list(self, codes: Iterable[str], limit: int = MAX_TELEGRAM_SYMBOLS) -> list[str]:
+        display = []
+        for code in list(codes)[:limit]:
+            name = self.broker.get_code_name(code)
+            display.append(f"{code}({name})")
+        return display
+
+    def _refresh_real_registration(self):
+        watch_codes = self._all_watch_codes()
+        self.broker.register_real(watch_codes)
+        self.logger.info(
+            f"실시간 구독 동기화 | total={len(watch_codes)} "
+            f"codes={', '.join(self._format_display_list(watch_codes)) if watch_codes else '(empty)'}"
+        )
+
     def _should_route_tick(self, symbol: str) -> bool:
+        if self.snapshot_universe.contains(symbol):
+            return True
         if self.condition_universe.contains(symbol):
             return True
         if self._safe_has_position(symbol):
@@ -206,9 +201,51 @@ class MainLiveApp:
             return True
         return False
 
-    # --------------------------------------------------
-    # 콜백
-    # --------------------------------------------------
+    def load_snapshot_and_subscribe(self):
+        if not self.snapshot_path.exists():
+            self.logger.warning(f"snapshot 파일 없음 | path={self.snapshot_path}")
+            return
+
+        try:
+            payload = json.loads(self.snapshot_path.read_text(encoding='utf-8'))
+        except Exception as e:
+            self.logger.exception(f"snapshot 읽기 실패 | path={self.snapshot_path} err={e}")
+            return
+
+        codes = []
+        for item in payload.get("codes", []):
+            if isinstance(item, dict):
+                symbol = str(item.get("symbol", "")).strip()
+            else:
+                symbol = str(item).strip()
+            if symbol:
+                codes.append(symbol)
+
+        clean_codes = self.snapshot_universe.replace(codes)
+        if not clean_codes:
+            self.logger.warning(f"snapshot 종목 없음 | path={self.snapshot_path}")
+            return
+
+        self._refresh_real_registration()
+
+        generated_at = payload.get("generated_at", "")
+        source_condition = payload.get("condition_name", CONDITION_NAME)
+        display_text = ", ".join(self._format_display_list(clean_codes))
+
+        self.logger.info(
+            f"snapshot 로드 완료 | generated_at={generated_at} "
+            f"condition_name={source_condition} count={len(clean_codes)} "
+            f"codes={display_text if display_text else '(empty)'}"
+        )
+
+        self._send_telegram(
+            f"🌙 전일 snapshot 로드\n"
+            f"조건식: {source_condition}\n"
+            f"생성시각: {generated_at}\n"
+            f"종목수: {len(clean_codes)}\n"
+            f"종목: {display_text if display_text else '(없음)'}"
+        )
+
     def on_filtered_real_tick(self, raw_tick: dict):
         symbol = str(raw_tick.get("symbol", "")).strip()
         if not symbol:
@@ -224,22 +261,20 @@ class MainLiveApp:
 
     def subscribe_initial_condition(self, condition_name: str, codes: list[str]):
         clean_codes = self.condition_universe.replace(codes)
+        self._refresh_real_registration()
 
-        if clean_codes:
-            self.broker.register_real(clean_codes)
-
-        display_list = self._format_code_display_list(clean_codes, limit=MAX_TELEGRAM_SYMBOLS)
+        display_text = ", ".join(self._format_display_list(clean_codes))
 
         self.logger.info(
             f"조건검색 초기 편입 반영 | name={condition_name} count={len(clean_codes)} "
-            f"codes={', '.join(display_list) if display_list else '(empty)'}"
+            f"codes={display_text if display_text else '(empty)'}"
         )
 
         self._send_telegram(
             f"🎯 조건검색 초기 편입\n"
             f"조건식: {condition_name}\n"
             f"종목수: {len(clean_codes)}\n"
-            f"종목: {', '.join(display_list) if display_list else '(없음)'}"
+            f"종목: {display_text if display_text else '(없음)'}"
         )
 
     def on_condition_realtime(self, code: str, event_type: str, condition_name: str, condition_index: int):
@@ -249,48 +284,48 @@ class MainLiveApp:
         if not symbol:
             return
 
+        name = self.broker.get_code_name(symbol)
+
         if event == "I":
             already_active = self.condition_universe.contains(symbol)
             self.condition_universe.add(symbol)
             if not already_active:
-                self.broker.register_real_add(symbol)
-
-            display_symbol = self._format_code_display(symbol)
+                self._refresh_real_registration()
 
             self.logger.info(
-                f"조건검색 편입 | name={condition_name} index={condition_index} symbol={display_symbol} "
-                f"active_count={self.condition_universe.count()}"
+                f"조건검색 편입 | name={condition_name} index={condition_index} "
+                f"symbol={symbol}({name}) active_count={self.condition_universe.count()}"
             )
             self._send_telegram(
-                f"✅ 조건 편입\n조건식: {condition_name}\n종목: {display_symbol}"
+                f"✅ 조건 편입\n조건식: {condition_name}\n종목: {symbol}({name})"
             )
             return
 
         if event == "D":
             self.condition_universe.discard(symbol)
 
-            display_symbol = self._format_code_display(symbol)
-
             self.logger.info(
-                f"조건검색 이탈 | name={condition_name} index={condition_index} symbol={display_symbol} "
-                f"active_count={self.condition_universe.count()}"
+                f"조건검색 이탈 | name={condition_name} index={condition_index} "
+                f"symbol={symbol}({name}) active_count={self.condition_universe.count()}"
             )
 
-            if not self._safe_has_position(symbol) and not self._safe_has_open_order(symbol):
-                self.broker.register_real_remove(symbol)
+            if (
+                not self.snapshot_universe.contains(symbol)
+                and not self._safe_has_position(symbol)
+                and not self._safe_has_open_order(symbol)
+            ):
+                self._refresh_real_registration()
 
             self._send_telegram(
-                f"⚪ 조건 이탈\n조건식: {condition_name}\n종목: {display_symbol}"
+                f"⚪ 조건 이탈\n조건식: {condition_name}\n종목: {symbol}({name})"
             )
 
-    # --------------------------------------------------
-    # 실행/종료
-    # --------------------------------------------------
     def log_run_mode(self):
         self.logger.info("프로그램 시작")
         self.logger.info(
-            f"조건검색 기반 실행 | condition_name={CONDITION_NAME} | "
-            f"condition_search_start={CONDITION_SEARCH_START_HHMM}"
+            f"snapshot + 조건검색 실행 | condition_name={CONDITION_NAME} | "
+            f"condition_search_start={CONDITION_SEARCH_START_HHMM} | "
+            f"snapshot_file={self.snapshot_path.name}"
         )
         self.logger.info(
             f"실행 모드 | DRY_RUN={config.DRY_RUN} LIVE_MODE={config.LIVE_MODE}"
@@ -311,11 +346,8 @@ class MainLiveApp:
             self.logger.info("조건검색 시작 시도")
             self.broker.load_condition_list()
             codes = self.broker.send_condition_by_name(CONDITION_NAME, search=1)
-            # self.subscribe_initial_condition(CONDITION_NAME, codes)
             self.condition_started = True
 
-            # 초기 결과가 비어 있어도 실시간 조건편입을 계속 받을 수 있지만,
-            # 장초반 누락을 줄이기 위해 비어 있으면 재시도 타이머는 계속 둔다.
             if codes:
                 self.logger.info(
                     f"조건검색 시작 완료 | name={CONDITION_NAME} initial_count={len(codes)}"
@@ -336,18 +368,20 @@ class MainLiveApp:
 
         now = datetime.now().time()
         start_at = self._parse_hhmm(CONDITION_SEARCH_START_HHMM)
+        current_hhmm = self._now_hhmm()
 
         if now < start_at:
-            self.logger.info(
-                f"조건검색 시작 대기 | now={self._now_hhmm()} start_at={CONDITION_SEARCH_START_HHMM}"
-            )
+            if current_hhmm != self._last_wait_log_hhmm:
+                self.logger.info(
+                    f"조건검색 시작 대기 | now={current_hhmm} start_at={CONDITION_SEARCH_START_HHMM}"
+                )
+                self._last_wait_log_hhmm = current_hhmm
             return
 
         if not self.condition_started:
             self.start_condition_search()
             return
 
-        # 이미 시작했더라도 active가 0이면 장초반 몇 번 재조회
         if self.condition_universe.count() == 0:
             self.logger.info("조건검색 재조회 | active_count=0")
             self.start_condition_search()
@@ -358,14 +392,6 @@ class MainLiveApp:
         self.shutting_down = True
 
         self.logger.info("종료 신호 수신")
-
-        try:
-            self.condition_timer.stop()
-            self.order_manage_timer.stop()
-            self.shutdown_timer.stop()
-            self.heartbeat.stop()
-        except Exception:
-            pass
 
         try:
             self.broker.stop_condition(CONDITION_NAME)
@@ -413,13 +439,15 @@ class MainLiveApp:
             self.logger.info(f"🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at={AUTO_SHUTDOWN_HHMM}")
             self.shutdown()
 
-    def connect_callbacks(self):
-        self.broker.set_condition_initial_callback(self.subscribe_initial_condition)
-        self.broker.set_condition_realtime_callback(self.on_condition_realtime)
+    def boot(self):
+        self.log_run_mode()
+
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
 
-    def start_timers(self):
+        self.broker.set_condition_initial_callback(self.subscribe_initial_condition)
+        self.broker.set_condition_realtime_callback(self.on_condition_realtime)
+
         self.heartbeat.start(200)
         self.heartbeat.timeout.connect(lambda: None)
 
@@ -432,7 +460,6 @@ class MainLiveApp:
         self.condition_timer.start(CONDITION_RETRY_MS)
         self.condition_timer.timeout.connect(self.maybe_start_condition_search)
 
-    def bootstrap(self):
         self.engine.start()
         self.broker.set_real_tick_callback(self.on_filtered_real_tick)
 
@@ -447,20 +474,16 @@ class MainLiveApp:
         self.engine.sync_pending_orders(password=ACCOUNT_PASSWORD)
 
         self.engine.health_check()
+
+        self.load_snapshot_and_subscribe()
         self.maybe_start_condition_search()
 
-        self.logger.info("실시간 엔진 시작 | mode=condition_only_refactored")
-
-    def run(self):
-        self.log_run_mode()
-        self.connect_callbacks()
-        self.start_timers()
-        self.bootstrap()
+        self.logger.info("실시간 엔진 시작 | mode=snapshot_plus_condition")
         sys.exit(self.app.exec_())
 
 
 def main():
-    MainLiveApp().run()
+    MainLiveApp().boot()
 
 
 if __name__ == "__main__":
