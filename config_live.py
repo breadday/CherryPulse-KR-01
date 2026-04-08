@@ -22,7 +22,7 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 # 주문 / 자금 관리
 # =========================
 MAX_POSITIONS = 3
-ORDER_AMOUNT_PER_TRADE = 500000     #  주문 금액  500,000
+ORDER_AMOUNT_PER_TRADE = 1000000     #  주문 금액  1,000,000
 REBUY_COOLDOWN_SECONDS = 300
 
 

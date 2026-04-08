@@ -1,15 +1,22 @@
-✔ Step 1
+🎯 최종 운영 흐름
 
-07시 → 후보 생성
-1)   python build_candidates_kiwoom_7am.py
+🌙 전날 저녁
+@@ python save_condition_snapshot.py
 
-✔ Step 2
-파일 열어서 확인
-selection_candidates.json
+👉 결과:
 
-👉 이상한 종목 없는지 체크
+@@  condition_snapshot.json 생성
 
-✔ Step 3
+👉 내용:
 
-09시 직전에 실행
-2)   python main_live.py
+주도주_스나이퍼 종목 저장
+
+🌅 다음날 아침
+@@ python main_live.py
+
+👉 동작:
+
+snapshot 파일 읽음
+종목 먼저 실시간 등록
+장 시작 감시 시작
+09:00 이후 조건검색 추가 편입 반영

@@ -353,3 +353,634 @@
 2026-04-07 21:41:04,489 | INFO | 브로커 종료 완료
 2026-04-07 21:41:04,489 | INFO | 엔진 종료 완료
 2026-04-07 21:41:04,490 | INFO | 프로그램 종료
+2026-04-08 06:58:07,138 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-08 06:58:08,160 | INFO | 텔레그램 연결 테스트 성공
+2026-04-08 06:58:08,367 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=500000
+2026-04-08 06:58:08,367 | INFO | 프로그램 시작
+2026-04-08 06:58:08,367 | INFO | 조건검색 기반 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50
+2026-04-08 06:58:08,368 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
+2026-04-08 06:58:08,368 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-08 06:58:08,369 | INFO | 키움 로그인 시도
+2026-04-08 06:58:08,562 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-08 06:58:08,566 | INFO | 로그인 이벤트 대기 시작
+2026-04-08 06:58:10,612 | INFO | 종료 신호 수신
+2026-04-08 06:58:10,615 | INFO | 실시간 구독 해제 완료
+2026-04-08 06:58:10,616 | INFO | 이미 종료 상태
+2026-04-08 06:58:10,616 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-08 06:58:11,653 | INFO | 브로커 종료 시작
+2026-04-08 06:58:11,655 | INFO | 브로커 종료 완료
+2026-04-08 06:58:11,655 | INFO | 프로그램 종료
+2026-04-08 07:00:05,055 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-08 07:00:06,095 | INFO | 텔레그램 연결 테스트 성공
+2026-04-08 07:00:06,195 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=500000
+2026-04-08 07:00:06,196 | INFO | 프로그램 시작
+2026-04-08 07:00:06,196 | INFO | 조건검색 기반 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50
+2026-04-08 07:00:06,196 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
+2026-04-08 07:00:06,197 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-08 07:00:06,197 | INFO | 키움 로그인 시도
+2026-04-08 07:00:06,318 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-08 07:00:06,319 | INFO | 로그인 이벤트 대기 시작
+2026-04-08 07:00:15,753 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-08 07:00:15,753 | INFO | 로그인 성공
+2026-04-08 07:00:15,754 | INFO | 로그인 이벤트 대기 종료
+2026-04-08 07:00:15,754 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-08 07:00:15,754 | INFO | 브로커 연결 완료
+2026-04-08 07:00:15,754 | INFO | 계좌비밀번호 입력창 호출
+2026-04-08 07:00:21,254 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-08 07:00:21,254 | INFO | 계좌 동기화 시작
+2026-04-08 07:00:22,764 | INFO | get_deposit 호출
+2026-04-08 07:00:22,767 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-08 07:00:22,779 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-08 07:00:22,781 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
+2026-04-08 07:00:22,782 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-08 07:00:22,782 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-08 07:00:23,789 | INFO | get_positions 호출
+2026-04-08 07:00:23,790 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-08 07:00:23,792 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-08 07:00:23,805 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-08 07:00:23,805 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-08 07:00:23,806 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-08 07:00:23,806 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-08 07:00:23,806 | INFO | 보유종목 조회 완료 | count=0
+2026-04-08 07:00:23,807 | INFO | get_positions 완료 | count=0
+2026-04-08 07:00:23,807 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-08 07:00:23,807 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-08 07:00:25,800 | INFO | get_pending_orders 호출
+2026-04-08 07:00:25,802 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-08 07:00:25,809 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-08 07:00:25,832 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-08 07:00:25,832 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
+2026-04-08 07:00:25,834 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-08 07:00:25,834 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-08 07:00:25,834 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-08 07:00:25,835 | INFO | get_pending_orders 완료 | count=0
+2026-04-08 07:00:25,835 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-08 07:00:25,835 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-08 07:00:25,836 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
+2026-04-08 07:00:25,842 | INFO | 조건검색 시작 대기 | now=07:00 start_at=08:50
+2026-04-08 07:00:25,842 | INFO | 실시간 엔진 시작 | mode=condition_only_refactored
+2026-04-08 07:01:06,207 | INFO | 조건검색 시작 대기 | now=07:01 start_at=08:50
+2026-04-08 07:02:06,209 | INFO | 조건검색 시작 대기 | now=07:02 start_at=08:50
+2026-04-08 07:03:06,197 | INFO | 조건검색 시작 대기 | now=07:03 start_at=08:50
+2026-04-08 07:04:06,219 | INFO | 조건검색 시작 대기 | now=07:04 start_at=08:50
+2026-04-08 07:05:06,217 | INFO | 조건검색 시작 대기 | now=07:05 start_at=08:50
+2026-04-08 07:06:06,217 | INFO | 조건검색 시작 대기 | now=07:06 start_at=08:50
+2026-04-08 07:07:06,229 | INFO | 조건검색 시작 대기 | now=07:07 start_at=08:50
+2026-04-08 07:08:06,230 | INFO | 조건검색 시작 대기 | now=07:08 start_at=08:50
+2026-04-08 07:09:06,258 | INFO | 조건검색 시작 대기 | now=07:09 start_at=08:50
+2026-04-08 07:10:06,252 | INFO | 조건검색 시작 대기 | now=07:10 start_at=08:50
+2026-04-08 07:11:06,247 | INFO | 조건검색 시작 대기 | now=07:11 start_at=08:50
+2026-04-08 07:12:06,270 | INFO | 조건검색 시작 대기 | now=07:12 start_at=08:50
+2026-04-08 07:13:06,281 | INFO | 조건검색 시작 대기 | now=07:13 start_at=08:50
+2026-04-08 07:14:06,306 | INFO | 조건검색 시작 대기 | now=07:14 start_at=08:50
+2026-04-08 07:15:06,318 | INFO | 조건검색 시작 대기 | now=07:15 start_at=08:50
+2026-04-08 07:16:06,321 | INFO | 조건검색 시작 대기 | now=07:16 start_at=08:50
+2026-04-08 07:17:06,334 | INFO | 조건검색 시작 대기 | now=07:17 start_at=08:50
+2026-04-08 07:18:06,341 | INFO | 조건검색 시작 대기 | now=07:18 start_at=08:50
+2026-04-08 07:19:06,352 | INFO | 조건검색 시작 대기 | now=07:19 start_at=08:50
+2026-04-08 07:20:06,362 | INFO | 조건검색 시작 대기 | now=07:20 start_at=08:50
+2026-04-08 07:21:06,375 | INFO | 조건검색 시작 대기 | now=07:21 start_at=08:50
+2026-04-08 07:22:06,379 | INFO | 조건검색 시작 대기 | now=07:22 start_at=08:50
+2026-04-08 07:23:06,375 | INFO | 조건검색 시작 대기 | now=07:23 start_at=08:50
+2026-04-08 07:24:06,399 | INFO | 조건검색 시작 대기 | now=07:24 start_at=08:50
+2026-04-08 07:25:06,403 | INFO | 조건검색 시작 대기 | now=07:25 start_at=08:50
+2026-04-08 07:26:06,428 | INFO | 조건검색 시작 대기 | now=07:26 start_at=08:50
+2026-04-08 07:27:06,438 | INFO | 조건검색 시작 대기 | now=07:27 start_at=08:50
+2026-04-08 07:28:06,454 | INFO | 조건검색 시작 대기 | now=07:28 start_at=08:50
+2026-04-08 07:29:06,476 | INFO | 조건검색 시작 대기 | now=07:29 start_at=08:50
+2026-04-08 07:30:06,482 | INFO | 조건검색 시작 대기 | now=07:30 start_at=08:50
+2026-04-08 07:31:06,483 | INFO | 조건검색 시작 대기 | now=07:31 start_at=08:50
+2026-04-08 07:32:06,479 | INFO | 조건검색 시작 대기 | now=07:32 start_at=08:50
+2026-04-08 07:33:06,496 | INFO | 조건검색 시작 대기 | now=07:33 start_at=08:50
+2026-04-08 07:34:06,510 | INFO | 조건검색 시작 대기 | now=07:34 start_at=08:50
+2026-04-08 07:35:06,537 | INFO | 조건검색 시작 대기 | now=07:35 start_at=08:50
+2026-04-08 07:36:06,547 | INFO | 조건검색 시작 대기 | now=07:36 start_at=08:50
+2026-04-08 07:37:06,547 | INFO | 조건검색 시작 대기 | now=07:37 start_at=08:50
+2026-04-08 07:38:06,543 | INFO | 조건검색 시작 대기 | now=07:38 start_at=08:50
+2026-04-08 07:39:06,560 | INFO | 조건검색 시작 대기 | now=07:39 start_at=08:50
+2026-04-08 07:40:06,576 | INFO | 조건검색 시작 대기 | now=07:40 start_at=08:50
+2026-04-08 07:41:06,589 | INFO | 조건검색 시작 대기 | now=07:41 start_at=08:50
+2026-04-08 07:42:06,609 | INFO | 조건검색 시작 대기 | now=07:42 start_at=08:50
+2026-04-08 07:43:06,632 | INFO | 조건검색 시작 대기 | now=07:43 start_at=08:50
+2026-04-08 07:44:06,627 | INFO | 조건검색 시작 대기 | now=07:44 start_at=08:50
+2026-04-08 07:45:06,632 | INFO | 조건검색 시작 대기 | now=07:45 start_at=08:50
+2026-04-08 07:46:06,628 | INFO | 조건검색 시작 대기 | now=07:46 start_at=08:50
+2026-04-08 07:47:06,645 | INFO | 조건검색 시작 대기 | now=07:47 start_at=08:50
+2026-04-08 07:48:06,655 | INFO | 조건검색 시작 대기 | now=07:48 start_at=08:50
+2026-04-08 07:49:06,671 | INFO | 조건검색 시작 대기 | now=07:49 start_at=08:50
+2026-04-08 07:50:06,680 | INFO | 조건검색 시작 대기 | now=07:50 start_at=08:50
+2026-04-08 07:51:06,666 | INFO | 조건검색 시작 대기 | now=07:51 start_at=08:50
+2026-04-08 07:52:06,692 | INFO | 조건검색 시작 대기 | now=07:52 start_at=08:50
+2026-04-08 07:53:06,705 | INFO | 조건검색 시작 대기 | now=07:53 start_at=08:50
+2026-04-08 07:54:06,717 | INFO | 조건검색 시작 대기 | now=07:54 start_at=08:50
+2026-04-08 07:55:06,725 | INFO | 조건검색 시작 대기 | now=07:55 start_at=08:50
+2026-04-08 07:56:06,722 | INFO | 조건검색 시작 대기 | now=07:56 start_at=08:50
+2026-04-08 07:57:06,720 | INFO | 조건검색 시작 대기 | now=07:57 start_at=08:50
+2026-04-08 07:58:06,714 | INFO | 조건검색 시작 대기 | now=07:58 start_at=08:50
+2026-04-08 07:59:06,716 | INFO | 조건검색 시작 대기 | now=07:59 start_at=08:50
+2026-04-08 08:00:06,735 | INFO | 조건검색 시작 대기 | now=08:00 start_at=08:50
+2026-04-08 08:01:06,737 | INFO | 조건검색 시작 대기 | now=08:01 start_at=08:50
+2026-04-08 08:02:06,736 | INFO | 조건검색 시작 대기 | now=08:02 start_at=08:50
+2026-04-08 08:03:06,748 | INFO | 조건검색 시작 대기 | now=08:03 start_at=08:50
+2026-04-08 08:04:06,751 | INFO | 조건검색 시작 대기 | now=08:04 start_at=08:50
+2026-04-08 08:05:06,754 | INFO | 조건검색 시작 대기 | now=08:05 start_at=08:50
+2026-04-08 08:06:06,752 | INFO | 조건검색 시작 대기 | now=08:06 start_at=08:50
+2026-04-08 08:07:06,745 | INFO | 조건검색 시작 대기 | now=08:07 start_at=08:50
+2026-04-08 08:08:06,754 | INFO | 조건검색 시작 대기 | now=08:08 start_at=08:50
+2026-04-08 08:09:06,759 | INFO | 조건검색 시작 대기 | now=08:09 start_at=08:50
+2026-04-08 08:10:06,770 | INFO | 조건검색 시작 대기 | now=08:10 start_at=08:50
+2026-04-08 08:11:06,773 | INFO | 조건검색 시작 대기 | now=08:11 start_at=08:50
+2026-04-08 08:12:06,782 | INFO | 조건검색 시작 대기 | now=08:12 start_at=08:50
+2026-04-08 08:13:06,800 | INFO | 조건검색 시작 대기 | now=08:13 start_at=08:50
+2026-04-08 08:14:06,804 | INFO | 조건검색 시작 대기 | now=08:14 start_at=08:50
+2026-04-08 08:15:06,805 | INFO | 조건검색 시작 대기 | now=08:15 start_at=08:50
+2026-04-08 08:16:06,802 | INFO | 조건검색 시작 대기 | now=08:16 start_at=08:50
+2026-04-08 08:17:06,797 | INFO | 조건검색 시작 대기 | now=08:17 start_at=08:50
+2026-04-08 08:18:06,791 | INFO | 조건검색 시작 대기 | now=08:18 start_at=08:50
+2026-04-08 08:19:06,804 | INFO | 조건검색 시작 대기 | now=08:19 start_at=08:50
+2026-04-08 08:20:06,818 | INFO | 조건검색 시작 대기 | now=08:20 start_at=08:50
+2026-04-08 08:21:06,809 | INFO | 조건검색 시작 대기 | now=08:21 start_at=08:50
+2026-04-08 08:22:06,823 | INFO | 조건검색 시작 대기 | now=08:22 start_at=08:50
+2026-04-08 08:23:06,847 | INFO | 조건검색 시작 대기 | now=08:23 start_at=08:50
+2026-04-08 08:24:06,863 | INFO | 조건검색 시작 대기 | now=08:24 start_at=08:50
+2026-04-08 08:25:06,868 | INFO | 조건검색 시작 대기 | now=08:25 start_at=08:50
+2026-04-08 08:26:06,874 | INFO | 조건검색 시작 대기 | now=08:26 start_at=08:50
+2026-04-08 08:27:06,898 | INFO | 조건검색 시작 대기 | now=08:27 start_at=08:50
+2026-04-08 08:28:06,913 | INFO | 조건검색 시작 대기 | now=08:28 start_at=08:50
+2026-04-08 08:29:06,916 | INFO | 조건검색 시작 대기 | now=08:29 start_at=08:50
+2026-04-08 08:30:06,920 | INFO | 조건검색 시작 대기 | now=08:30 start_at=08:50
+2026-04-08 08:31:06,923 | INFO | 조건검색 시작 대기 | now=08:31 start_at=08:50
+2026-04-08 08:32:06,940 | INFO | 조건검색 시작 대기 | now=08:32 start_at=08:50
+2026-04-08 08:33:06,948 | INFO | 조건검색 시작 대기 | now=08:33 start_at=08:50
+2026-04-08 08:34:06,948 | INFO | 조건검색 시작 대기 | now=08:34 start_at=08:50
+2026-04-08 08:35:06,958 | INFO | 조건검색 시작 대기 | now=08:35 start_at=08:50
+2026-04-08 08:36:06,971 | INFO | 조건검색 시작 대기 | now=08:36 start_at=08:50
+2026-04-08 08:37:06,986 | INFO | 조건검색 시작 대기 | now=08:37 start_at=08:50
+2026-04-08 08:38:06,996 | INFO | 조건검색 시작 대기 | now=08:38 start_at=08:50
+2026-04-08 08:39:06,999 | INFO | 조건검색 시작 대기 | now=08:39 start_at=08:50
+2026-04-08 08:40:07,003 | INFO | 조건검색 시작 대기 | now=08:40 start_at=08:50
+2026-04-08 08:41:07,020 | INFO | 조건검색 시작 대기 | now=08:41 start_at=08:50
+2026-04-08 08:42:07,031 | INFO | 조건검색 시작 대기 | now=08:42 start_at=08:50
+2026-04-08 08:43:07,036 | INFO | 조건검색 시작 대기 | now=08:43 start_at=08:50
+2026-04-08 08:44:07,047 | INFO | 조건검색 시작 대기 | now=08:44 start_at=08:50
+2026-04-08 08:45:07,052 | INFO | 조건검색 시작 대기 | now=08:45 start_at=08:50
+2026-04-08 08:46:07,042 | INFO | 조건검색 시작 대기 | now=08:46 start_at=08:50
+2026-04-08 08:47:07,052 | INFO | 조건검색 시작 대기 | now=08:47 start_at=08:50
+2026-04-08 08:48:07,048 | INFO | 조건검색 시작 대기 | now=08:48 start_at=08:50
+2026-04-08 08:49:07,043 | INFO | 조건검색 시작 대기 | now=08:49 start_at=08:50
+2026-04-08 08:50:07,065 | INFO | 조건검색 시작 시도
+2026-04-08 08:50:07,066 | INFO | 조건검색 목록 로드 시작
+2026-04-08 08:50:07,069 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 08:50:07,262 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 08:50:07,278 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 08:50:07,280 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 08:50:07,314 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 08:50:07,314 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 08:50:08,318 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 08:50:08,319 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 08:51:07,077 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 08:51:07,078 | INFO | 조건검색 시작 시도
+2026-04-08 08:51:07,080 | INFO | 조건검색 목록 로드 시작
+2026-04-08 08:51:07,082 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 08:51:07,150 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 08:51:07,169 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 08:51:07,169 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=0
+2026-04-08 08:51:07,171 | ERROR | 조건검색 시작 실패 | condition_name=주도주_스나이퍼 err=SendCondition 실패 | condition_name=주도주_스나이퍼 index=4 ret=0
+Traceback (most recent call last):
+  File "E:\prgm\python_open_api\CherryPulse-KR-01\main_live.py", line 313, in start_condition_search
+    codes = self.broker.send_condition_by_name(CONDITION_NAME, search=1)
+  File "E:\prgm\python_open_api\CherryPulse-KR-01\broker\kiwoom_broker.py", line 1141, in send_condition_by_name
+    raise RuntimeError(
+RuntimeError: SendCondition 실패 | condition_name=주도주_스나이퍼 index=4 ret=0
+2026-04-08 08:52:07,098 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 08:52:07,099 | INFO | 조건검색 시작 시도
+2026-04-08 08:52:07,100 | INFO | 조건검색 목록 로드 시작
+2026-04-08 08:52:07,103 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 08:52:07,171 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 08:52:07,189 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 08:52:07,191 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 08:52:07,225 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 08:52:07,226 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 08:52:08,256 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 08:52:08,257 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 08:53:07,109 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 08:53:07,110 | INFO | 조건검색 시작 시도
+2026-04-08 08:53:07,110 | INFO | 조건검색 목록 로드 시작
+2026-04-08 08:53:07,112 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 08:53:07,184 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 08:53:07,204 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 08:53:07,205 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 08:53:07,235 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 08:53:07,236 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 08:53:08,215 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 08:53:08,215 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 08:54:07,121 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 08:54:07,122 | INFO | 조건검색 시작 시도
+2026-04-08 08:54:07,122 | INFO | 조건검색 목록 로드 시작
+2026-04-08 08:54:07,124 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 08:54:07,193 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 08:54:07,211 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 08:54:07,213 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 08:54:07,245 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 08:54:07,246 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 08:54:08,247 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 08:54:08,248 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 08:55:07,134 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 08:55:07,135 | INFO | 조건검색 시작 시도
+2026-04-08 08:55:07,136 | INFO | 조건검색 목록 로드 시작
+2026-04-08 08:55:07,138 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 08:55:07,208 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 08:55:07,225 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 08:55:07,226 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 08:55:07,258 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 08:55:07,259 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 08:55:08,254 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 08:55:08,255 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 08:56:07,146 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 08:56:07,147 | INFO | 조건검색 시작 시도
+2026-04-08 08:56:07,147 | INFO | 조건검색 목록 로드 시작
+2026-04-08 08:56:07,150 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 08:56:07,220 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 08:56:07,236 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 08:56:07,237 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 08:56:07,272 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 08:56:07,273 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 08:56:08,278 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 08:56:08,278 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 08:57:07,153 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 08:57:07,154 | INFO | 조건검색 시작 시도
+2026-04-08 08:57:07,154 | INFO | 조건검색 목록 로드 시작
+2026-04-08 08:57:07,157 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 08:57:07,227 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 08:57:07,244 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 08:57:07,245 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 08:57:07,278 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 08:57:07,278 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 08:57:08,263 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 08:57:08,263 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 08:58:07,179 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 08:58:07,181 | INFO | 조건검색 시작 시도
+2026-04-08 08:58:07,181 | INFO | 조건검색 목록 로드 시작
+2026-04-08 08:58:07,183 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 08:58:07,254 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 08:58:07,271 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 08:58:07,272 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 08:58:07,305 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 08:58:07,305 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 08:58:08,318 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 08:58:08,319 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 08:59:07,167 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 08:59:07,168 | INFO | 조건검색 시작 시도
+2026-04-08 08:59:07,168 | INFO | 조건검색 목록 로드 시작
+2026-04-08 08:59:07,171 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 08:59:07,241 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 08:59:07,258 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 08:59:07,259 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=0
+2026-04-08 08:59:07,259 | ERROR | 조건검색 시작 실패 | condition_name=주도주_스나이퍼 err=SendCondition 실패 | condition_name=주도주_스나이퍼 index=4 ret=0
+Traceback (most recent call last):
+  File "E:\prgm\python_open_api\CherryPulse-KR-01\main_live.py", line 313, in start_condition_search
+    codes = self.broker.send_condition_by_name(CONDITION_NAME, search=1)
+  File "E:\prgm\python_open_api\CherryPulse-KR-01\broker\kiwoom_broker.py", line 1141, in send_condition_by_name
+    raise RuntimeError(
+RuntimeError: SendCondition 실패 | condition_name=주도주_스나이퍼 index=4 ret=0
+2026-04-08 09:00:07,174 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 09:00:07,175 | INFO | 조건검색 시작 시도
+2026-04-08 09:00:07,175 | INFO | 조건검색 목록 로드 시작
+2026-04-08 09:00:07,178 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 09:00:07,246 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 09:00:07,264 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 09:00:07,265 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 09:00:07,299 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 09:00:07,301 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 09:00:08,271 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 09:00:08,271 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 09:01:07,173 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 09:01:07,174 | INFO | 조건검색 시작 시도
+2026-04-08 09:01:07,174 | INFO | 조건검색 목록 로드 시작
+2026-04-08 09:01:07,177 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 09:01:07,248 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 09:01:07,265 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 09:01:07,266 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 09:01:07,299 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 09:01:07,299 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 09:01:08,329 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 09:01:08,329 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 09:02:07,169 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 09:02:07,170 | INFO | 조건검색 시작 시도
+2026-04-08 09:02:07,171 | INFO | 조건검색 목록 로드 시작
+2026-04-08 09:02:07,174 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 09:02:07,243 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 09:02:07,260 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 09:02:07,261 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 09:02:07,295 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 09:02:07,296 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 09:02:08,298 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 09:02:08,300 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 09:03:07,195 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 09:03:07,196 | INFO | 조건검색 시작 시도
+2026-04-08 09:03:07,196 | INFO | 조건검색 목록 로드 시작
+2026-04-08 09:03:07,199 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 09:03:07,256 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 09:03:07,273 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 09:03:07,274 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 09:03:07,321 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 09:03:07,321 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 09:03:08,294 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 09:03:08,295 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 09:04:07,200 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 09:04:07,201 | INFO | 조건검색 시작 시도
+2026-04-08 09:04:07,202 | INFO | 조건검색 목록 로드 시작
+2026-04-08 09:04:07,203 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 09:04:07,274 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 09:04:07,291 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 09:04:07,293 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 09:04:07,326 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 09:04:07,326 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 09:04:08,311 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 09:04:08,311 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 09:05:07,213 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 09:05:07,214 | INFO | 조건검색 시작 시도
+2026-04-08 09:05:07,214 | INFO | 조건검색 목록 로드 시작
+2026-04-08 09:05:07,218 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 09:05:07,288 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 09:05:07,305 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 09:05:07,306 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 09:05:07,341 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 09:05:07,341 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 09:05:08,326 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 09:05:08,326 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 09:06:07,258 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 09:06:07,260 | INFO | 조건검색 시작 시도
+2026-04-08 09:06:07,261 | INFO | 조건검색 목록 로드 시작
+2026-04-08 09:06:07,263 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 09:06:07,334 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 09:06:07,351 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 09:06:07,354 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 09:06:07,384 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-08 09:06:07,385 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-08 09:06:08,362 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-08 09:06:08,362 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-08 16:03:06,733 | INFO | OnEventConnect 호출 | err_code=-106
+2026-04-08 16:03:06,734 | ERROR | 로그인 실패
+2026-04-08 16:03:21,843 | INFO | 조건검색 재조회 | active_count=0
+2026-04-08 16:03:21,845 | INFO | 조건검색 시작 시도
+2026-04-08 16:03:21,845 | INFO | 조건검색 목록 로드 시작
+2026-04-08 16:03:21,846 | INFO | GetConditionLoad 호출 | ret=0
+2026-04-08 16:03:21,847 | ERROR | 조건검색 시작 실패 | condition_name=주도주_스나이퍼 err=GetConditionLoad 실패 | ret=0
+Traceback (most recent call last):
+  File "E:\prgm\python_open_api\CherryPulse-KR-01\main_live.py", line 312, in start_condition_search
+    self.broker.load_condition_list()
+  File "E:\prgm\python_open_api\CherryPulse-KR-01\broker\kiwoom_broker.py", line 1095, in load_condition_list
+    raise RuntimeError(f"GetConditionLoad 실패 | ret={ret}")
+RuntimeError: GetConditionLoad 실패 | ret=0
+2026-04-08 16:03:23,195 | INFO | 🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at=15:20
+2026-04-08 16:03:23,198 | INFO | 종료 신호 수신
+2026-04-08 16:03:23,198 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-08 16:03:23,199 | INFO | 실시간 구독 해제 완료
+2026-04-08 16:03:23,200 | INFO | 엔진 종료 시작
+2026-04-08 16:03:23,200 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-08 16:03:24,188 | INFO | 브로커 종료 시작
+2026-04-08 16:03:24,189 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-08 16:03:24,190 | INFO | 브로커 종료 완료
+2026-04-08 16:03:24,191 | INFO | 엔진 종료 완료
+2026-04-08 16:03:24,191 | INFO | 프로그램 종료
+2026-04-08 20:17:23,808 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-08 20:17:24,813 | INFO | 텔레그램 연결 테스트 성공
+2026-04-08 20:17:25,234 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=500000
+2026-04-08 20:17:25,235 | INFO | 프로그램 시작
+2026-04-08 20:17:25,235 | INFO | 조건검색 기반 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50
+2026-04-08 20:17:25,235 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
+2026-04-08 20:17:25,236 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-08 20:17:25,237 | INFO | 키움 로그인 시도
+2026-04-08 20:17:25,494 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-08 20:17:25,495 | INFO | 로그인 이벤트 대기 시작
+2026-04-08 20:17:36,378 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-08 20:17:36,378 | INFO | 로그인 성공
+2026-04-08 20:17:36,378 | INFO | 로그인 이벤트 대기 종료
+2026-04-08 20:17:36,379 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-08 20:17:36,379 | INFO | 브로커 연결 완료
+2026-04-08 20:17:36,379 | INFO | 계좌비밀번호 입력창 호출
+2026-04-08 20:17:44,529 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-08 20:17:44,529 | INFO | 계좌 동기화 시작
+2026-04-08 20:17:46,041 | INFO | get_deposit 호출
+2026-04-08 20:17:46,042 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-08 20:17:46,056 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-08 20:17:46,056 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
+2026-04-08 20:17:46,057 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-08 20:17:46,057 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-08 20:17:47,070 | INFO | get_positions 호출
+2026-04-08 20:17:47,070 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-08 20:17:47,072 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-08 20:17:47,086 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-08 20:17:47,087 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-08 20:17:47,090 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-08 20:17:47,090 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-08 20:17:47,091 | INFO | 보유종목 조회 완료 | count=0
+2026-04-08 20:17:47,092 | INFO | get_positions 완료 | count=0
+2026-04-08 20:17:47,092 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-08 20:17:47,092 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-08 20:17:49,134 | INFO | get_pending_orders 호출
+2026-04-08 20:17:49,134 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-08 20:17:49,158 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-08 20:17:49,182 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-08 20:17:49,182 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
+2026-04-08 20:17:49,183 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-08 20:17:49,184 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-08 20:17:49,184 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-08 20:17:49,185 | INFO | get_pending_orders 완료 | count=0
+2026-04-08 20:17:49,185 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-08 20:17:49,187 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-08 20:17:49,187 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
+2026-04-08 20:17:49,190 | INFO | 조건검색 시작 시도
+2026-04-08 20:17:49,190 | INFO | 조건검색 목록 로드 시작
+2026-04-08 20:17:49,191 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 20:17:49,362 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 20:17:49,380 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 20:17:49,381 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 20:17:49,413 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=8 next=0
+2026-04-08 20:17:49,417 | INFO | 실시간 등록 | codes=000720;006360;017670;028260;047040;079900;222800;375500 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-08 20:17:49,417 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=8 codes=000720(현대건설), 006360(GS건설), 017670(SK텔레콤), 028260(삼성물산), 047040(대우건설), 079900(전진건설로봇), 222800(심텍), 375500(DL이앤씨)
+2026-04-08 20:17:50,424 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=8
+2026-04-08 20:17:50,424 | INFO | 조건검색 시작 완료 | name=주도주_스나이퍼 initial_count=8
+2026-04-08 20:17:50,425 | INFO | 실시간 엔진 시작 | mode=condition_only_refactored
+2026-04-08 20:18:25,252 | INFO | 🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at=15:20
+2026-04-08 20:18:25,253 | INFO | 종료 신호 수신
+2026-04-08 20:18:25,256 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-08 20:18:25,257 | INFO | 실시간 구독 해제 완료
+2026-04-08 20:18:25,258 | INFO | 엔진 종료 시작
+2026-04-08 20:18:25,258 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-08 20:18:26,265 | INFO | 브로커 종료 시작
+2026-04-08 20:18:26,267 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-08 20:18:26,268 | INFO | 브로커 종료 완료
+2026-04-08 20:18:26,268 | INFO | 엔진 종료 완료
+2026-04-08 20:18:26,268 | INFO | 프로그램 종료
+2026-04-08 20:53:49,100 | INFO | snapshot 저장 시작 | condition_name=주도주_스나이퍼
+2026-04-08 20:53:49,100 | INFO | 키움 로그인 시도
+2026-04-08 20:53:49,187 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-08 20:53:49,188 | INFO | 로그인 이벤트 대기 시작
+2026-04-08 21:00:01,489 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-08 21:00:02,497 | INFO | 텔레그램 연결 테스트 성공
+2026-04-08 21:00:02,934 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=500000
+2026-04-08 21:00:02,935 | INFO | 프로그램 시작
+2026-04-08 21:00:02,936 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
+2026-04-08 21:00:02,937 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
+2026-04-08 21:00:02,937 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-08 21:00:02,938 | INFO | 키움 로그인 시도
+2026-04-08 21:00:03,176 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-08 21:00:03,176 | INFO | 로그인 이벤트 대기 시작
+2026-04-08 21:00:08,006 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-08 21:00:08,006 | INFO | 로그인 성공
+2026-04-08 21:00:08,008 | INFO | 로그인 이벤트 대기 종료
+2026-04-08 21:00:08,009 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-08 21:00:08,009 | INFO | 브로커 연결 완료
+2026-04-08 21:00:08,009 | INFO | 계좌비밀번호 입력창 호출
+2026-04-08 21:00:13,384 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-08 21:00:13,385 | INFO | 계좌 동기화 시작
+2026-04-08 21:00:14,900 | INFO | get_deposit 호출
+2026-04-08 21:00:14,905 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-08 21:00:14,931 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-08 21:00:14,931 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
+2026-04-08 21:00:14,934 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-08 21:00:14,934 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-08 21:00:15,944 | INFO | get_positions 호출
+2026-04-08 21:00:15,945 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-08 21:00:15,948 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-08 21:00:15,959 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-08 21:00:15,959 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-08 21:00:15,962 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-08 21:00:15,962 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-08 21:00:15,962 | INFO | 보유종목 조회 완료 | count=0
+2026-04-08 21:00:15,963 | INFO | get_positions 완료 | count=0
+2026-04-08 21:00:15,964 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-08 21:00:15,964 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-08 21:00:17,938 | INFO | get_pending_orders 호출
+2026-04-08 21:00:17,938 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-08 21:00:17,965 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-08 21:00:17,984 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-08 21:00:17,984 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
+2026-04-08 21:00:17,986 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-08 21:00:17,987 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-08 21:00:17,987 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-08 21:00:17,988 | INFO | get_pending_orders 완료 | count=0
+2026-04-08 21:00:17,988 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-08 21:00:17,988 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-08 21:00:17,988 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
+2026-04-08 21:00:17,989 | WARNING | snapshot 파일 없음 | path=E:\prgm\python_open_api\CherryPulse-KR-01\condition_snapshot.json
+2026-04-08 21:00:17,993 | INFO | 조건검색 시작 시도
+2026-04-08 21:00:17,993 | INFO | 조건검색 목록 로드 시작
+2026-04-08 21:00:17,995 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 21:00:18,184 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 21:00:18,204 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 21:00:18,207 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 21:00:18,235 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=8 next=0
+2026-04-08 21:00:18,240 | INFO | 실시간 등록 | codes=000720;006360;017670;028260;047040;079900;222800;375500 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-08 21:00:18,240 | INFO | 실시간 구독 동기화 | total=8 codes=000720(현대건설), 006360(GS건설), 017670(SK텔레콤), 028260(삼성물산), 047040(대우건설), 079900(전진건설로봇), 222800(심텍), 375500(DL이앤씨)
+2026-04-08 21:00:18,241 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=8 codes=000720(현대건설), 006360(GS건설), 017670(SK텔레콤), 028260(삼성물산), 047040(대우건설), 079900(전진건설로봇), 222800(심텍), 375500(DL이앤씨)
+2026-04-08 21:00:19,202 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=8
+2026-04-08 21:00:19,203 | INFO | 조건검색 시작 완료 | name=주도주_스나이퍼 initial_count=8
+2026-04-08 21:00:19,203 | INFO | 실시간 엔진 시작 | mode=snapshot_plus_condition
+2026-04-08 21:01:02,929 | INFO | 🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at=15:20
+2026-04-08 21:01:02,933 | INFO | 종료 신호 수신
+2026-04-08 21:01:02,934 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-08 21:01:02,935 | INFO | 실시간 구독 해제 완료
+2026-04-08 21:01:02,937 | INFO | 엔진 종료 시작
+2026-04-08 21:01:02,937 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-08 21:01:03,927 | INFO | 브로커 종료 시작
+2026-04-08 21:01:03,930 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-08 21:01:03,931 | INFO | 브로커 종료 완료
+2026-04-08 21:01:03,932 | INFO | 엔진 종료 완료
+2026-04-08 21:01:03,932 | INFO | 프로그램 종료
+2026-04-08 21:02:23,065 | INFO | snapshot 저장 시작 | condition_name=주도주_스나이퍼
+2026-04-08 21:02:23,066 | INFO | 키움 로그인 시도
+2026-04-08 21:02:23,149 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-08 21:02:23,149 | INFO | 로그인 이벤트 대기 시작
+2026-04-08 21:02:26,669 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-08 21:02:26,669 | INFO | 로그인 성공
+2026-04-08 21:02:26,670 | INFO | 로그인 이벤트 대기 종료
+2026-04-08 21:02:26,670 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-08 21:02:26,670 | INFO | 조건검색 목록 로드 시작
+2026-04-08 21:02:26,671 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 21:02:26,838 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 21:02:26,861 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 21:02:26,862 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=0 ret=1
+2026-04-08 21:02:26,881 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=8 next=0
+2026-04-08 21:02:26,882 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=8
+2026-04-08 21:02:26,883 | INFO | snapshot 저장 완료 | path=E:\prgm\python_open_api\CherryPulse-KR-01\condition_snapshot.json count=8 codes=000720(현대건설), 006360(GS건설), 017670(SK텔레콤), 028260(삼성물산), 047040(대우건설), 079900(전진건설로봇), 222800(심텍), 375500(DL이앤씨)
+2026-04-08 21:02:26,885 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-08 21:02:26,885 | INFO | 브로커 종료 시작
+2026-04-08 21:02:26,885 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-08 21:02:26,886 | INFO | 브로커 종료 완료
+2026-04-08 21:03:30,292 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-08 21:03:31,294 | INFO | 텔레그램 연결 테스트 성공
+2026-04-08 21:03:31,375 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=500000
+2026-04-08 21:03:31,376 | INFO | 프로그램 시작
+2026-04-08 21:03:31,376 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
+2026-04-08 21:03:31,376 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
+2026-04-08 21:03:31,377 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-08 21:03:31,377 | INFO | 키움 로그인 시도
+2026-04-08 21:03:31,471 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-08 21:03:31,471 | INFO | 로그인 이벤트 대기 시작
+2026-04-08 21:03:35,028 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-08 21:03:35,029 | INFO | 로그인 성공
+2026-04-08 21:03:35,029 | INFO | 로그인 이벤트 대기 종료
+2026-04-08 21:03:35,029 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-08 21:03:35,029 | INFO | 브로커 연결 완료
+2026-04-08 21:03:35,030 | INFO | 계좌비밀번호 입력창 호출
+2026-04-08 21:03:40,741 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-08 21:03:40,741 | INFO | 계좌 동기화 시작
+2026-04-08 21:03:42,250 | INFO | get_deposit 호출
+2026-04-08 21:03:42,251 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-08 21:03:42,265 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-08 21:03:42,265 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
+2026-04-08 21:03:42,267 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-08 21:03:42,268 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-08 21:03:43,273 | INFO | get_positions 호출
+2026-04-08 21:03:43,273 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-08 21:03:43,275 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-08 21:03:43,289 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-08 21:03:43,289 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-08 21:03:43,290 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-08 21:03:43,290 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-08 21:03:43,292 | INFO | 보유종목 조회 완료 | count=0
+2026-04-08 21:03:43,292 | INFO | get_positions 완료 | count=0
+2026-04-08 21:03:43,293 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-08 21:03:43,293 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-08 21:03:45,332 | INFO | get_pending_orders 호출
+2026-04-08 21:03:45,332 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-08 21:03:45,345 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-08 21:03:45,363 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-08 21:03:45,364 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
+2026-04-08 21:03:45,365 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-08 21:03:45,365 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-08 21:03:45,365 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-08 21:03:45,367 | INFO | get_pending_orders 완료 | count=0
+2026-04-08 21:03:45,367 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-08 21:03:45,367 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-08 21:03:45,368 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
+2026-04-08 21:03:45,370 | INFO | 실시간 등록 | codes=000720;006360;017670;028260;047040;079900;222800;375500 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-08 21:03:45,371 | INFO | 실시간 구독 동기화 | total=8 codes=000720(현대건설), 006360(GS건설), 017670(SK텔레콤), 028260(삼성물산), 047040(대우건설), 079900(전진건설로봇), 222800(심텍), 375500(DL이앤씨)
+2026-04-08 21:03:45,371 | INFO | snapshot 로드 완료 | generated_at=2026-04-08 21:02:26 condition_name=주도주_스나이퍼 count=8 codes=000720(현대건설), 006360(GS건설), 017670(SK텔레콤), 028260(삼성물산), 047040(대우건설), 079900(전진건설로봇), 222800(심텍), 375500(DL이앤씨)
+2026-04-08 21:03:46,347 | INFO | 조건검색 시작 시도
+2026-04-08 21:03:46,347 | INFO | 조건검색 목록 로드 시작
+2026-04-08 21:03:46,348 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-08 21:03:46,500 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-08 21:03:46,518 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-08 21:03:46,519 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-08 21:03:46,565 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=8 next=0
+2026-04-08 21:03:46,568 | INFO | 실시간 등록 | codes=000720;006360;017670;028260;047040;079900;222800;375500 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-08 21:03:46,569 | INFO | 실시간 구독 동기화 | total=8 codes=000720(현대건설), 006360(GS건설), 017670(SK텔레콤), 028260(삼성물산), 047040(대우건설), 079900(전진건설로봇), 222800(심텍), 375500(DL이앤씨)
+2026-04-08 21:03:46,569 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=8 codes=000720(현대건설), 006360(GS건설), 017670(SK텔레콤), 028260(삼성물산), 047040(대우건설), 079900(전진건설로봇), 222800(심텍), 375500(DL이앤씨)
+2026-04-08 21:03:47,531 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=8
+2026-04-08 21:03:47,532 | INFO | 조건검색 시작 완료 | name=주도주_스나이퍼 initial_count=8
+2026-04-08 21:03:47,532 | INFO | 실시간 엔진 시작 | mode=snapshot_plus_condition
+2026-04-08 21:04:31,405 | INFO | 🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at=15:20
+2026-04-08 21:04:31,405 | INFO | 종료 신호 수신
+2026-04-08 21:04:31,406 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-08 21:04:31,407 | INFO | 실시간 구독 해제 완료
+2026-04-08 21:04:31,407 | INFO | 엔진 종료 시작
+2026-04-08 21:04:31,407 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-08 21:04:32,390 | INFO | 브로커 종료 시작
+2026-04-08 21:04:32,392 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-08 21:04:32,393 | INFO | 브로커 종료 완료
+2026-04-08 21:04:32,393 | INFO | 엔진 종료 완료
+2026-04-08 21:04:32,394 | INFO | 프로그램 종료
