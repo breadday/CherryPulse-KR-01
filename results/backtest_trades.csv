@@ -1,5 +1,0 @@
-﻿symbol,file,entry_price,exit_price,qty,pnl,reason,entry_ts,exit_ts
-005930,data\sample\005930_1m.csv,70176.0,71665.0,1,1489.0,partial_take_profit,2026-03-01 09:00:00,2026-03-01 09:29:00
-005930,data\sample\005930_1m.csv,71665.0,72341.0,1,676.0,force_close_end_of_backtest,2026-03-01 09:29:00,2026-03-01 09:59:00
-000660,data\sample\000660_1m.csv,119865.0,120259.0,1,394.0,force_close_end_of_backtest,2026-03-01 09:00:00,2026-03-01 09:59:00
-035720,data\sample\035720_1m.csv,59913.0,59862.0,1,-51.0,force_close_end_of_backtest,2026-03-01 09:00:00,2026-03-01 09:59:00

@@ -1,7 +1,12 @@
 # config_live.py
 
 import os
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*_args, **_kwargs):
+        return False
 
 load_dotenv()
 
@@ -10,6 +15,7 @@ load_dotenv()
 # =========================
 LIVE_MODE = True
 DRY_RUN = False          #  False : 실전모드 / True : 테스트 모드
+ACCOUNT_NO = os.getenv("ACCOUNT_NO", "").strip()
 ACCOUNT_PASSWORD = os.getenv("ACCOUNT_PASSWORD", "0000")
 
 # =========================
@@ -57,6 +63,11 @@ SELL_ORDER_TIMEOUT_SEC = 10
 RETRY_SELL_AFTER_CANCEL = True
 RETRY_SELL_DELAY_SEC = 2
 RETRY_SELL_MAX_COUNT = 2
+
+# =========================
+# 자동 종료 / 오버나이트 보유
+# =========================
+AUTO_SHUTDOWN_ENABLED = False
 
 # =========================
 # 재진입 제한

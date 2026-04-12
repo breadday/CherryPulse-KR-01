@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets and local-only settings
+.env
+.env.*
+!.env.example
+
+# Runtime outputs
+logs/
+results/
+
+# Local runtime snapshots/state
+condition_snapshot.json
+monitor_state.json
+*.pid
