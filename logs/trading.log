@@ -1,1 +1,335 @@
 2026-04-12 21:19:16,605 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-12 21:19:17,691 | INFO | 텔레그램 연결 테스트 성공
+2026-04-12 21:19:17,780 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
+2026-04-12 21:19:17,781 | INFO | 프로그램 시작
+2026-04-12 21:19:17,782 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
+2026-04-12 21:19:17,782 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
+2026-04-12 21:19:17,782 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-12 21:19:17,783 | INFO | 키움 로그인 시도
+2026-04-12 21:19:17,880 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-12 21:19:17,880 | INFO | 로그인 이벤트 대기 시작
+2026-04-12 21:19:21,523 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-12 21:19:21,525 | INFO | 로그인 성공
+2026-04-12 21:19:21,527 | INFO | 로그인 이벤트 대기 종료
+2026-04-12 21:19:21,528 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-12 21:19:21,528 | INFO | 브로커 연결 완료
+2026-04-12 21:19:21,529 | INFO | 계좌비밀번호 입력창 호출
+2026-04-12 21:19:27,630 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-12 21:19:27,631 | INFO | 계좌 동기화 시작
+2026-04-12 21:19:29,135 | INFO | get_deposit 호출
+2026-04-12 21:19:29,138 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-12 21:19:29,151 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-12 21:19:29,151 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
+2026-04-12 21:19:29,154 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-12 21:19:29,154 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-12 21:19:30,164 | INFO | get_positions 호출
+2026-04-12 21:19:30,164 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-12 21:19:30,166 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-12 21:19:30,180 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-12 21:19:30,180 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-12 21:19:30,181 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-12 21:19:30,182 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-12 21:19:30,182 | INFO | 보유종목 조회 완료 | count=0
+2026-04-12 21:19:30,182 | INFO | get_positions 완료 | count=0
+2026-04-12 21:19:30,184 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-12 21:19:30,184 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-12 21:19:32,188 | INFO | get_pending_orders 호출
+2026-04-12 21:19:32,188 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-12 21:19:32,200 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-12 21:19:32,221 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-12 21:19:32,221 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
+2026-04-12 21:19:32,222 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-12 21:19:32,222 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-12 21:19:32,223 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-12 21:19:32,223 | INFO | get_pending_orders 완료 | count=0
+2026-04-12 21:19:32,224 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-12 21:19:32,224 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-12 21:19:32,224 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
+2026-04-12 21:19:32,230 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-12 21:19:32,231 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:19:32,231 | INFO | snapshot 로드 완료 | generated_at=2026-04-12 19:40:18 condition_name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:19:33,238 | INFO | 조건검색 시작 시도
+2026-04-12 21:19:33,238 | INFO | 조건검색 목록 로드 시작
+2026-04-12 21:19:33,241 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-12 21:19:33,397 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-12 21:19:33,414 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-12 21:19:33,415 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-12 21:19:33,446 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
+2026-04-12 21:19:33,450 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-12 21:19:33,451 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:19:33,451 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:19:34,462 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
+2026-04-12 21:19:34,463 | INFO | 조건검색 시작 완료 | name=주도주_스나이퍼 initial_count=5
+2026-04-12 21:19:34,463 | INFO | 실시간 엔진 시작 | mode=snapshot_plus_condition
+2026-04-12 21:22:58,806 | INFO | 종료 신호 수신
+2026-04-12 21:22:58,807 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 21:22:58,807 | INFO | 실시간 구독 해제 완료
+2026-04-12 21:22:58,807 | INFO | 엔진 종료 시작
+2026-04-12 21:22:58,807 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-12 21:22:59,839 | INFO | 브로커 종료 시작
+2026-04-12 21:22:59,842 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 21:22:59,842 | INFO | 브로커 종료 완료
+2026-04-12 21:22:59,843 | INFO | 엔진 종료 완료
+2026-04-12 21:22:59,843 | INFO | 프로그램 종료
+2026-04-12 21:23:51,580 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-12 21:23:52,566 | INFO | 텔레그램 연결 테스트 성공
+2026-04-12 21:23:52,636 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
+2026-04-12 21:23:52,637 | INFO | 프로그램 시작
+2026-04-12 21:23:52,637 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
+2026-04-12 21:23:52,637 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
+2026-04-12 21:23:52,638 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-12 21:23:52,638 | INFO | 키움 로그인 시도
+2026-04-12 21:23:52,745 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-12 21:23:52,746 | INFO | 로그인 이벤트 대기 시작
+2026-04-12 21:23:56,914 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-12 21:23:56,914 | INFO | 로그인 성공
+2026-04-12 21:23:56,916 | INFO | 로그인 이벤트 대기 종료
+2026-04-12 21:23:56,916 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-12 21:23:56,916 | INFO | 브로커 연결 완료
+2026-04-12 21:23:56,916 | INFO | 계좌비밀번호 입력창 호출
+2026-04-12 21:24:01,528 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-12 21:24:01,528 | INFO | 계좌 동기화 시작
+2026-04-12 21:24:03,030 | INFO | get_deposit 호출
+2026-04-12 21:24:03,031 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-12 21:24:03,046 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-12 21:24:03,046 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
+2026-04-12 21:24:03,047 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-12 21:24:03,048 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-12 21:24:04,058 | INFO | get_positions 호출
+2026-04-12 21:24:04,058 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-12 21:24:04,059 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-12 21:24:04,074 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-12 21:24:04,074 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-12 21:24:04,075 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-12 21:24:04,076 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-12 21:24:04,076 | INFO | 보유종목 조회 완료 | count=0
+2026-04-12 21:24:04,078 | INFO | get_positions 완료 | count=0
+2026-04-12 21:24:04,078 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-12 21:24:04,078 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-12 21:24:06,059 | INFO | get_pending_orders 호출
+2026-04-12 21:24:06,059 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-12 21:24:06,072 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-12 21:24:06,090 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-12 21:24:06,090 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
+2026-04-12 21:24:06,092 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-12 21:24:06,092 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-12 21:24:06,092 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-12 21:24:06,093 | INFO | get_pending_orders 완료 | count=0
+2026-04-12 21:24:06,093 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-12 21:24:06,094 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-12 21:24:06,094 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
+2026-04-12 21:24:06,098 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-12 21:24:06,099 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:24:06,100 | INFO | snapshot 로드 완료 | generated_at=2026-04-12 19:40:18 condition_name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:24:07,091 | INFO | 조건검색 시작 시도
+2026-04-12 21:24:07,091 | INFO | 조건검색 목록 로드 시작
+2026-04-12 21:24:07,094 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-12 21:24:07,259 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-12 21:24:07,278 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-12 21:24:07,280 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-12 21:24:07,307 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
+2026-04-12 21:24:07,311 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-12 21:24:07,311 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:24:07,312 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:24:08,318 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
+2026-04-12 21:24:08,318 | INFO | 조건검색 시작 완료 | name=주도주_스나이퍼 initial_count=5
+2026-04-12 21:24:08,318 | INFO | 실시간 엔진 시작 | mode=snapshot_plus_condition
+2026-04-12 21:24:52,655 | INFO | 🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at=15:20
+2026-04-12 21:24:52,655 | INFO | 종료 신호 수신
+2026-04-12 21:24:52,656 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 21:24:52,656 | INFO | 실시간 구독 해제 완료
+2026-04-12 21:24:52,656 | INFO | 엔진 종료 시작
+2026-04-12 21:24:52,656 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-12 21:24:53,616 | INFO | 브로커 종료 시작
+2026-04-12 21:24:53,617 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 21:24:53,618 | INFO | 브로커 종료 완료
+2026-04-12 21:24:53,618 | INFO | 엔진 종료 완료
+2026-04-12 21:24:53,618 | INFO | 프로그램 종료
+2026-04-12 21:25:47,708 | INFO | snapshot 저장 시작 | condition_name=주도주_스나이퍼
+2026-04-12 21:25:47,708 | INFO | 키움 로그인 시도
+2026-04-12 21:25:47,807 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-12 21:25:47,807 | INFO | 로그인 이벤트 대기 시작
+2026-04-12 21:25:51,724 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-12 21:25:51,725 | INFO | 로그인 성공
+2026-04-12 21:25:51,727 | INFO | 로그인 이벤트 대기 종료
+2026-04-12 21:25:51,727 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-12 21:25:51,729 | INFO | 조건검색 목록 로드 시작
+2026-04-12 21:25:51,730 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-12 21:25:51,922 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-12 21:25:51,948 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-12 21:25:51,950 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=0 ret=1
+2026-04-12 21:25:51,978 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
+2026-04-12 21:25:51,980 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
+2026-04-12 21:25:51,982 | INFO | snapshot 저장 완료 | path=E:\codexAi\_review_extract\CherryPulse-KR-01\condition_snapshot.json count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:25:51,983 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 21:25:51,983 | INFO | 브로커 종료 시작
+2026-04-12 21:25:51,984 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 21:25:51,986 | INFO | 브로커 종료 완료
+2026-04-12 21:32:57,957 | INFO | snapshot 저장 시작 | condition_name=주도주_스나이퍼
+2026-04-12 21:32:57,958 | INFO | 키움 로그인 시도
+2026-04-12 21:32:58,063 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-12 21:32:58,065 | INFO | 로그인 이벤트 대기 시작
+2026-04-12 21:33:02,003 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-12 21:33:02,003 | INFO | 로그인 성공
+2026-04-12 21:33:02,004 | INFO | 로그인 이벤트 대기 종료
+2026-04-12 21:33:02,004 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-12 21:33:02,004 | INFO | 조건검색 목록 로드 시작
+2026-04-12 21:33:02,005 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-12 21:33:02,202 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-12 21:33:02,227 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-12 21:33:02,228 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=0 ret=1
+2026-04-12 21:33:02,255 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
+2026-04-12 21:33:02,256 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
+2026-04-12 21:33:02,258 | INFO | snapshot 저장 완료 | path=E:\codexAi\_review_extract\CherryPulse-KR-01\condition_snapshot.json count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:33:02,259 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 21:33:02,259 | INFO | 브로커 종료 시작
+2026-04-12 21:33:02,259 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 21:33:02,260 | INFO | 브로커 종료 완료
+2026-04-12 21:33:10,782 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-12 21:33:11,779 | INFO | 텔레그램 연결 테스트 성공
+2026-04-12 21:33:11,889 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
+2026-04-12 21:33:11,890 | INFO | 프로그램 시작
+2026-04-12 21:33:11,890 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
+2026-04-12 21:33:11,890 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
+2026-04-12 21:33:11,891 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-12 21:33:11,891 | INFO | 키움 로그인 시도
+2026-04-12 21:33:12,049 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-12 21:33:12,050 | INFO | 로그인 이벤트 대기 시작
+2026-04-12 21:33:16,086 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-12 21:33:16,086 | INFO | 로그인 성공
+2026-04-12 21:33:16,086 | INFO | 로그인 이벤트 대기 종료
+2026-04-12 21:33:16,086 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-12 21:33:16,086 | INFO | 브로커 연결 완료
+2026-04-12 21:33:16,088 | INFO | 계좌비밀번호 입력창 호출
+2026-04-12 21:33:23,107 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-12 21:33:23,107 | INFO | 계좌 동기화 시작
+2026-04-12 21:33:24,613 | INFO | get_deposit 호출
+2026-04-12 21:33:24,614 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-12 21:33:24,628 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-12 21:33:24,629 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
+2026-04-12 21:33:24,631 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-12 21:33:24,631 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-12 21:33:25,640 | INFO | get_positions 호출
+2026-04-12 21:33:25,640 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-12 21:33:25,641 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-12 21:33:25,656 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-12 21:33:25,656 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-12 21:33:25,658 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-12 21:33:25,658 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-12 21:33:25,658 | INFO | 보유종목 조회 완료 | count=0
+2026-04-12 21:33:25,658 | INFO | get_positions 완료 | count=0
+2026-04-12 21:33:25,660 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-12 21:33:25,660 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-12 21:33:27,648 | INFO | get_pending_orders 호출
+2026-04-12 21:33:27,648 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-12 21:33:27,655 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-12 21:33:27,679 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-12 21:33:27,679 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
+2026-04-12 21:33:27,680 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-12 21:33:27,680 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-12 21:33:27,681 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-12 21:33:27,681 | INFO | get_pending_orders 완료 | count=0
+2026-04-12 21:33:27,681 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-12 21:33:27,681 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-12 21:33:27,683 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
+2026-04-12 21:33:27,694 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-12 21:33:27,695 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:33:27,695 | INFO | snapshot 로드 완료 | generated_at=2026-04-12 21:33:02 condition_name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:33:28,749 | INFO | 조건검색 시작 시도
+2026-04-12 21:33:28,749 | INFO | 조건검색 목록 로드 시작
+2026-04-12 21:33:28,751 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-12 21:33:28,937 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-12 21:33:28,957 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-12 21:33:28,958 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-12 21:33:28,980 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
+2026-04-12 21:33:28,984 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-12 21:33:28,984 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:33:28,984 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 21:33:29,968 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
+2026-04-12 21:33:29,968 | INFO | 조건검색 시작 완료 | name=주도주_스나이퍼 initial_count=5
+2026-04-12 21:33:29,968 | INFO | 실시간 엔진 시작 | mode=snapshot_plus_condition
+2026-04-12 21:34:11,902 | INFO | 🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at=15:20
+2026-04-12 21:34:11,902 | INFO | 종료 신호 수신
+2026-04-12 21:34:11,903 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 21:34:11,903 | INFO | 실시간 구독 해제 완료
+2026-04-12 21:34:11,904 | INFO | 엔진 종료 시작
+2026-04-12 21:34:11,904 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-12 21:34:12,890 | INFO | 브로커 종료 시작
+2026-04-12 21:34:12,892 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 21:34:12,892 | INFO | 브로커 종료 완료
+2026-04-12 21:34:12,892 | INFO | 엔진 종료 완료
+2026-04-12 21:34:12,894 | INFO | 프로그램 종료
+2026-04-12 22:03:50,398 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-12 22:03:51,448 | INFO | 텔레그램 연결 테스트 성공
+2026-04-12 22:03:52,006 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
+2026-04-12 22:03:52,008 | INFO | 프로그램 시작
+2026-04-12 22:03:52,008 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
+2026-04-12 22:03:52,009 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
+2026-04-12 22:03:52,009 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-12 22:03:52,009 | INFO | 키움 로그인 시도
+2026-04-12 22:03:52,307 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-12 22:03:52,310 | INFO | 로그인 이벤트 대기 시작
+2026-04-12 22:03:58,275 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-12 22:03:58,275 | INFO | 로그인 성공
+2026-04-12 22:03:58,276 | INFO | 로그인 이벤트 대기 종료
+2026-04-12 22:03:58,276 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-12 22:03:58,276 | INFO | 브로커 연결 완료
+2026-04-12 22:03:58,276 | INFO | 계좌비밀번호 입력창 호출
+2026-04-12 22:04:03,948 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-12 22:04:03,948 | INFO | 계좌 동기화 시작
+2026-04-12 22:04:05,452 | INFO | get_deposit 호출
+2026-04-12 22:04:05,454 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-12 22:04:05,472 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-12 22:04:05,474 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
+2026-04-12 22:04:05,476 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-12 22:04:05,476 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-12 22:04:06,478 | INFO | get_positions 호출
+2026-04-12 22:04:06,478 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-12 22:04:06,480 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-12 22:04:06,494 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-12 22:04:06,494 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-12 22:04:06,496 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-12 22:04:06,497 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-12 22:04:06,497 | INFO | 보유종목 조회 완료 | count=0
+2026-04-12 22:04:06,498 | INFO | get_positions 완료 | count=0
+2026-04-12 22:04:06,498 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-12 22:04:06,498 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-12 22:04:08,483 | INFO | get_pending_orders 호출
+2026-04-12 22:04:08,483 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-12 22:04:08,506 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-12 22:04:08,515 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-12 22:04:08,515 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
+2026-04-12 22:04:08,516 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-12 22:04:08,516 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-12 22:04:08,516 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-12 22:04:08,517 | INFO | get_pending_orders 완료 | count=0
+2026-04-12 22:04:08,518 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-12 22:04:08,518 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-12 22:04:08,518 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
+2026-04-12 22:04:08,537 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-12 22:04:08,537 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 22:04:08,544 | INFO | snapshot 로드 완료 | generated_at=2026-04-12 21:33:02 condition_name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 22:04:09,534 | INFO | 조건검색 시작 시도
+2026-04-12 22:04:09,535 | INFO | 조건검색 목록 로드 시작
+2026-04-12 22:04:09,538 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-12 22:04:09,749 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-12 22:04:09,769 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-12 22:04:09,770 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-12 22:04:09,792 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
+2026-04-12 22:04:09,796 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-12 22:04:09,796 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 22:04:09,804 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
+2026-04-12 22:04:10,762 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
+2026-04-12 22:04:10,762 | INFO | 조건검색 시작 완료 | name=주도주_스나이퍼 initial_count=5
+2026-04-12 22:04:10,763 | INFO | 실시간 엔진 시작 | mode=snapshot_plus_condition
+2026-04-12 22:04:52,019 | INFO | 🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at=15:20
+2026-04-12 22:04:52,019 | INFO | 종료 신호 수신
+2026-04-12 22:04:52,020 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 22:04:52,020 | INFO | 실시간 구독 해제 완료
+2026-04-12 22:04:52,021 | INFO | 엔진 종료 시작
+2026-04-12 22:04:52,021 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-12 22:04:52,992 | INFO | 브로커 종료 시작
+2026-04-12 22:04:52,994 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-12 22:04:52,995 | INFO | 브로커 종료 완료
+2026-04-12 22:04:52,995 | INFO | 엔진 종료 완료
+2026-04-12 22:04:52,995 | INFO | 프로그램 종료

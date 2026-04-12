@@ -14,11 +14,12 @@ from data.news_provider import NewsProvider
 
 
 class TradingEngine:
-    def __init__(self, broker, strategy, logger, telegram=None, initial_cash=5_000_000, test_name="default"):
+    def __init__(self, broker, strategy, logger, telegram=None, sqlite_store=None, initial_cash=5_000_000, test_name="default"):
         self.broker = broker
         self.strategy = strategy
         self.logger = logger
         self.telegram = telegram
+        self.sqlite_store = sqlite_store
         self.test_name = str(test_name).strip() if test_name else "default"
 
         self.portfolio = Portfolio(initial_cash=initial_cash)
@@ -36,6 +37,7 @@ class TradingEngine:
         self.daily_order_count = 0
         self.max_daily_orders = 20
         self.current_trading_date = datetime.now().date()
+        self.daily_realized_pnl_base = 0.0
 
         self.min_tick_volume = 1
         self.max_symbol_position = 1
@@ -68,6 +70,7 @@ class TradingEngine:
         self.consecutive_loss_count = 0
         self.error_count = 0
         self.engine_protected = False
+        self.daily_loss_protection_active = False
 
         self.trade_log = []
         self.win_count = 0
@@ -276,6 +279,66 @@ class TradingEngine:
         except Exception:
             pass
         return str(symbol)
+
+    def _record_signal_snapshot(self, signal, tick, allowed: bool, block_reason: str = ""):
+        if not self.sqlite_store:
+            return
+        try:
+            self.sqlite_store.record_signal(
+                test_name=self.test_name,
+                strategy_name=self.strategy.__class__.__name__,
+                signal=signal,
+                tick=tick,
+                allowed=allowed,
+                block_reason=block_reason,
+            )
+        except Exception as e:
+            self.logger.warning(f"SQLite signal 저장 실패 | symbol={getattr(signal, 'symbol', '')} err={e}")
+
+    def _record_order_snapshot(self, order, request_price=None):
+        if not self.sqlite_store:
+            return
+        try:
+            self.sqlite_store.record_order(
+                test_name=self.test_name,
+                order=order,
+                request_price=request_price,
+            )
+        except Exception as e:
+            self.logger.warning(f"SQLite order 저장 실패 | order_id={getattr(order, 'order_id', '')} err={e}")
+
+    def _record_fill_snapshot(self, fill, local_order_id, unfilled_qty, realized_delta):
+        if not self.sqlite_store:
+            return
+        try:
+            self.sqlite_store.record_fill(
+                test_name=self.test_name,
+                fill=fill,
+                local_order_id=local_order_id,
+                unfilled_qty=unfilled_qty,
+                realized_delta=realized_delta,
+                cash_after=float(getattr(self.portfolio, "cash", 0.0) or 0.0),
+                realized_pnl_after=float(getattr(self.portfolio, "realized_pnl", 0.0) or 0.0),
+            )
+        except Exception as e:
+            self.logger.warning(f"SQLite fill 저장 실패 | order_id={getattr(fill, 'order_id', '')} err={e}")
+
+    def _store_daily_summary_snapshot(self):
+        if not self.sqlite_store:
+            return
+        try:
+            summary = self.get_trade_summary()
+            self.sqlite_store.upsert_daily_summary(
+                test_name=self.test_name,
+                summary=summary,
+                cash=float(getattr(self.portfolio, "cash", 0.0) or 0.0),
+                realized_pnl=float(getattr(self.portfolio, "realized_pnl", 0.0) or 0.0),
+                daily_order_count=self.daily_order_count,
+                max_daily_orders=self.max_daily_orders,
+                engine_protected=bool(self.engine_protected),
+            )
+        except Exception as e:
+            self.logger.warning(f"SQLite 일일요약 저장 실패 | {e}")
 
     def _notify_order_event(
         self,
@@ -518,6 +581,8 @@ class TradingEngine:
 
             self.trade_log.append(trade_item)
             self._append_trade_log_to_csv(trade_item)
+            if self.sqlite_store:
+                self.sqlite_store.record_trade(test_name=self.test_name, trade_item=trade_item)
 
             if result == "WIN":
                 self.win_count += 1
@@ -542,6 +607,7 @@ class TradingEngine:
                 f"avg_loss={summary['avg_loss_pct']:.4f}% "
                 f"net_pnl={summary['net_pnl']:.2f}"
             )
+            self._store_daily_summary_snapshot()
 
         except Exception as e:
             self.logger.exception(f"거래 종료 기록 실패 | symbol={symbol} err={e}")
@@ -582,7 +648,8 @@ class TradingEngine:
 
     def _current_daily_realized_pnl(self) -> float:
         try:
-            return float(getattr(self.portfolio, "realized_pnl", 0.0) or 0.0)
+            realized_total = float(getattr(self.portfolio, "realized_pnl", 0.0) or 0.0)
+            return realized_total - float(getattr(self, "daily_realized_pnl_base", 0.0) or 0.0)
         except Exception:
             return 0.0
 
@@ -640,6 +707,16 @@ class TradingEngine:
             self.current_trading_date = today
             self.daily_order_count = 0
             self.last_order_time = {}
+            self.daily_realized_pnl_base = float(getattr(self.portfolio, "realized_pnl", 0.0) or 0.0)
+            if self.daily_loss_protection_active:
+                self.daily_loss_protection_active = False
+                max_consecutive_loss = self._cfg("MAX_CONSECUTIVE_LOSS", 3)
+                max_error_count = self._cfg("MAX_ERROR_COUNT", self._cfg("MAX_ENGINE_ERROR_COUNT", 5))
+                if (
+                    self.consecutive_loss_count < max_consecutive_loss
+                    and self.error_count < max_error_count
+                ):
+                    self.engine_protected = False
             self.logger.info("일일 주문 카운터 초기화")
 
     def start(self):
@@ -677,6 +754,7 @@ class TradingEngine:
                 f"health_check 완료 | positions={len(positions)} pending_orders={pending_count} "
                 f"daily_order_count={self.daily_order_count} protected={self.engine_protected}"
             )
+            self._store_daily_summary_snapshot()
         except Exception as e:
             self.logger.warning(f"health_check 점검 중 예외 | {e}")
 
@@ -1113,6 +1191,7 @@ class TradingEngine:
 
             order = self.broker.place_order(signal)
             self.order_manager.register(order)
+            self._record_order_snapshot(order, request_price=float(self.last_price_map.get(symbol, 0) or 0.0))
 
             if self._cfg("DRY_RUN", False):
                 class StubFill:
@@ -1322,6 +1401,7 @@ class TradingEngine:
 
             order = self.broker.place_order(signal)
             self.order_manager.register(order)
+            self._record_order_snapshot(order, request_price=float(self.last_price_map.get(symbol, 0) or 0.0))
 
             if order.status == OrderStatus.SUBMITTED:
                 self.resell_retry_count[symbol] = retry_count + 1
@@ -1468,6 +1548,7 @@ class TradingEngine:
             entry_score = self._extract_score_from_reason(getattr(signal, "reason", ""))
             ok, reason = self.can_send_order(signal, tick)
             if not ok:
+                self._record_signal_snapshot(signal, tick, allowed=False, block_reason=reason)
                 self.logger.info(
                     f"[{signal.symbol}] 주문 차단 | {reason} | "
                     f"score={entry_score} chg={getattr(tick, 'price_change_pct', 0.0)} "
@@ -1476,6 +1557,7 @@ class TradingEngine:
                 )
                 return
 
+            self._record_signal_snapshot(signal, tick, allowed=True)
             self.logger.info(
                 f"[ORDER_READY] {signal.symbol} side={signal.side} qty={signal.qty} "
                 f"score={entry_score} reason={signal.reason}"
@@ -1492,6 +1574,7 @@ class TradingEngine:
 
             order = self.broker.place_order(signal)
             self.order_manager.register(order)
+            self._record_order_snapshot(order, request_price=float(getattr(tick, "price", 0.0) or 0.0))
 
             if order.status == OrderStatus.SUBMITTED:
                 self.last_order_time[signal.symbol] = time.time()
@@ -1587,6 +1670,12 @@ class TradingEngine:
             avg_after = float(getattr(pos_after, "avg_price", 0.0))
             realized_after = float(getattr(self.portfolio, "realized_pnl", 0.0))
             realized_delta = realized_after - realized_before
+            self._record_fill_snapshot(
+                fill,
+                local_order_id=resolved_order_id,
+                unfilled_qty=getattr(fill, "unfilled_qty", None),
+                realized_delta=realized_delta,
+            )
 
             if order is None:
                 self.logger.warning(
@@ -1678,6 +1767,7 @@ class TradingEngine:
 
             if daily_loss_hit:
                 self.engine_protected = True
+                self.daily_loss_protection_active = True
                 self.logger.warning(
                     f"?붿쭊 蹂댄샇紐⑤뱶 吏꾩엯 | realized_pnl={realized_pnl:.0f} "
                     f"daily_loss_limit={daily_loss_limit:.0f}"
