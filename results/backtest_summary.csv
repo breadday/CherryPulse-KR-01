@@ -1,4 +1,0 @@
-﻿symbol,file,bars,trades,wins,losses,win_rate,total_return,mdd,sharpe,final_cash
-005930,data\sample\005930_1m.csv,60,2,2,0,1.0,0.0004,-0.0001,3.678,5002165.0
-000660,data\sample\000660_1m.csv,60,1,1,0,1.0,0.0001,-0.0002,0.0,5000394.0
-035720,data\sample\035720_1m.csv,60,1,0,1,0.0,-0.0,-0.0002,0.0,4999949.0

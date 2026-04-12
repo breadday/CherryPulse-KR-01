@@ -21,6 +21,7 @@ from infra.telegram_notifier import TelegramNotifier
 from strategy.momentum_intraday import MomentumIntradayStrategy
 from utils.logger import setup_logger
 from config_live import (
+    ACCOUNT_NO,
     ACCOUNT_PASSWORD,
     STRATEGY_CONFIG,
     TELEGRAM_CHAT_ID,
@@ -81,7 +82,7 @@ class MainLiveApp:
         self.app = QApplication(sys.argv)
         self.logger = setup_logger("CherryPulse-Live")
         self.telegram = self._build_telegram()
-        self.broker = KiwoomBroker(logger=self.logger, account_no="8122731511")
+        self.broker = KiwoomBroker(logger=self.logger, account_no=(ACCOUNT_NO or None))
         self.strategy = MomentumIntradayStrategy(config=STRATEGY_CONFIG)
         self.engine = TradingEngine(
             self.broker,
@@ -430,6 +431,9 @@ class MainLiveApp:
             return
 
         if config.DRY_RUN:
+            return
+
+        if not getattr(config, "AUTO_SHUTDOWN_ENABLED", False):
             return
 
         now = datetime.now().time()

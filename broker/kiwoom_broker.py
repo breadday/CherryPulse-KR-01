@@ -5,6 +5,7 @@ from PyQt5.QtCore import QObject, QEventLoop
 from PyQt5.QAxContainer import QAxWidget
 import time
 
+import config_live as config
 from core.models import Order, OrderStatus, Signal, Side, OrderType, Fill
 
 
@@ -900,8 +901,6 @@ class KiwoomBroker(QObject):
     # 주문 (실제 주문 / 드라이런)
     # -------------------------
     def place_order(self, signal: Signal) -> Order:
-        import config
-
         order_type_map = {
             Side.BUY: 1,
             Side.SELL: 2,
@@ -983,7 +982,6 @@ class KiwoomBroker(QObject):
     # -------------------------
     def cancel_order(self, symbol: str, order_no: str, qty: int, side: Side = Side.SELL) -> int:
         try:
-            import config
 
             if config.DRY_RUN or not config.LIVE_MODE:
                 self.logger.warning(

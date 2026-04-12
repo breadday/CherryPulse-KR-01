@@ -580,6 +580,19 @@ class TradingEngine:
         except Exception as e:
             self.logger.exception(f"성과 요약 로그 실패 | {e}")
 
+    def _current_daily_realized_pnl(self) -> float:
+        try:
+            return float(getattr(self.portfolio, "realized_pnl", 0.0) or 0.0)
+        except Exception:
+            return 0.0
+
+    def _daily_loss_limit_reached(self):
+        limit = float(self._cfg("MAX_DAILY_LOSS", 0.0) or 0.0)
+        realized = self._current_daily_realized_pnl()
+        if limit >= 0:
+            return False, realized, limit
+        return realized <= limit, realized, limit
+
     def _extract_score_from_reason(self, reason: str):
         try:
             if not reason:
@@ -1387,6 +1400,10 @@ class TradingEngine:
         if self.engine_protected:
             return False, "엔진 보호모드"
 
+        daily_loss_hit, realized_pnl, daily_loss_limit = self._daily_loss_limit_reached()
+        if daily_loss_hit:
+            return False, f"daily loss limit reached ({realized_pnl:.0f}<={daily_loss_limit:.0f})"
+
         if self.daily_order_count >= self.max_daily_orders:
             return False, "일일 주문 한도 초과"
 
@@ -1642,7 +1659,8 @@ class TradingEngine:
     def _check_engine_protection(self):
         try:
             max_consecutive_loss = self._cfg("MAX_CONSECUTIVE_LOSS", 3)
-            max_error_count = self._cfg("MAX_ENGINE_ERROR_COUNT", 5)
+            max_error_count = self._cfg("MAX_ERROR_COUNT", self._cfg("MAX_ENGINE_ERROR_COUNT", 5))
+            daily_loss_hit, realized_pnl, daily_loss_limit = self._daily_loss_limit_reached()
 
             if self.consecutive_loss_count >= max_consecutive_loss:
                 self.engine_protected = True
@@ -1656,6 +1674,13 @@ class TradingEngine:
                 self.logger.warning(
                     f"엔진 보호모드 진입 | error_count={self.error_count} "
                     f"기준={max_error_count}"
+                )
+
+            if daily_loss_hit:
+                self.engine_protected = True
+                self.logger.warning(
+                    f"?붿쭊 蹂댄샇紐⑤뱶 吏꾩엯 | realized_pnl={realized_pnl:.0f} "
+                    f"daily_loss_limit={daily_loss_limit:.0f}"
                 )
 
         except Exception as e:
