@@ -1,0 +1,19 @@
+- SQLite 기록 구조에 이어서 바로 조회할 수 있는 분석 스크립트도 추가했습니다. 
+  이제 inspect_runtime_db.py 하나로 일별 요약, 최근 거래, 시간대별 성과, 주문 차단 사유, 주도주_스나이퍼 현재 활성 종목과 최근 편입/이탈 이벤트를 볼 수 있습니다
+
+python inspect_runtime_db.py
+python inspect_runtime_db.py hourly
+python inspect_runtime_db.py condition
+python inspect_runtime_db.py blocks
+
+- 이 스크립트는 
+ “어느 시간대가 약한지”, 
+ “어떤 진입 사유가 돈을 벌었는지”, 
+ “어떤 청산 사유가 손실을 키우는지”  
+ 를 바로 보여줘서 다음 로직 튜닝 방향을 잡는 데 도움이 됩니다.  
+
+python analyze_strategy_improvement.py
+python analyze_strategy_improvement.py --limit 300
+python analyze_strategy_improvement.py --condition-name 주도주_스나이퍼
+
+다음 단계로 원하시면 제가 이 분석 결과를 바탕으로 실제 매수/매도 조건을 숫자 기준까지 포함해서 직접 손봐드릴게요.

@@ -17,19 +17,21 @@ from PyQt5.QtWidgets import QApplication
 import config_live as config
 from broker.kiwoom_broker import KiwoomBroker
 from engine import TradingEngine
+from infra.sqlite_store import SQLiteStore
 from infra.telegram_notifier import TelegramNotifier
 from strategy.momentum_intraday import MomentumIntradayStrategy
 from utils.logger import setup_logger
 from config_live import (
     ACCOUNT_NO,
     ACCOUNT_PASSWORD,
+    SQLITE_DB_PATH,
     STRATEGY_CONFIG,
     TELEGRAM_CHAT_ID,
     TELEGRAM_TOKEN,
 )
 
 try:
-    from test_force_exit_helper import force_close_all_positions
+    from _test_force_exit_helper import force_close_all_positions
 except ImportError:
     def force_close_all_positions(engine, logger=None, reason="TEST_FORCE_EXIT"):
         if logger:
@@ -82,6 +84,10 @@ class MainLiveApp:
         self.app = QApplication(sys.argv)
         self.logger = setup_logger("CherryPulse-Live")
         self.telegram = self._build_telegram()
+        self.sqlite_store = SQLiteStore(
+            db_path=Path(__file__).resolve().parent / SQLITE_DB_PATH,
+            logger=self.logger,
+        )
         self.broker = KiwoomBroker(logger=self.logger, account_no=(ACCOUNT_NO or None))
         self.strategy = MomentumIntradayStrategy(config=STRATEGY_CONFIG)
         self.engine = TradingEngine(
@@ -89,6 +95,7 @@ class MainLiveApp:
             self.strategy,
             self.logger,
             telegram=self.telegram,
+            sqlite_store=self.sqlite_store,
             test_name=CONDITION_NAME,
         )
 
@@ -214,13 +221,17 @@ class MainLiveApp:
             return
 
         codes = []
+        snapshot_rows = []
         for item in payload.get("codes", []):
             if isinstance(item, dict):
                 symbol = str(item.get("symbol", "")).strip()
+                name = str(item.get("name", "")).strip()
             else:
                 symbol = str(item).strip()
+                name = ""
             if symbol:
                 codes.append(symbol)
+                snapshot_rows.append({"symbol": symbol, "name": name})
 
         clean_codes = self.snapshot_universe.replace(codes)
         if not clean_codes:
@@ -232,6 +243,12 @@ class MainLiveApp:
         generated_at = payload.get("generated_at", "")
         source_condition = payload.get("condition_name", CONDITION_NAME)
         display_text = ", ".join(self._format_display_list(clean_codes))
+
+        self.sqlite_store.replace_condition_snapshot(
+            condition_name=source_condition,
+            rows=snapshot_rows,
+            source="snapshot_file",
+        )
 
         self.logger.info(
             f"snapshot 로드 완료 | generated_at={generated_at} "
@@ -263,6 +280,18 @@ class MainLiveApp:
     def subscribe_initial_condition(self, condition_name: str, codes: list[str]):
         clean_codes = self.condition_universe.replace(codes)
         self._refresh_real_registration()
+        condition_rows = [
+            {
+                "symbol": symbol,
+                "name": self.broker.get_code_name(symbol),
+            }
+            for symbol in clean_codes
+        ]
+        self.sqlite_store.replace_condition_snapshot(
+            condition_name=condition_name,
+            rows=condition_rows,
+            source="initial_condition",
+        )
 
         display_text = ", ".join(self._format_display_list(clean_codes))
 
@@ -290,6 +319,14 @@ class MainLiveApp:
         if event == "I":
             already_active = self.condition_universe.contains(symbol)
             self.condition_universe.add(symbol)
+            self.sqlite_store.record_condition_event(
+                condition_name=condition_name,
+                symbol=symbol,
+                name=name,
+                event_type="I",
+                condition_index=condition_index,
+                source="realtime",
+            )
             if not already_active:
                 self._refresh_real_registration()
 
@@ -304,6 +341,14 @@ class MainLiveApp:
 
         if event == "D":
             self.condition_universe.discard(symbol)
+            self.sqlite_store.record_condition_event(
+                condition_name=condition_name,
+                symbol=symbol,
+                name=name,
+                event_type="D",
+                condition_index=condition_index,
+                source="realtime",
+            )
 
             self.logger.info(
                 f"조건검색 이탈 | name={condition_name} index={condition_index} "

@@ -16,8 +16,10 @@ env/
 # Runtime outputs
 logs/
 results/
+runtime/
 
 # Local runtime snapshots/state
 condition_snapshot.json
 monitor_state.json
 *.pid
+*.sqlite3
