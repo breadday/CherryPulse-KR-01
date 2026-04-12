@@ -1,39 +1,27 @@
 {
-  "generated_at": "2026-04-08 21:02:26",
+  "generated_at": "2026-04-12 19:40:18",
   "condition_name": "주도주_스나이퍼",
-  "count": 8,
+  "count": 5,
   "codes": [
     {
-      "symbol": "000720",
-      "name": "현대건설"
+      "symbol": "001440",
+      "name": "대한전선"
     },
     {
-      "symbol": "006360",
-      "name": "GS건설"
+      "symbol": "009150",
+      "name": "삼성전기"
     },
     {
-      "symbol": "017670",
-      "name": "SK텔레콤"
+      "symbol": "011070",
+      "name": "LG이노텍"
     },
     {
-      "symbol": "028260",
-      "name": "삼성물산"
+      "symbol": "034220",
+      "name": "LG디스플레이"
     },
     {
-      "symbol": "047040",
-      "name": "대우건설"
-    },
-    {
-      "symbol": "079900",
-      "name": "전진건설로봇"
-    },
-    {
-      "symbol": "222800",
-      "name": "심텍"
-    },
-    {
-      "symbol": "375500",
-      "name": "DL이앤씨"
+      "symbol": "050890",
+      "name": "쏠리드"
     }
   ]
 }
