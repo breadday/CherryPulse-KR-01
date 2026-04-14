@@ -1543,6 +1543,9 @@ class TradingEngine:
 
             signal = self.strategy.generate_signal(tick, self.portfolio)
             if signal is None:
+                reject_reason = getattr(self.strategy, "last_reject_reason", "")
+                if reject_reason:
+                    self.logger.info(f"[SIGNAL_SKIP] {symbol} | {reject_reason}")
                 return
 
             entry_score = self._extract_score_from_reason(getattr(signal, "reason", ""))

@@ -17,3 +17,39 @@ python analyze_strategy_improvement.py --limit 300
 python analyze_strategy_improvement.py --condition-name 주도주_스나이퍼
 
 다음 단계로 원하시면 제가 이 분석 결과를 바탕으로 실제 매수/매도 조건을 숫자 기준까지 포함해서 직접 손봐드릴게요.
+
+python inspect_runtime_db.py condition
+python inspect_runtime_db.py blocks
+python analyze_strategy_improvement.py
+
+
+내일은 굳이 로그를 길게 붙여넣지 않으셔도 되고, 아래 중 하나만 해주시면 됩니다.
+
+1. 가장 편한 방법
+- 그냥 오늘 결과 봐줘라고 말씀해주기
+- 제가 DB와 코드 기준으로 직접 확인
+2. 같이 보면 좋은 파일
+- 실행 로그 파일
+- condition_snapshot.json
+- 필요하면 main_live.py 실행 콘솔 에러
+
+지금은 DB가 여기 쌓이게 되어 있습니다.
+
+- C:\Users\sungmin\AppData\Local\CherryPulse-KR-01\cherry_pulse.sqlite3
+그래서 내일 제가 직접 볼 수 있는 핵심 데이터는:
+
+- signals: 신호가 났는지
+- orders: 주문이 실제로 생성됐는지
+- fills: 체결됐는지
+- trades: 거래 종료 결과
+- condition_events: 주도주_스나이퍼 편입/이탈
+- condition_active_symbols: 현재 활성 종목
+
+내일 저한테 이렇게만 말하시면 됩니다.
+
+- DB 보고 왜 매수가 안 됐는지 분석해줘
+- 오늘 결과 보고 조건 완화 포인트 찾아줘
+- 주도주_스나이퍼 종목은 들어왔는데 왜 주문이 안 나갔는지 봐줘
+
+추가로 콘솔에 에러가 떴으면 그것만 같이 주시면 더 좋습니다.
+즉, 내일은 DB만 있어도 분석 가능하고, 에러 로그가 있으면 더 정확해집니다.

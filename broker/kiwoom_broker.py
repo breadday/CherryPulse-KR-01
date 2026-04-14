@@ -836,6 +836,9 @@ class KiwoomBroker(QObject):
         if self.on_real_tick_callback is None:
             return
 
+        if str(real_type).strip() != "주식체결":
+            return
+
         try:
             raw_price = self.ocx.dynamicCall("GetCommRealData(QString, int)", code, 10)
             raw_change_rate = self.ocx.dynamicCall("GetCommRealData(QString, int)", code, 12)
@@ -886,6 +889,13 @@ class KiwoomBroker(QObject):
                 "high": high_price,
                 "low": low_price,
             }
+
+            if trade_strength <= 0.0 and total_volume > 0:
+                self.logger.info(
+                    f"[REAL_WARN] code={code} real_type={real_type} "
+                    f"raw_strength='{str(raw_trade_strength).strip()}' price={price} "
+                    f"chg={price_change_pct} tick_vol={tick_volume} total_vol={total_volume}"
+                )
 
             self.last_tick_volume_map[code] = tick_volume
             self.last_total_volume_map[code] = total_volume
