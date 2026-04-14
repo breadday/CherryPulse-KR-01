@@ -1,27 +1,15 @@
 {
-  "generated_at": "2026-04-12 21:33:02",
+  "generated_at": "2026-04-13 20:35:04",
   "condition_name": "주도주_스나이퍼",
-  "count": 5,
+  "count": 2,
   "codes": [
     {
-      "symbol": "001440",
-      "name": "대한전선"
+      "symbol": "257720",
+      "name": "실리콘투"
     },
     {
-      "symbol": "009150",
-      "name": "삼성전기"
-    },
-    {
-      "symbol": "011070",
-      "name": "LG이노텍"
-    },
-    {
-      "symbol": "034220",
-      "name": "LG디스플레이"
-    },
-    {
-      "symbol": "050890",
-      "name": "쏠리드"
+      "symbol": "490470",
+      "name": "세미파이브"
     }
   ]
 }

@@ -1,335 +1,1347 @@
-2026-04-12 21:19:16,605 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
-2026-04-12 21:19:17,691 | INFO | 텔레그램 연결 테스트 성공
-2026-04-12 21:19:17,780 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
-2026-04-12 21:19:17,781 | INFO | 프로그램 시작
-2026-04-12 21:19:17,782 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
-2026-04-12 21:19:17,782 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
-2026-04-12 21:19:17,782 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
-2026-04-12 21:19:17,783 | INFO | 키움 로그인 시도
-2026-04-12 21:19:17,880 | INFO | CommConnect 호출 완료 | ret=0
-2026-04-12 21:19:17,880 | INFO | 로그인 이벤트 대기 시작
-2026-04-12 21:19:21,523 | INFO | OnEventConnect 호출 | err_code=0
-2026-04-12 21:19:21,525 | INFO | 로그인 성공
-2026-04-12 21:19:21,527 | INFO | 로그인 이벤트 대기 종료
-2026-04-12 21:19:21,528 | INFO | 키움 연결 완료 | 계좌=8122731511
-2026-04-12 21:19:21,528 | INFO | 브로커 연결 완료
-2026-04-12 21:19:21,529 | INFO | 계좌비밀번호 입력창 호출
-2026-04-12 21:19:27,630 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
-2026-04-12 21:19:27,631 | INFO | 계좌 동기화 시작
-2026-04-12 21:19:29,135 | INFO | get_deposit 호출
-2026-04-12 21:19:29,138 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
-2026-04-12 21:19:29,151 | INFO | 서버메시지 | [100000] 모의투자 조회완료
-2026-04-12 21:19:29,151 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
-2026-04-12 21:19:29,154 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
-2026-04-12 21:19:29,154 | INFO | 예수금 조회 완료 | deposit=10000000
-2026-04-12 21:19:30,164 | INFO | get_positions 호출
-2026-04-12 21:19:30,164 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
-2026-04-12 21:19:30,166 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
-2026-04-12 21:19:30,180 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
-2026-04-12 21:19:30,180 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
-2026-04-12 21:19:30,181 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
-2026-04-12 21:19:30,182 | INFO | opw00018 수신 | rows=0 | sPrevNext=
-2026-04-12 21:19:30,182 | INFO | 보유종목 조회 완료 | count=0
-2026-04-12 21:19:30,182 | INFO | get_positions 완료 | count=0
-2026-04-12 21:19:30,184 | INFO | 예수금 동기화 완료 | deposit=10000000
-2026-04-12 21:19:30,184 | INFO | 보유종목 동기화 완료 | count=0
-2026-04-12 21:19:32,188 | INFO | get_pending_orders 호출
-2026-04-12 21:19:32,188 | INFO | 미체결주문요청 호출 | prev_next=0
-2026-04-12 21:19:32,200 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
-2026-04-12 21:19:32,221 | INFO | 서버메시지 |  조회가 완료되었습니다.
-2026-04-12 21:19:32,221 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
-2026-04-12 21:19:32,222 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
-2026-04-12 21:19:32,222 | INFO | opt10075 수신 | rows=0 | sPrevNext=
-2026-04-12 21:19:32,223 | INFO | 미체결 주문 조회 완료 | count=0
-2026-04-12 21:19:32,223 | INFO | get_pending_orders 완료 | count=0
-2026-04-12 21:19:32,224 | INFO | 미체결 주문 동기화 시작 | count=0
-2026-04-12 21:19:32,224 | INFO | 미체결 주문 동기화 완료 | restored=0
-2026-04-12 21:19:32,224 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
-2026-04-12 21:19:32,230 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
-2026-04-12 21:19:32,231 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:19:32,231 | INFO | snapshot 로드 완료 | generated_at=2026-04-12 19:40:18 condition_name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:19:33,238 | INFO | 조건검색 시작 시도
-2026-04-12 21:19:33,238 | INFO | 조건검색 목록 로드 시작
-2026-04-12 21:19:33,241 | INFO | GetConditionLoad 호출 | ret=1
-2026-04-12 21:19:33,397 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
-2026-04-12 21:19:33,414 | INFO | 조건검색 목록 로드 완료 | count=32
-2026-04-12 21:19:33,415 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
-2026-04-12 21:19:33,446 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
-2026-04-12 21:19:33,450 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
-2026-04-12 21:19:33,451 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:19:33,451 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:19:34,462 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
-2026-04-12 21:19:34,463 | INFO | 조건검색 시작 완료 | name=주도주_스나이퍼 initial_count=5
-2026-04-12 21:19:34,463 | INFO | 실시간 엔진 시작 | mode=snapshot_plus_condition
-2026-04-12 21:22:58,806 | INFO | 종료 신호 수신
-2026-04-12 21:22:58,807 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 21:22:58,807 | INFO | 실시간 구독 해제 완료
-2026-04-12 21:22:58,807 | INFO | 엔진 종료 시작
-2026-04-12 21:22:58,807 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
-2026-04-12 21:22:59,839 | INFO | 브로커 종료 시작
-2026-04-12 21:22:59,842 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 21:22:59,842 | INFO | 브로커 종료 완료
-2026-04-12 21:22:59,843 | INFO | 엔진 종료 완료
-2026-04-12 21:22:59,843 | INFO | 프로그램 종료
-2026-04-12 21:23:51,580 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
-2026-04-12 21:23:52,566 | INFO | 텔레그램 연결 테스트 성공
-2026-04-12 21:23:52,636 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
-2026-04-12 21:23:52,637 | INFO | 프로그램 시작
-2026-04-12 21:23:52,637 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
-2026-04-12 21:23:52,637 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
-2026-04-12 21:23:52,638 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
-2026-04-12 21:23:52,638 | INFO | 키움 로그인 시도
-2026-04-12 21:23:52,745 | INFO | CommConnect 호출 완료 | ret=0
-2026-04-12 21:23:52,746 | INFO | 로그인 이벤트 대기 시작
-2026-04-12 21:23:56,914 | INFO | OnEventConnect 호출 | err_code=0
-2026-04-12 21:23:56,914 | INFO | 로그인 성공
-2026-04-12 21:23:56,916 | INFO | 로그인 이벤트 대기 종료
-2026-04-12 21:23:56,916 | INFO | 키움 연결 완료 | 계좌=8122731511
-2026-04-12 21:23:56,916 | INFO | 브로커 연결 완료
-2026-04-12 21:23:56,916 | INFO | 계좌비밀번호 입력창 호출
-2026-04-12 21:24:01,528 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
-2026-04-12 21:24:01,528 | INFO | 계좌 동기화 시작
-2026-04-12 21:24:03,030 | INFO | get_deposit 호출
-2026-04-12 21:24:03,031 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
-2026-04-12 21:24:03,046 | INFO | 서버메시지 | [100000] 모의투자 조회완료
-2026-04-12 21:24:03,046 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
-2026-04-12 21:24:03,047 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
-2026-04-12 21:24:03,048 | INFO | 예수금 조회 완료 | deposit=10000000
-2026-04-12 21:24:04,058 | INFO | get_positions 호출
-2026-04-12 21:24:04,058 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
-2026-04-12 21:24:04,059 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
-2026-04-12 21:24:04,074 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
-2026-04-12 21:24:04,074 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
-2026-04-12 21:24:04,075 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
-2026-04-12 21:24:04,076 | INFO | opw00018 수신 | rows=0 | sPrevNext=
-2026-04-12 21:24:04,076 | INFO | 보유종목 조회 완료 | count=0
-2026-04-12 21:24:04,078 | INFO | get_positions 완료 | count=0
-2026-04-12 21:24:04,078 | INFO | 예수금 동기화 완료 | deposit=10000000
-2026-04-12 21:24:04,078 | INFO | 보유종목 동기화 완료 | count=0
-2026-04-12 21:24:06,059 | INFO | get_pending_orders 호출
-2026-04-12 21:24:06,059 | INFO | 미체결주문요청 호출 | prev_next=0
-2026-04-12 21:24:06,072 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
-2026-04-12 21:24:06,090 | INFO | 서버메시지 |  조회가 완료되었습니다.
-2026-04-12 21:24:06,090 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
-2026-04-12 21:24:06,092 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
-2026-04-12 21:24:06,092 | INFO | opt10075 수신 | rows=0 | sPrevNext=
-2026-04-12 21:24:06,092 | INFO | 미체결 주문 조회 완료 | count=0
-2026-04-12 21:24:06,093 | INFO | get_pending_orders 완료 | count=0
-2026-04-12 21:24:06,093 | INFO | 미체결 주문 동기화 시작 | count=0
-2026-04-12 21:24:06,094 | INFO | 미체결 주문 동기화 완료 | restored=0
-2026-04-12 21:24:06,094 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
-2026-04-12 21:24:06,098 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
-2026-04-12 21:24:06,099 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:24:06,100 | INFO | snapshot 로드 완료 | generated_at=2026-04-12 19:40:18 condition_name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:24:07,091 | INFO | 조건검색 시작 시도
-2026-04-12 21:24:07,091 | INFO | 조건검색 목록 로드 시작
-2026-04-12 21:24:07,094 | INFO | GetConditionLoad 호출 | ret=1
-2026-04-12 21:24:07,259 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
-2026-04-12 21:24:07,278 | INFO | 조건검색 목록 로드 완료 | count=32
-2026-04-12 21:24:07,280 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
-2026-04-12 21:24:07,307 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
-2026-04-12 21:24:07,311 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
-2026-04-12 21:24:07,311 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:24:07,312 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:24:08,318 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
-2026-04-12 21:24:08,318 | INFO | 조건검색 시작 완료 | name=주도주_스나이퍼 initial_count=5
-2026-04-12 21:24:08,318 | INFO | 실시간 엔진 시작 | mode=snapshot_plus_condition
-2026-04-12 21:24:52,655 | INFO | 🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at=15:20
-2026-04-12 21:24:52,655 | INFO | 종료 신호 수신
-2026-04-12 21:24:52,656 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 21:24:52,656 | INFO | 실시간 구독 해제 완료
-2026-04-12 21:24:52,656 | INFO | 엔진 종료 시작
-2026-04-12 21:24:52,656 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
-2026-04-12 21:24:53,616 | INFO | 브로커 종료 시작
-2026-04-12 21:24:53,617 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 21:24:53,618 | INFO | 브로커 종료 완료
-2026-04-12 21:24:53,618 | INFO | 엔진 종료 완료
-2026-04-12 21:24:53,618 | INFO | 프로그램 종료
-2026-04-12 21:25:47,708 | INFO | snapshot 저장 시작 | condition_name=주도주_스나이퍼
-2026-04-12 21:25:47,708 | INFO | 키움 로그인 시도
-2026-04-12 21:25:47,807 | INFO | CommConnect 호출 완료 | ret=0
-2026-04-12 21:25:47,807 | INFO | 로그인 이벤트 대기 시작
-2026-04-12 21:25:51,724 | INFO | OnEventConnect 호출 | err_code=0
-2026-04-12 21:25:51,725 | INFO | 로그인 성공
-2026-04-12 21:25:51,727 | INFO | 로그인 이벤트 대기 종료
-2026-04-12 21:25:51,727 | INFO | 키움 연결 완료 | 계좌=8122731511
-2026-04-12 21:25:51,729 | INFO | 조건검색 목록 로드 시작
-2026-04-12 21:25:51,730 | INFO | GetConditionLoad 호출 | ret=1
-2026-04-12 21:25:51,922 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
-2026-04-12 21:25:51,948 | INFO | 조건검색 목록 로드 완료 | count=32
-2026-04-12 21:25:51,950 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=0 ret=1
-2026-04-12 21:25:51,978 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
-2026-04-12 21:25:51,980 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
-2026-04-12 21:25:51,982 | INFO | snapshot 저장 완료 | path=E:\codexAi\_review_extract\CherryPulse-KR-01\condition_snapshot.json count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:25:51,983 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 21:25:51,983 | INFO | 브로커 종료 시작
-2026-04-12 21:25:51,984 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 21:25:51,986 | INFO | 브로커 종료 완료
-2026-04-12 21:32:57,957 | INFO | snapshot 저장 시작 | condition_name=주도주_스나이퍼
-2026-04-12 21:32:57,958 | INFO | 키움 로그인 시도
-2026-04-12 21:32:58,063 | INFO | CommConnect 호출 완료 | ret=0
-2026-04-12 21:32:58,065 | INFO | 로그인 이벤트 대기 시작
-2026-04-12 21:33:02,003 | INFO | OnEventConnect 호출 | err_code=0
-2026-04-12 21:33:02,003 | INFO | 로그인 성공
-2026-04-12 21:33:02,004 | INFO | 로그인 이벤트 대기 종료
-2026-04-12 21:33:02,004 | INFO | 키움 연결 완료 | 계좌=8122731511
-2026-04-12 21:33:02,004 | INFO | 조건검색 목록 로드 시작
-2026-04-12 21:33:02,005 | INFO | GetConditionLoad 호출 | ret=1
-2026-04-12 21:33:02,202 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
-2026-04-12 21:33:02,227 | INFO | 조건검색 목록 로드 완료 | count=32
-2026-04-12 21:33:02,228 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=0 ret=1
-2026-04-12 21:33:02,255 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
-2026-04-12 21:33:02,256 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
-2026-04-12 21:33:02,258 | INFO | snapshot 저장 완료 | path=E:\codexAi\_review_extract\CherryPulse-KR-01\condition_snapshot.json count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:33:02,259 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 21:33:02,259 | INFO | 브로커 종료 시작
-2026-04-12 21:33:02,259 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 21:33:02,260 | INFO | 브로커 종료 완료
-2026-04-12 21:33:10,782 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
-2026-04-12 21:33:11,779 | INFO | 텔레그램 연결 테스트 성공
-2026-04-12 21:33:11,889 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
-2026-04-12 21:33:11,890 | INFO | 프로그램 시작
-2026-04-12 21:33:11,890 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
-2026-04-12 21:33:11,890 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
-2026-04-12 21:33:11,891 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
-2026-04-12 21:33:11,891 | INFO | 키움 로그인 시도
-2026-04-12 21:33:12,049 | INFO | CommConnect 호출 완료 | ret=0
-2026-04-12 21:33:12,050 | INFO | 로그인 이벤트 대기 시작
-2026-04-12 21:33:16,086 | INFO | OnEventConnect 호출 | err_code=0
-2026-04-12 21:33:16,086 | INFO | 로그인 성공
-2026-04-12 21:33:16,086 | INFO | 로그인 이벤트 대기 종료
-2026-04-12 21:33:16,086 | INFO | 키움 연결 완료 | 계좌=8122731511
-2026-04-12 21:33:16,086 | INFO | 브로커 연결 완료
-2026-04-12 21:33:16,088 | INFO | 계좌비밀번호 입력창 호출
-2026-04-12 21:33:23,107 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
-2026-04-12 21:33:23,107 | INFO | 계좌 동기화 시작
-2026-04-12 21:33:24,613 | INFO | get_deposit 호출
-2026-04-12 21:33:24,614 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
-2026-04-12 21:33:24,628 | INFO | 서버메시지 | [100000] 모의투자 조회완료
-2026-04-12 21:33:24,629 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
-2026-04-12 21:33:24,631 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
-2026-04-12 21:33:24,631 | INFO | 예수금 조회 완료 | deposit=10000000
-2026-04-12 21:33:25,640 | INFO | get_positions 호출
-2026-04-12 21:33:25,640 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
-2026-04-12 21:33:25,641 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
-2026-04-12 21:33:25,656 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
-2026-04-12 21:33:25,656 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
-2026-04-12 21:33:25,658 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
-2026-04-12 21:33:25,658 | INFO | opw00018 수신 | rows=0 | sPrevNext=
-2026-04-12 21:33:25,658 | INFO | 보유종목 조회 완료 | count=0
-2026-04-12 21:33:25,658 | INFO | get_positions 완료 | count=0
-2026-04-12 21:33:25,660 | INFO | 예수금 동기화 완료 | deposit=10000000
-2026-04-12 21:33:25,660 | INFO | 보유종목 동기화 완료 | count=0
-2026-04-12 21:33:27,648 | INFO | get_pending_orders 호출
-2026-04-12 21:33:27,648 | INFO | 미체결주문요청 호출 | prev_next=0
-2026-04-12 21:33:27,655 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
-2026-04-12 21:33:27,679 | INFO | 서버메시지 |  조회가 완료되었습니다.
-2026-04-12 21:33:27,679 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
-2026-04-12 21:33:27,680 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
-2026-04-12 21:33:27,680 | INFO | opt10075 수신 | rows=0 | sPrevNext=
-2026-04-12 21:33:27,681 | INFO | 미체결 주문 조회 완료 | count=0
-2026-04-12 21:33:27,681 | INFO | get_pending_orders 완료 | count=0
-2026-04-12 21:33:27,681 | INFO | 미체결 주문 동기화 시작 | count=0
-2026-04-12 21:33:27,681 | INFO | 미체결 주문 동기화 완료 | restored=0
-2026-04-12 21:33:27,683 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
-2026-04-12 21:33:27,694 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
-2026-04-12 21:33:27,695 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:33:27,695 | INFO | snapshot 로드 완료 | generated_at=2026-04-12 21:33:02 condition_name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:33:28,749 | INFO | 조건검색 시작 시도
-2026-04-12 21:33:28,749 | INFO | 조건검색 목록 로드 시작
-2026-04-12 21:33:28,751 | INFO | GetConditionLoad 호출 | ret=1
-2026-04-12 21:33:28,937 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
-2026-04-12 21:33:28,957 | INFO | 조건검색 목록 로드 완료 | count=32
-2026-04-12 21:33:28,958 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
-2026-04-12 21:33:28,980 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
-2026-04-12 21:33:28,984 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
-2026-04-12 21:33:28,984 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:33:28,984 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 21:33:29,968 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
-2026-04-12 21:33:29,968 | INFO | 조건검색 시작 완료 | name=주도주_스나이퍼 initial_count=5
-2026-04-12 21:33:29,968 | INFO | 실시간 엔진 시작 | mode=snapshot_plus_condition
-2026-04-12 21:34:11,902 | INFO | 🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at=15:20
-2026-04-12 21:34:11,902 | INFO | 종료 신호 수신
-2026-04-12 21:34:11,903 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 21:34:11,903 | INFO | 실시간 구독 해제 완료
-2026-04-12 21:34:11,904 | INFO | 엔진 종료 시작
-2026-04-12 21:34:11,904 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
-2026-04-12 21:34:12,890 | INFO | 브로커 종료 시작
-2026-04-12 21:34:12,892 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 21:34:12,892 | INFO | 브로커 종료 완료
-2026-04-12 21:34:12,892 | INFO | 엔진 종료 완료
-2026-04-12 21:34:12,894 | INFO | 프로그램 종료
-2026-04-12 22:03:50,398 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
-2026-04-12 22:03:51,448 | INFO | 텔레그램 연결 테스트 성공
-2026-04-12 22:03:52,006 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
-2026-04-12 22:03:52,008 | INFO | 프로그램 시작
-2026-04-12 22:03:52,008 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
-2026-04-12 22:03:52,009 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
-2026-04-12 22:03:52,009 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
-2026-04-12 22:03:52,009 | INFO | 키움 로그인 시도
-2026-04-12 22:03:52,307 | INFO | CommConnect 호출 완료 | ret=0
-2026-04-12 22:03:52,310 | INFO | 로그인 이벤트 대기 시작
-2026-04-12 22:03:58,275 | INFO | OnEventConnect 호출 | err_code=0
-2026-04-12 22:03:58,275 | INFO | 로그인 성공
-2026-04-12 22:03:58,276 | INFO | 로그인 이벤트 대기 종료
-2026-04-12 22:03:58,276 | INFO | 키움 연결 완료 | 계좌=8122731511
-2026-04-12 22:03:58,276 | INFO | 브로커 연결 완료
-2026-04-12 22:03:58,276 | INFO | 계좌비밀번호 입력창 호출
-2026-04-12 22:04:03,948 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
-2026-04-12 22:04:03,948 | INFO | 계좌 동기화 시작
-2026-04-12 22:04:05,452 | INFO | get_deposit 호출
-2026-04-12 22:04:05,454 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
-2026-04-12 22:04:05,472 | INFO | 서버메시지 | [100000] 모의투자 조회완료
-2026-04-12 22:04:05,474 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
-2026-04-12 22:04:05,476 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
-2026-04-12 22:04:05,476 | INFO | 예수금 조회 완료 | deposit=10000000
-2026-04-12 22:04:06,478 | INFO | get_positions 호출
-2026-04-12 22:04:06,478 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
-2026-04-12 22:04:06,480 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
-2026-04-12 22:04:06,494 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
-2026-04-12 22:04:06,494 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
-2026-04-12 22:04:06,496 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
-2026-04-12 22:04:06,497 | INFO | opw00018 수신 | rows=0 | sPrevNext=
-2026-04-12 22:04:06,497 | INFO | 보유종목 조회 완료 | count=0
-2026-04-12 22:04:06,498 | INFO | get_positions 완료 | count=0
-2026-04-12 22:04:06,498 | INFO | 예수금 동기화 완료 | deposit=10000000
-2026-04-12 22:04:06,498 | INFO | 보유종목 동기화 완료 | count=0
-2026-04-12 22:04:08,483 | INFO | get_pending_orders 호출
-2026-04-12 22:04:08,483 | INFO | 미체결주문요청 호출 | prev_next=0
-2026-04-12 22:04:08,506 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
-2026-04-12 22:04:08,515 | INFO | 서버메시지 |  조회가 완료되었습니다.
-2026-04-12 22:04:08,515 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
-2026-04-12 22:04:08,516 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
-2026-04-12 22:04:08,516 | INFO | opt10075 수신 | rows=0 | sPrevNext=
-2026-04-12 22:04:08,516 | INFO | 미체결 주문 조회 완료 | count=0
-2026-04-12 22:04:08,517 | INFO | get_pending_orders 완료 | count=0
-2026-04-12 22:04:08,518 | INFO | 미체결 주문 동기화 시작 | count=0
-2026-04-12 22:04:08,518 | INFO | 미체결 주문 동기화 완료 | restored=0
-2026-04-12 22:04:08,518 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
-2026-04-12 22:04:08,537 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
-2026-04-12 22:04:08,537 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 22:04:08,544 | INFO | snapshot 로드 완료 | generated_at=2026-04-12 21:33:02 condition_name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 22:04:09,534 | INFO | 조건검색 시작 시도
-2026-04-12 22:04:09,535 | INFO | 조건검색 목록 로드 시작
-2026-04-12 22:04:09,538 | INFO | GetConditionLoad 호출 | ret=1
-2026-04-12 22:04:09,749 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
-2026-04-12 22:04:09,769 | INFO | 조건검색 목록 로드 완료 | count=32
-2026-04-12 22:04:09,770 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
-2026-04-12 22:04:09,792 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=5 next=0
-2026-04-12 22:04:09,796 | INFO | 실시간 등록 | codes=001440;009150;011070;034220;050890 fids=10;12;13;15;16;17;18;228 ret=0
-2026-04-12 22:04:09,796 | INFO | 실시간 구독 동기화 | total=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 22:04:09,804 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=5 codes=001440(대한전선), 009150(삼성전기), 011070(LG이노텍), 034220(LG디스플레이), 050890(쏠리드)
-2026-04-12 22:04:10,762 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=5
-2026-04-12 22:04:10,762 | INFO | 조건검색 시작 완료 | name=주도주_스나이퍼 initial_count=5
-2026-04-12 22:04:10,763 | INFO | 실시간 엔진 시작 | mode=snapshot_plus_condition
-2026-04-12 22:04:52,019 | INFO | 🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at=15:20
-2026-04-12 22:04:52,019 | INFO | 종료 신호 수신
-2026-04-12 22:04:52,020 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 22:04:52,020 | INFO | 실시간 구독 해제 완료
-2026-04-12 22:04:52,021 | INFO | 엔진 종료 시작
-2026-04-12 22:04:52,021 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
-2026-04-12 22:04:52,992 | INFO | 브로커 종료 시작
-2026-04-12 22:04:52,994 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
-2026-04-12 22:04:52,995 | INFO | 브로커 종료 완료
-2026-04-12 22:04:52,995 | INFO | 엔진 종료 완료
-2026-04-12 22:04:52,995 | INFO | 프로그램 종료
+2026-04-14 06:54:27,371 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-14 06:54:28,388 | INFO | 텔레그램 연결 테스트 성공
+2026-04-14 06:54:28,923 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
+2026-04-14 06:54:28,926 | INFO | 프로그램 시작
+2026-04-14 06:54:28,926 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
+2026-04-14 06:54:28,926 | INFO | 실행 모드 | DRY_RUN=False LIVE_MODE=True
+2026-04-14 06:54:28,927 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-14 06:54:28,928 | INFO | 키움 로그인 시도
+2026-04-14 06:54:29,140 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-14 06:54:29,142 | INFO | 로그인 이벤트 대기 시작
+2026-04-14 06:54:41,497 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-14 06:54:41,497 | INFO | 로그인 성공
+2026-04-14 06:54:41,498 | INFO | 로그인 이벤트 대기 종료
+2026-04-14 06:54:41,500 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-14 06:54:41,500 | INFO | 브로커 연결 완료
+2026-04-14 06:54:41,501 | INFO | 계좌비밀번호 입력창 호출
+2026-04-14 06:54:48,163 | INFO | 계좌비밀번호 창에서 저장 후 사용하세요.
+2026-04-14 06:54:48,163 | INFO | 계좌 동기화 시작
+2026-04-14 06:54:49,671 | INFO | get_deposit 호출
+2026-04-14 06:54:49,676 | INFO | CommRqData 호출 | rq=deposit_req tr=opw00001 prev_next=0 screen=7000 ret=0 attempt=1/3
+2026-04-14 06:54:49,702 | INFO | 서버메시지 | [100000] 모의투자 조회완료
+2026-04-14 06:54:49,702 | INFO | [BROKER_MSG] [100000] 모의투자 조회완료
+2026-04-14 06:54:49,703 | INFO | OnReceiveTrData | rq=deposit_req tr=opw00001 prev_next=
+2026-04-14 06:54:49,704 | INFO | 예수금 조회 완료 | deposit=10000000
+2026-04-14 06:54:50,714 | INFO | get_positions 호출
+2026-04-14 06:54:50,716 | INFO | 계좌평가잔고내역요청 호출 | prev_next=0
+2026-04-14 06:54:50,718 | INFO | CommRqData 호출 | rq=opw00018_req tr=opw00018 prev_next=0 screen=7100 ret=0 attempt=1/3
+2026-04-14 06:54:50,745 | INFO | 서버메시지 | [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-14 06:54:50,746 | INFO | [BROKER_MSG] [571578] 모의투자 해당조회내역이 없습니다.
+2026-04-14 06:54:50,747 | INFO | OnReceiveTrData | rq=opw00018_req tr=opw00018 prev_next=
+2026-04-14 06:54:50,747 | INFO | opw00018 수신 | rows=0 | sPrevNext=
+2026-04-14 06:54:50,747 | INFO | 보유종목 조회 완료 | count=0
+2026-04-14 06:54:50,749 | INFO | get_positions 완료 | count=0
+2026-04-14 06:54:50,750 | INFO | 예수금 동기화 완료 | deposit=10000000
+2026-04-14 06:54:50,750 | INFO | 보유종목 동기화 완료 | count=0
+2026-04-14 06:54:52,787 | INFO | get_pending_orders 호출
+2026-04-14 06:54:52,789 | INFO | 미체결주문요청 호출 | prev_next=0
+2026-04-14 06:54:52,811 | INFO | CommRqData 호출 | rq=opt10075_req tr=opt10075 prev_next=0 screen=7200 ret=0 attempt=1/3
+2026-04-14 06:54:52,835 | INFO | 서버메시지 |  조회가 완료되었습니다.
+2026-04-14 06:54:52,835 | INFO | [BROKER_MSG]  조회가 완료되었습니다.
+2026-04-14 06:54:52,836 | INFO | OnReceiveTrData | rq=opt10075_req tr=opt10075 prev_next=
+2026-04-14 06:54:52,836 | INFO | opt10075 수신 | rows=0 | sPrevNext=
+2026-04-14 06:54:52,837 | INFO | 미체결 주문 조회 완료 | count=0
+2026-04-14 06:54:52,837 | INFO | get_pending_orders 완료 | count=0
+2026-04-14 06:54:52,838 | INFO | 미체결 주문 동기화 시작 | count=0
+2026-04-14 06:54:52,838 | INFO | 미체결 주문 동기화 완료 | restored=0
+2026-04-14 06:54:52,838 | INFO | health_check 완료 | positions=0 pending_orders=0 daily_order_count=0 protected=False
+2026-04-14 06:54:52,857 | INFO | 실시간 등록 | codes=257720;490470 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-14 06:54:52,859 | INFO | 실시간 구독 동기화 | total=2 codes=257720(실리콘투), 490470(세미파이브)
+2026-04-14 06:54:52,867 | INFO | snapshot 로드 완료 | generated_at=2026-04-13 20:35:04 condition_name=주도주_스나이퍼 count=2 codes=257720(실리콘투), 490470(세미파이브)
+2026-04-14 06:54:53,835 | INFO | 조건검색 시작 대기 | now=06:54 start_at=08:50
+2026-04-14 06:54:53,836 | INFO | 실시간 엔진 시작 | mode=snapshot_plus_condition
+2026-04-14 06:55:28,933 | INFO | 조건검색 시작 대기 | now=06:55 start_at=08:50
+2026-04-14 06:56:28,935 | INFO | 조건검색 시작 대기 | now=06:56 start_at=08:50
+2026-04-14 06:57:28,940 | INFO | 조건검색 시작 대기 | now=06:57 start_at=08:50
+2026-04-14 06:58:28,933 | INFO | 조건검색 시작 대기 | now=06:58 start_at=08:50
+2026-04-14 06:59:28,933 | INFO | 조건검색 시작 대기 | now=06:59 start_at=08:50
+2026-04-14 07:00:28,931 | INFO | 조건검색 시작 대기 | now=07:00 start_at=08:50
+2026-04-14 07:01:28,941 | INFO | 조건검색 시작 대기 | now=07:01 start_at=08:50
+2026-04-14 07:02:28,951 | INFO | 조건검색 시작 대기 | now=07:02 start_at=08:50
+2026-04-14 07:03:28,947 | INFO | 조건검색 시작 대기 | now=07:03 start_at=08:50
+2026-04-14 07:04:28,970 | INFO | 조건검색 시작 대기 | now=07:04 start_at=08:50
+2026-04-14 07:05:28,962 | INFO | 조건검색 시작 대기 | now=07:05 start_at=08:50
+2026-04-14 07:06:28,982 | INFO | 조건검색 시작 대기 | now=07:06 start_at=08:50
+2026-04-14 07:07:28,978 | INFO | 조건검색 시작 대기 | now=07:07 start_at=08:50
+2026-04-14 07:08:28,988 | INFO | 조건검색 시작 대기 | now=07:08 start_at=08:50
+2026-04-14 07:09:28,991 | INFO | 조건검색 시작 대기 | now=07:09 start_at=08:50
+2026-04-14 07:10:29,000 | INFO | 조건검색 시작 대기 | now=07:10 start_at=08:50
+2026-04-14 07:11:29,004 | INFO | 조건검색 시작 대기 | now=07:11 start_at=08:50
+2026-04-14 07:12:29,020 | INFO | 조건검색 시작 대기 | now=07:12 start_at=08:50
+2026-04-14 07:13:29,008 | INFO | 조건검색 시작 대기 | now=07:13 start_at=08:50
+2026-04-14 07:14:29,005 | INFO | 조건검색 시작 대기 | now=07:14 start_at=08:50
+2026-04-14 07:15:29,016 | INFO | 조건검색 시작 대기 | now=07:15 start_at=08:50
+2026-04-14 07:16:29,010 | INFO | 조건검색 시작 대기 | now=07:16 start_at=08:50
+2026-04-14 07:17:29,007 | INFO | 조건검색 시작 대기 | now=07:17 start_at=08:50
+2026-04-14 07:18:29,014 | INFO | 조건검색 시작 대기 | now=07:18 start_at=08:50
+2026-04-14 07:19:29,007 | INFO | 조건검색 시작 대기 | now=07:19 start_at=08:50
+2026-04-14 07:20:29,006 | INFO | 조건검색 시작 대기 | now=07:20 start_at=08:50
+2026-04-14 07:21:29,017 | INFO | 조건검색 시작 대기 | now=07:21 start_at=08:50
+2026-04-14 07:22:29,026 | INFO | 조건검색 시작 대기 | now=07:22 start_at=08:50
+2026-04-14 07:23:29,026 | INFO | 조건검색 시작 대기 | now=07:23 start_at=08:50
+2026-04-14 07:24:29,024 | INFO | 조건검색 시작 대기 | now=07:24 start_at=08:50
+2026-04-14 07:25:29,038 | INFO | 조건검색 시작 대기 | now=07:25 start_at=08:50
+2026-04-14 07:26:29,051 | INFO | 조건검색 시작 대기 | now=07:26 start_at=08:50
+2026-04-14 07:27:29,051 | INFO | 조건검색 시작 대기 | now=07:27 start_at=08:50
+2026-04-14 07:28:29,079 | INFO | 조건검색 시작 대기 | now=07:28 start_at=08:50
+2026-04-14 07:29:29,093 | INFO | 조건검색 시작 대기 | now=07:29 start_at=08:50
+2026-04-14 07:30:29,104 | INFO | 조건검색 시작 대기 | now=07:30 start_at=08:50
+2026-04-14 07:31:29,111 | INFO | 조건검색 시작 대기 | now=07:31 start_at=08:50
+2026-04-14 07:32:29,119 | INFO | 조건검색 시작 대기 | now=07:32 start_at=08:50
+2026-04-14 07:33:29,143 | INFO | 조건검색 시작 대기 | now=07:33 start_at=08:50
+2026-04-14 07:34:29,151 | INFO | 조건검색 시작 대기 | now=07:34 start_at=08:50
+2026-04-14 07:35:29,144 | INFO | 조건검색 시작 대기 | now=07:35 start_at=08:50
+2026-04-14 07:36:29,165 | INFO | 조건검색 시작 대기 | now=07:36 start_at=08:50
+2026-04-14 07:37:29,162 | INFO | 조건검색 시작 대기 | now=07:37 start_at=08:50
+2026-04-14 07:38:29,162 | INFO | 조건검색 시작 대기 | now=07:38 start_at=08:50
+2026-04-14 07:39:29,175 | INFO | 조건검색 시작 대기 | now=07:39 start_at=08:50
+2026-04-14 07:40:29,176 | INFO | 조건검색 시작 대기 | now=07:40 start_at=08:50
+2026-04-14 07:41:29,188 | INFO | 조건검색 시작 대기 | now=07:41 start_at=08:50
+2026-04-14 07:42:29,204 | INFO | 조건검색 시작 대기 | now=07:42 start_at=08:50
+2026-04-14 07:43:29,205 | INFO | 조건검색 시작 대기 | now=07:43 start_at=08:50
+2026-04-14 07:44:29,212 | INFO | 조건검색 시작 대기 | now=07:44 start_at=08:50
+2026-04-14 07:45:29,212 | INFO | 조건검색 시작 대기 | now=07:45 start_at=08:50
+2026-04-14 07:46:29,232 | INFO | 조건검색 시작 대기 | now=07:46 start_at=08:50
+2026-04-14 07:47:29,245 | INFO | 조건검색 시작 대기 | now=07:47 start_at=08:50
+2026-04-14 07:48:29,242 | INFO | 조건검색 시작 대기 | now=07:48 start_at=08:50
+2026-04-14 07:49:29,240 | INFO | 조건검색 시작 대기 | now=07:49 start_at=08:50
+2026-04-14 07:50:29,262 | INFO | 조건검색 시작 대기 | now=07:50 start_at=08:50
+2026-04-14 07:51:29,254 | INFO | 조건검색 시작 대기 | now=07:51 start_at=08:50
+2026-04-14 07:52:29,269 | INFO | 조건검색 시작 대기 | now=07:52 start_at=08:50
+2026-04-14 07:53:29,276 | INFO | 조건검색 시작 대기 | now=07:53 start_at=08:50
+2026-04-14 07:54:29,277 | INFO | 조건검색 시작 대기 | now=07:54 start_at=08:50
+2026-04-14 07:55:29,291 | INFO | 조건검색 시작 대기 | now=07:55 start_at=08:50
+2026-04-14 07:56:29,285 | INFO | 조건검색 시작 대기 | now=07:56 start_at=08:50
+2026-04-14 07:57:29,290 | INFO | 조건검색 시작 대기 | now=07:57 start_at=08:50
+2026-04-14 07:58:29,288 | INFO | 조건검색 시작 대기 | now=07:58 start_at=08:50
+2026-04-14 07:59:29,292 | INFO | 조건검색 시작 대기 | now=07:59 start_at=08:50
+2026-04-14 08:00:29,293 | INFO | 조건검색 시작 대기 | now=08:00 start_at=08:50
+2026-04-14 08:01:29,303 | INFO | 조건검색 시작 대기 | now=08:01 start_at=08:50
+2026-04-14 08:02:29,303 | INFO | 조건검색 시작 대기 | now=08:02 start_at=08:50
+2026-04-14 08:03:29,320 | INFO | 조건검색 시작 대기 | now=08:03 start_at=08:50
+2026-04-14 08:04:29,345 | INFO | 조건검색 시작 대기 | now=08:04 start_at=08:50
+2026-04-14 08:05:29,347 | INFO | 조건검색 시작 대기 | now=08:05 start_at=08:50
+2026-04-14 08:06:29,339 | INFO | 조건검색 시작 대기 | now=08:06 start_at=08:50
+2026-04-14 08:07:29,353 | INFO | 조건검색 시작 대기 | now=08:07 start_at=08:50
+2026-04-14 08:08:29,363 | INFO | 조건검색 시작 대기 | now=08:08 start_at=08:50
+2026-04-14 08:09:29,360 | INFO | 조건검색 시작 대기 | now=08:09 start_at=08:50
+2026-04-14 08:10:29,360 | INFO | 조건검색 시작 대기 | now=08:10 start_at=08:50
+2026-04-14 08:11:29,363 | INFO | 조건검색 시작 대기 | now=08:11 start_at=08:50
+2026-04-14 08:12:29,366 | INFO | 조건검색 시작 대기 | now=08:12 start_at=08:50
+2026-04-14 08:13:29,389 | INFO | 조건검색 시작 대기 | now=08:13 start_at=08:50
+2026-04-14 08:14:29,381 | INFO | 조건검색 시작 대기 | now=08:14 start_at=08:50
+2026-04-14 08:15:29,407 | INFO | 조건검색 시작 대기 | now=08:15 start_at=08:50
+2026-04-14 08:16:29,421 | INFO | 조건검색 시작 대기 | now=08:16 start_at=08:50
+2026-04-14 08:17:29,410 | INFO | 조건검색 시작 대기 | now=08:17 start_at=08:50
+2026-04-14 08:18:29,424 | INFO | 조건검색 시작 대기 | now=08:18 start_at=08:50
+2026-04-14 08:19:29,413 | INFO | 조건검색 시작 대기 | now=08:19 start_at=08:50
+2026-04-14 08:20:29,434 | INFO | 조건검색 시작 대기 | now=08:20 start_at=08:50
+2026-04-14 08:21:29,428 | INFO | 조건검색 시작 대기 | now=08:21 start_at=08:50
+2026-04-14 08:22:29,444 | INFO | 조건검색 시작 대기 | now=08:22 start_at=08:50
+2026-04-14 08:23:29,453 | INFO | 조건검색 시작 대기 | now=08:23 start_at=08:50
+2026-04-14 08:24:29,467 | INFO | 조건검색 시작 대기 | now=08:24 start_at=08:50
+2026-04-14 08:25:29,463 | INFO | 조건검색 시작 대기 | now=08:25 start_at=08:50
+2026-04-14 08:26:29,470 | INFO | 조건검색 시작 대기 | now=08:26 start_at=08:50
+2026-04-14 08:27:29,457 | INFO | 조건검색 시작 대기 | now=08:27 start_at=08:50
+2026-04-14 08:28:29,465 | INFO | 조건검색 시작 대기 | now=08:28 start_at=08:50
+2026-04-14 08:29:29,457 | INFO | 조건검색 시작 대기 | now=08:29 start_at=08:50
+2026-04-14 08:30:29,465 | INFO | 조건검색 시작 대기 | now=08:30 start_at=08:50
+2026-04-14 08:31:29,460 | INFO | 조건검색 시작 대기 | now=08:31 start_at=08:50
+2026-04-14 08:31:35,684 | INFO | [NEWS_PROVIDER] symbol=490470 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:31:35,684 | INFO | [TICK] 490470 tick_no=1 price=36500 vol=44 chg=0.0 strength=0.0 vr=10.0 news=0.0 theme=0 leader=0
+2026-04-14 08:31:35,685 | INFO | [CHECK] 490470 price=36500
+2026-04-14 08:31:35,687 | INFO | [SIGNAL_SKIP] 490470 | price_change_pct<0.3
+2026-04-14 08:31:54,590 | INFO | [TICK] 490470 tick_no=2 price=36500 vol=1 chg=0.0 strength=0.0 vr=1.0 news=0.0 theme=0 leader=0
+2026-04-14 08:31:54,591 | INFO | [CHECK] 490470 price=36500
+2026-04-14 08:31:54,592 | INFO | [SIGNAL_SKIP] 490470 | price_change_pct<0.3
+2026-04-14 08:32:07,089 | INFO | [TICK] 490470 tick_no=3 price=36500 vol=1 chg=0.0 strength=0.0 vr=1.0 news=0.0 theme=0 leader=0
+2026-04-14 08:32:07,090 | INFO | [CHECK] 490470 price=36500
+2026-04-14 08:32:07,091 | INFO | [SIGNAL_SKIP] 490470 | price_change_pct<0.3
+2026-04-14 08:32:29,465 | INFO | 조건검색 시작 대기 | now=08:32 start_at=08:50
+2026-04-14 08:32:49,275 | INFO | [NEWS_PROVIDER] symbol=490470 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:32:49,277 | INFO | [TICK] 490470 tick_no=4 price=36500 vol=16 chg=0.0 strength=0.0 vr=0.39 news=0.0 theme=0 leader=0
+2026-04-14 08:32:49,278 | INFO | [CHECK] 490470 price=36500
+2026-04-14 08:32:49,278 | INFO | [SIGNAL_SKIP] 490470 | price_change_pct<0.3
+2026-04-14 08:33:29,484 | INFO | 조건검색 시작 대기 | now=08:33 start_at=08:50
+2026-04-14 08:34:29,481 | INFO | 조건검색 시작 대기 | now=08:34 start_at=08:50
+2026-04-14 08:35:29,500 | INFO | 조건검색 시작 대기 | now=08:35 start_at=08:50
+2026-04-14 08:36:29,508 | INFO | 조건검색 시작 대기 | now=08:36 start_at=08:50
+2026-04-14 08:37:29,507 | INFO | 조건검색 시작 대기 | now=08:37 start_at=08:50
+2026-04-14 08:38:29,518 | INFO | 조건검색 시작 대기 | now=08:38 start_at=08:50
+2026-04-14 08:39:29,522 | INFO | 조건검색 시작 대기 | now=08:39 start_at=08:50
+2026-04-14 08:40:29,524 | INFO | 조건검색 시작 대기 | now=08:40 start_at=08:50
+2026-04-14 08:41:29,540 | INFO | 조건검색 시작 대기 | now=08:41 start_at=08:50
+2026-04-14 08:42:29,535 | INFO | 조건검색 시작 대기 | now=08:42 start_at=08:50
+2026-04-14 08:43:29,538 | INFO | 조건검색 시작 대기 | now=08:43 start_at=08:50
+2026-04-14 08:44:29,544 | INFO | 조건검색 시작 대기 | now=08:44 start_at=08:50
+2026-04-14 08:45:29,560 | INFO | 조건검색 시작 대기 | now=08:45 start_at=08:50
+2026-04-14 08:46:29,581 | INFO | 조건검색 시작 대기 | now=08:46 start_at=08:50
+2026-04-14 08:47:29,575 | INFO | 조건검색 시작 대기 | now=08:47 start_at=08:50
+2026-04-14 08:48:29,576 | INFO | 조건검색 시작 대기 | now=08:48 start_at=08:50
+2026-04-14 08:49:29,580 | INFO | 조건검색 시작 대기 | now=08:49 start_at=08:50
+2026-04-14 08:50:01,768 | INFO | [NEWS_PROVIDER] symbol=257720 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:50:01,768 | INFO | [TICK] 257720 tick_no=1 price=47000 vol=1028 chg=0.21 strength=0.0 vr=10.0 news=0.0 theme=0 leader=0
+2026-04-14 08:50:01,768 | INFO | [CHECK] 257720 price=47000
+2026-04-14 08:50:01,769 | INFO | [SIGNAL_SKIP] 257720 | price_change_pct<0.3
+2026-04-14 08:50:02,376 | INFO | [NEWS_PROVIDER] symbol=490470 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:50:02,377 | INFO | [TICK] 490470 tick_no=5 price=37000 vol=5259 chg=1.37 strength=0.0 vr=1.65 news=0.0 theme=0 leader=0
+2026-04-14 08:50:02,377 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:50:02,378 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:50:02,670 | INFO | [TICK] 257720 tick_no=2 price=47000 vol=15 chg=0.21 strength=0.0 vr=1.0 news=0.0 theme=0 leader=0
+2026-04-14 08:50:02,672 | INFO | [CHECK] 257720 price=47000
+2026-04-14 08:50:02,673 | INFO | [SIGNAL_SKIP] 257720 | price_change_pct<0.3
+2026-04-14 08:50:07,968 | INFO | [TICK] 490470 tick_no=6 price=37000 vol=45 chg=1.37 strength=0.0 vr=1.98 news=0.0 theme=0 leader=0
+2026-04-14 08:50:07,969 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:50:07,969 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:50:15,765 | INFO | [TICK] 257720 tick_no=3 price=47000 vol=15 chg=0.21 strength=0.0 vr=1.0 news=0.0 theme=0 leader=0
+2026-04-14 08:50:15,767 | INFO | [CHECK] 257720 price=47000
+2026-04-14 08:50:15,768 | INFO | [SIGNAL_SKIP] 257720 | price_change_pct<0.3
+2026-04-14 08:50:19,281 | INFO | [TICK] 490470 tick_no=7 price=37000 vol=5 chg=1.37 strength=0.0 vr=2.31 news=0.0 theme=0 leader=0
+2026-04-14 08:50:19,282 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:50:19,282 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:50:20,681 | INFO | [TICK] 490470 tick_no=8 price=37000 vol=500 chg=1.37 strength=0.0 vr=0.25 news=0.0 theme=0 leader=0
+2026-04-14 08:50:20,683 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:50:20,684 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:21,666 | INFO | [TICK] 257720 tick_no=4 price=47000 vol=7 chg=0.21 strength=0.0 vr=0.05 news=0.0 theme=0 leader=0
+2026-04-14 08:50:21,668 | INFO | [CHECK] 257720 price=47000
+2026-04-14 08:50:21,669 | INFO | [SIGNAL_SKIP] 257720 | price_change_pct<0.3
+2026-04-14 08:50:22,165 | INFO | [TICK] 490470 tick_no=9 price=37050 vol=106 chg=1.51 strength=0.0 vr=0.31 news=0.0 theme=0 leader=0
+2026-04-14 08:50:22,166 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:50:22,166 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:25,168 | INFO | [TICK] 257720 tick_no=5 price=47300 vol=145 chg=0.85 strength=0.0 vr=0.23 news=0.0 theme=0 leader=0
+2026-04-14 08:50:25,169 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:50:25,169 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:50:25,775 | INFO | [TICK] 490470 tick_no=10 price=37050 vol=8 chg=1.51 strength=0.0 vr=0.34 news=0.0 theme=0 leader=0
+2026-04-14 08:50:25,776 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:50:25,776 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:27,268 | INFO | [TICK] 490470 tick_no=11 price=37050 vol=5 chg=1.51 strength=0.0 vr=0.07 news=0.0 theme=0 leader=0
+2026-04-14 08:50:27,270 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:50:27,271 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:29,589 | INFO | 조건검색 시작 시도
+2026-04-14 08:50:29,591 | INFO | 조건검색 목록 로드 시작
+2026-04-14 08:50:29,594 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-14 08:50:29,605 | INFO | [TICK] 490470 tick_no=12 price=37050 vol=40 chg=1.51 strength=0.0 vr=0.04 news=0.0 theme=0 leader=0
+2026-04-14 08:50:29,606 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:50:29,606 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:29,754 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-14 08:50:29,771 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-14 08:50:29,772 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-14 08:50:29,807 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-14 08:50:29,812 | INFO | 실시간 등록 | codes=257720;490470 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-14 08:50:29,813 | INFO | 실시간 구독 동기화 | total=2 codes=257720(실리콘투), 490470(세미파이브)
+2026-04-14 08:50:29,821 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-14 08:50:30,809 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-14 08:50:30,809 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-14 08:50:30,812 | INFO | [TICK] 257720 tick_no=6 price=47300 vol=1 chg=0.85 strength=0.0 vr=0.25 news=0.0 theme=0 leader=0
+2026-04-14 08:50:30,812 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:50:30,812 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:50:31,473 | INFO | [TICK] 490470 tick_no=13 price=37050 vol=16 chg=1.51 strength=0.0 vr=0.04 news=0.0 theme=0 leader=0
+2026-04-14 08:50:31,473 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:50:31,474 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:35,279 | INFO | [TICK] 490470 tick_no=14 price=37100 vol=2 chg=1.64 strength=0.0 vr=0.04 news=0.0 theme=0 leader=0
+2026-04-14 08:50:35,281 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:50:35,282 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:35,375 | INFO | [TICK] 490470 tick_no=15 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.02 news=0.0 theme=0 leader=0
+2026-04-14 08:50:35,376 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:50:35,376 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:35,466 | INFO | [TICK] 490470 tick_no=16 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.02 news=0.0 theme=0 leader=0
+2026-04-14 08:50:35,468 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:50:35,468 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:37,474 | INFO | [TICK] 490470 tick_no=17 price=37150 vol=24 chg=1.78 strength=0.0 vr=0.02 news=0.0 theme=0 leader=0
+2026-04-14 08:50:37,475 | INFO | [CHECK] 490470 price=37150
+2026-04-14 08:50:37,476 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:37,877 | INFO | [TICK] 490470 tick_no=18 price=37150 vol=3 chg=1.78 strength=0.0 vr=0.01 news=0.0 theme=0 leader=0
+2026-04-14 08:50:37,880 | INFO | [CHECK] 490470 price=37150
+2026-04-14 08:50:37,880 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:38,065 | INFO | [TICK] 490470 tick_no=19 price=37150 vol=5 chg=1.78 strength=0.0 vr=0.02 news=0.0 theme=0 leader=0
+2026-04-14 08:50:38,066 | INFO | [CHECK] 490470 price=37150
+2026-04-14 08:50:38,067 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:39,667 | INFO | [TICK] 490470 tick_no=20 price=37150 vol=9 chg=1.78 strength=0.0 vr=0.02 news=0.0 theme=0 leader=0
+2026-04-14 08:50:39,669 | INFO | [CHECK] 490470 price=37150
+2026-04-14 08:50:39,669 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:39,978 | INFO | [TICK] 490470 tick_no=21 price=37000 vol=1538 chg=1.37 strength=0.0 vr=0.84 news=0.0 theme=0 leader=0
+2026-04-14 08:50:39,979 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:50:39,981 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:50:43,374 | INFO | [TICK] 490470 tick_no=22 price=37000 vol=301 chg=1.37 strength=0.0 vr=1.04 news=0.0 theme=0 leader=0
+2026-04-14 08:50:43,376 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:50:43,377 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:50:43,969 | INFO | [TICK] 257720 tick_no=7 price=47450 vol=381 chg=1.17 strength=0.0 vr=0.77 news=0.0 theme=0 leader=0
+2026-04-14 08:50:43,970 | INFO | [CHECK] 257720 price=47450
+2026-04-14 08:50:43,970 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:50:46,777 | INFO | [TICK] 490470 tick_no=23 price=37000 vol=9 chg=1.37 strength=0.0 vr=1.1 news=0.0 theme=0 leader=0
+2026-04-14 08:50:46,778 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:50:46,778 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:50:48,675 | INFO | [TICK] 490470 tick_no=24 price=37000 vol=33 chg=1.37 strength=0.0 vr=1.18 news=0.0 theme=0 leader=0
+2026-04-14 08:50:48,676 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:50:48,676 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:50:48,973 | INFO | [TICK] 257720 tick_no=8 price=47400 vol=164 chg=1.07 strength=0.0 vr=0.83 news=0.0 theme=0 leader=0
+2026-04-14 08:50:48,975 | INFO | [CHECK] 257720 price=47400
+2026-04-14 08:50:48,975 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<1.1
+2026-04-14 08:50:54,073 | INFO | [TICK] 490470 tick_no=25 price=37000 vol=50 chg=1.37 strength=0.0 vr=1.27 news=0.0 theme=0 leader=0
+2026-04-14 08:50:54,075 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:50:54,075 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:50:55,879 | INFO | [TICK] 490470 tick_no=26 price=37000 vol=1 chg=1.37 strength=0.0 vr=0.22 news=0.0 theme=0 leader=0
+2026-04-14 08:50:55,881 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:50:55,881 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:50:56,877 | INFO | [TICK] 257720 tick_no=9 price=47300 vol=0 chg=0.85 strength=0.0 vr=1.24 news=0.0 theme=0 leader=0
+2026-04-14 08:50:56,878 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:50:56,878 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:50:56,879 | INFO | [TICK] 490470 tick_no=27 price=37000 vol=15 chg=1.37 strength=0.0 vr=0.06 news=0.0 theme=0 leader=0
+2026-04-14 08:50:56,880 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:50:56,880 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:00,766 | INFO | [TICK] 490470 tick_no=28 price=37000 vol=6 chg=1.37 strength=0.0 vr=0.06 news=0.0 theme=0 leader=0
+2026-04-14 08:51:00,768 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:00,768 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:01,467 | INFO | [TICK] 257720 tick_no=10 price=47300 vol=6 chg=0.85 strength=0.0 vr=0.43 news=0.0 theme=0 leader=0
+2026-04-14 08:51:01,468 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:01,469 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:02,467 | INFO | [NEWS_PROVIDER] symbol=490470 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:51:02,467 | INFO | [TICK] 490470 tick_no=29 price=37000 vol=1 chg=1.37 strength=0.0 vr=0.04 news=0.0 theme=0 leader=0
+2026-04-14 08:51:02,468 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:02,469 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:04,067 | INFO | [NEWS_PROVIDER] symbol=257720 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:51:04,068 | INFO | [TICK] 257720 tick_no=11 price=47300 vol=133 chg=0.85 strength=0.0 vr=0.37 news=0.0 theme=0 leader=0
+2026-04-14 08:51:04,069 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:04,070 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:05,080 | INFO | [TICK] 257720 tick_no=12 price=47300 vol=250 chg=0.85 strength=0.0 vr=0.66 news=0.0 theme=0 leader=0
+2026-04-14 08:51:05,081 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:05,081 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:05,875 | INFO | [TICK] 490470 tick_no=30 price=37000 vol=272 chg=1.37 strength=0.0 vr=0.18 news=0.0 theme=0 leader=0
+2026-04-14 08:51:05,876 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:05,877 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:07,677 | INFO | [TICK] 490470 tick_no=31 price=37000 vol=0 chg=1.37 strength=0.0 vr=0.24 news=0.0 theme=0 leader=0
+2026-04-14 08:51:07,678 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:07,679 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:13,578 | INFO | [TICK] 490470 tick_no=32 price=37000 vol=100 chg=1.37 strength=0.0 vr=0.32 news=0.0 theme=0 leader=0
+2026-04-14 08:51:13,579 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:13,579 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:13,670 | INFO | [TICK] 257720 tick_no=13 price=47300 vol=3 chg=0.85 strength=0.0 vr=0.72 news=0.0 theme=0 leader=0
+2026-04-14 08:51:13,672 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:13,673 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:15,881 | INFO | [TICK] 490470 tick_no=33 price=37000 vol=50 chg=1.37 strength=0.0 vr=0.37 news=0.0 theme=0 leader=0
+2026-04-14 08:51:15,882 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:15,883 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:17,870 | INFO | [TICK] 490470 tick_no=34 price=37000 vol=1 chg=1.37 strength=0.0 vr=0.38 news=0.0 theme=0 leader=0
+2026-04-14 08:51:17,872 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:17,872 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:18,277 | INFO | [TICK] 257720 tick_no=14 price=47300 vol=10 chg=0.85 strength=0.0 vr=0.53 news=0.0 theme=0 leader=0
+2026-04-14 08:51:18,277 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:18,278 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:19,178 | INFO | [TICK] 490470 tick_no=35 price=37000 vol=2 chg=1.37 strength=0.0 vr=0.14 news=0.0 theme=0 leader=0
+2026-04-14 08:51:19,179 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:19,179 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:20,969 | INFO | [TICK] 257720 tick_no=15 price=47300 vol=21 chg=0.85 strength=0.0 vr=0.07 news=0.0 theme=0 leader=0
+2026-04-14 08:51:20,970 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:20,971 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:22,184 | INFO | [TICK] 257720 tick_no=16 price=47300 vol=0 chg=0.85 strength=0.0 vr=0.37 news=0.0 theme=0 leader=0
+2026-04-14 08:51:22,185 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:22,187 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:23,071 | INFO | [TICK] 490470 tick_no=36 price=37000 vol=1 chg=1.37 strength=0.0 vr=0.11 news=0.0 theme=0 leader=0
+2026-04-14 08:51:23,071 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:23,072 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:23,568 | INFO | [TICK] 490470 tick_no=37 price=37000 vol=42 chg=1.37 strength=0.0 vr=0.07 news=0.0 theme=0 leader=0
+2026-04-14 08:51:23,569 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:23,570 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:25,668 | INFO | [TICK] 490470 tick_no=38 price=37000 vol=20 chg=1.37 strength=0.0 vr=0.05 news=0.0 theme=0 leader=0
+2026-04-14 08:51:25,669 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:25,670 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:25,870 | INFO | [TICK] 490470 tick_no=39 price=37000 vol=50 chg=1.37 strength=0.0 vr=0.08 news=0.0 theme=0 leader=0
+2026-04-14 08:51:25,871 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:25,872 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:26,475 | INFO | [TICK] 490470 tick_no=40 price=37000 vol=25 chg=1.37 strength=0.0 vr=0.25 news=0.0 theme=0 leader=0
+2026-04-14 08:51:26,476 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:26,477 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:27,379 | INFO | [TICK] 490470 tick_no=41 price=37050 vol=36 chg=1.51 strength=0.0 vr=0.32 news=0.0 theme=0 leader=0
+2026-04-14 08:51:27,380 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:51:27,380 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:28,173 | INFO | [TICK] 490470 tick_no=42 price=37050 vol=1 chg=1.51 strength=0.0 vr=0.24 news=0.0 theme=0 leader=0
+2026-04-14 08:51:28,174 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:51:28,175 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:28,266 | INFO | [TICK] 490470 tick_no=43 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.31 news=0.0 theme=0 leader=0
+2026-04-14 08:51:28,267 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:51:28,267 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:29,605 | INFO | 조건검색 재조회 | active_count=0
+2026-04-14 08:51:29,606 | INFO | 조건검색 시작 시도
+2026-04-14 08:51:29,606 | INFO | 조건검색 목록 로드 시작
+2026-04-14 08:51:29,609 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-14 08:51:29,663 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-14 08:51:29,680 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-14 08:51:29,680 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=0
+2026-04-14 08:51:29,681 | ERROR | 조건검색 시작 실패 | condition_name=주도주_스나이퍼 err=SendCondition 실패 | condition_name=주도주_스나이퍼 index=4 ret=0
+Traceback (most recent call last):
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\main_live.py", line 394, in start_condition_search
+    codes = self.broker.send_condition_by_name(CONDITION_NAME, search=1)
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\broker\kiwoom_broker.py", line 1139, in send_condition_by_name
+    raise RuntimeError(
+RuntimeError: SendCondition 실패 | condition_name=주도주_스나이퍼 index=4 ret=0
+2026-04-14 08:51:30,677 | INFO | [TICK] 490470 tick_no=44 price=37050 vol=35 chg=1.51 strength=0.0 vr=0.27 news=0.0 theme=0 leader=0
+2026-04-14 08:51:30,678 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:51:30,679 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:31,269 | INFO | [TICK] 490470 tick_no=45 price=37050 vol=5 chg=1.51 strength=0.0 vr=0.21 news=0.0 theme=0 leader=0
+2026-04-14 08:51:31,270 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:51:31,271 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:33,976 | INFO | [TICK] 257720 tick_no=17 price=47300 vol=3 chg=0.85 strength=0.0 vr=0.05 news=0.0 theme=0 leader=0
+2026-04-14 08:51:33,977 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:33,978 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:35,375 | INFO | [TICK] 490470 tick_no=46 price=37100 vol=13 chg=1.64 strength=0.0 vr=0.15 news=0.0 theme=0 leader=0
+2026-04-14 08:51:35,376 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:51:35,376 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:36,280 | INFO | [TICK] 490470 tick_no=47 price=37150 vol=55 chg=1.78 strength=0.0 vr=0.3 news=0.0 theme=0 leader=0
+2026-04-14 08:51:36,281 | INFO | [CHECK] 490470 price=37150
+2026-04-14 08:51:36,281 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:37,169 | INFO | [TICK] 490470 tick_no=48 price=37200 vol=2 chg=1.92 strength=0.0 vr=0.24 news=0.0 theme=0 leader=0
+2026-04-14 08:51:37,170 | INFO | [CHECK] 490470 price=37200
+2026-04-14 08:51:37,170 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:37,976 | INFO | [TICK] 490470 tick_no=49 price=37200 vol=0 chg=1.92 strength=0.0 vr=0.2 news=0.0 theme=0 leader=0
+2026-04-14 08:51:37,977 | INFO | [CHECK] 490470 price=37200
+2026-04-14 08:51:37,977 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:40,574 | INFO | [TICK] 257720 tick_no=18 price=47300 vol=1 chg=0.85 strength=0.0 vr=0.05 news=0.0 theme=0 leader=0
+2026-04-14 08:51:40,575 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:40,576 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:41,771 | INFO | [TICK] 490470 tick_no=50 price=37200 vol=2 chg=1.92 strength=0.0 vr=0.19 news=0.0 theme=0 leader=0
+2026-04-14 08:51:41,772 | INFO | [CHECK] 490470 price=37200
+2026-04-14 08:51:41,773 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:41,880 | INFO | [TICK] 490470 tick_no=51 price=37200 vol=304 chg=1.92 strength=0.0 vr=0.96 news=0.0 theme=0 leader=0
+2026-04-14 08:51:41,880 | INFO | [CHECK] 490470 price=37200
+2026-04-14 08:51:41,882 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:51:42,378 | INFO | [TICK] 257720 tick_no=19 price=47300 vol=4 chg=0.85 strength=0.0 vr=0.04 news=0.0 theme=0 leader=0
+2026-04-14 08:51:42,378 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:42,379 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:42,873 | INFO | [TICK] 490470 tick_no=52 price=37200 vol=2 chg=1.92 strength=0.0 vr=0.81 news=0.0 theme=0 leader=0
+2026-04-14 08:51:42,874 | INFO | [CHECK] 490470 price=37200
+2026-04-14 08:51:42,875 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:51:43,076 | INFO | [TICK] 490470 tick_no=53 price=37200 vol=1 chg=1.92 strength=0.0 vr=0.81 news=0.0 theme=0 leader=0
+2026-04-14 08:51:43,077 | INFO | [CHECK] 490470 price=37200
+2026-04-14 08:51:43,077 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:51:43,964 | INFO | [TICK] 490470 tick_no=54 price=37150 vol=0 chg=1.78 strength=0.0 vr=0.78 news=0.0 theme=0 leader=0
+2026-04-14 08:51:43,965 | INFO | [CHECK] 490470 price=37150
+2026-04-14 08:51:43,965 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:44,465 | INFO | [TICK] 490470 tick_no=55 price=37150 vol=1 chg=1.78 strength=0.0 vr=0.78 news=0.0 theme=0 leader=0
+2026-04-14 08:51:44,466 | INFO | [CHECK] 490470 price=37150
+2026-04-14 08:51:44,466 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:44,574 | INFO | [TICK] 490470 tick_no=56 price=37150 vol=5 chg=1.78 strength=0.0 vr=0.04 news=0.0 theme=0 leader=0
+2026-04-14 08:51:44,575 | INFO | [CHECK] 490470 price=37150
+2026-04-14 08:51:44,576 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:45,275 | INFO | [TICK] 490470 tick_no=57 price=37150 vol=22 chg=1.78 strength=0.0 vr=0.17 news=0.0 theme=0 leader=0
+2026-04-14 08:51:45,275 | INFO | [CHECK] 490470 price=37150
+2026-04-14 08:51:45,275 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:46,065 | INFO | [TICK] 490470 tick_no=58 price=37100 vol=17 chg=1.64 strength=0.0 vr=0.27 news=0.0 theme=0 leader=0
+2026-04-14 08:51:46,066 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:51:46,067 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:46,673 | INFO | [TICK] 490470 tick_no=59 price=37150 vol=38 chg=1.78 strength=0.0 vr=0.4 news=0.0 theme=0 leader=0
+2026-04-14 08:51:46,674 | INFO | [CHECK] 490470 price=37150
+2026-04-14 08:51:46,674 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:46,767 | INFO | [TICK] 257720 tick_no=20 price=47300 vol=25 chg=0.85 strength=0.0 vr=0.05 news=0.0 theme=0 leader=0
+2026-04-14 08:51:46,768 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:46,768 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:48,070 | INFO | [TICK] 490470 tick_no=60 price=37150 vol=56 chg=1.78 strength=0.0 vr=0.69 news=0.0 theme=0 leader=0
+2026-04-14 08:51:48,071 | INFO | [CHECK] 490470 price=37150
+2026-04-14 08:51:48,071 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:48,770 | INFO | [TICK] 490470 tick_no=61 price=37100 vol=0 chg=1.64 strength=0.0 vr=0.83 news=0.0 theme=0 leader=0
+2026-04-14 08:51:48,771 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:51:48,772 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:51:48,878 | INFO | [TICK] 490470 tick_no=62 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.91 news=0.0 theme=0 leader=0
+2026-04-14 08:51:48,880 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:51:48,881 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:51:49,081 | INFO | [TICK] 490470 tick_no=63 price=37050 vol=5 chg=1.51 strength=0.0 vr=0.81 news=0.0 theme=0 leader=0
+2026-04-14 08:51:49,082 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:51:49,082 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:51:53,170 | INFO | [TICK] 257720 tick_no=21 price=47300 vol=1 chg=0.85 strength=0.0 vr=0.04 news=0.0 theme=0 leader=0
+2026-04-14 08:51:53,172 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:53,172 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:56,966 | INFO | [TICK] 257720 tick_no=22 price=47300 vol=0 chg=0.85 strength=0.0 vr=0.05 news=0.0 theme=0 leader=0
+2026-04-14 08:51:56,966 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:56,967 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:56,967 | INFO | [TICK] 490470 tick_no=64 price=37050 vol=9 chg=1.51 strength=0.0 vr=0.55 news=0.0 theme=0 leader=0
+2026-04-14 08:51:56,968 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:51:56,968 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:51:57,277 | INFO | [TICK] 490470 tick_no=65 price=37000 vol=1864 chg=1.37 strength=0.0 vr=10.0 news=0.0 theme=0 leader=0
+2026-04-14 08:51:57,278 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:57,278 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:51:57,978 | INFO | [TICK] 257720 tick_no=23 price=47300 vol=214 chg=0.85 strength=0.0 vr=0.45 news=0.0 theme=0 leader=0
+2026-04-14 08:51:57,979 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:57,980 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:51:57,981 | INFO | [TICK] 490470 tick_no=66 price=37000 vol=12 chg=1.37 strength=0.0 vr=10.0 news=0.0 theme=0 leader=0
+2026-04-14 08:51:57,982 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:51:57,982 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:51:59,968 | INFO | [TICK] 257720 tick_no=24 price=47300 vol=0 chg=0.85 strength=0.0 vr=0.62 news=0.0 theme=0 leader=0
+2026-04-14 08:51:59,969 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:51:59,970 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:52:00,076 | INFO | [TICK] 257720 tick_no=25 price=47300 vol=0 chg=0.85 strength=0.0 vr=1.76 news=0.0 theme=0 leader=0
+2026-04-14 08:52:00,078 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:00,078 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:52:00,775 | INFO | [TICK] 490470 tick_no=67 price=37000 vol=1 chg=1.37 strength=0.0 vr=10.0 news=0.0 theme=0 leader=0
+2026-04-14 08:52:00,776 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:52:00,777 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:02,269 | INFO | [TICK] 490470 tick_no=68 price=37000 vol=2 chg=1.37 strength=0.0 vr=10.0 news=0.0 theme=0 leader=0
+2026-04-14 08:52:02,270 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:52:02,270 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:02,579 | INFO | [NEWS_PROVIDER] symbol=490470 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:52:02,579 | INFO | [TICK] 490470 tick_no=69 price=37000 vol=230 chg=1.37 strength=0.0 vr=10.0 news=0.0 theme=0 leader=0
+2026-04-14 08:52:02,580 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:52:02,581 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:05,266 | INFO | [TICK] 490470 tick_no=70 price=37000 vol=2 chg=1.37 strength=0.0 vr=0.47 news=0.0 theme=0 leader=0
+2026-04-14 08:52:05,268 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:52:05,269 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:06,372 | INFO | [TICK] 490470 tick_no=71 price=37000 vol=1 chg=1.37 strength=0.0 vr=0.45 news=0.0 theme=0 leader=0
+2026-04-14 08:52:06,374 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:52:06,375 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:09,069 | INFO | [TICK] 490470 tick_no=72 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.57 news=0.0 theme=0 leader=0
+2026-04-14 08:52:09,070 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:09,070 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:09,677 | INFO | [TICK] 490470 tick_no=73 price=37050 vol=54 chg=1.51 strength=0.0 vr=0.7 news=0.0 theme=0 leader=0
+2026-04-14 08:52:09,677 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:09,678 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:11,076 | INFO | [NEWS_PROVIDER] symbol=257720 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:52:11,077 | INFO | [TICK] 257720 tick_no=26 price=47300 vol=214 chg=0.85 strength=0.0 vr=1.7 news=0.0 theme=0 leader=0
+2026-04-14 08:52:11,077 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:11,078 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:52:12,473 | INFO | [TICK] 490470 tick_no=74 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.17 news=0.0 theme=0 leader=0
+2026-04-14 08:52:12,473 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:12,474 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:13,671 | INFO | [TICK] 490470 tick_no=75 price=37000 vol=2157 chg=1.37 strength=0.0 vr=6.78 news=0.0 theme=0 leader=0
+2026-04-14 08:52:13,671 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:52:13,672 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:14,666 | INFO | [TICK] 490470 tick_no=76 price=37000 vol=0 chg=1.37 strength=0.0 vr=10.0 news=0.0 theme=0 leader=0
+2026-04-14 08:52:14,668 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:52:14,668 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:14,869 | INFO | [TICK] 490470 tick_no=77 price=37000 vol=1 chg=1.37 strength=0.0 vr=6.59 news=0.0 theme=0 leader=0
+2026-04-14 08:52:14,871 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:52:14,872 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:17,064 | INFO | [TICK] 257720 tick_no=27 price=47300 vol=10 chg=0.85 strength=0.0 vr=1.25 news=0.0 theme=0 leader=0
+2026-04-14 08:52:17,065 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:17,066 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:52:17,876 | INFO | [TICK] 490470 tick_no=78 price=37000 vol=36 chg=1.37 strength=0.0 vr=6.68 news=0.0 theme=0 leader=0
+2026-04-14 08:52:17,876 | INFO | [CHECK] 490470 price=37000
+2026-04-14 08:52:17,877 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:21,872 | INFO | [TICK] 257720 tick_no=28 price=47300 vol=106 chg=0.85 strength=0.0 vr=0.91 news=0.0 theme=0 leader=0
+2026-04-14 08:52:21,874 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:21,875 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<1.1
+2026-04-14 08:52:22,480 | INFO | [TICK] 490470 tick_no=79 price=37050 vol=0 chg=1.51 strength=0.0 vr=6.49 news=0.0 theme=0 leader=0
+2026-04-14 08:52:22,480 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:22,480 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:22,871 | INFO | [TICK] 490470 tick_no=80 price=37100 vol=3 chg=1.64 strength=0.0 vr=0.07 news=0.0 theme=0 leader=0
+2026-04-14 08:52:22,871 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:22,872 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:23,165 | INFO | [TICK] 257720 tick_no=29 price=47300 vol=0 chg=0.85 strength=0.0 vr=0.91 news=0.0 theme=0 leader=0
+2026-04-14 08:52:23,167 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:23,168 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<1.1
+2026-04-14 08:52:24,269 | INFO | [TICK] 490470 tick_no=81 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.06 news=0.0 theme=0 leader=0
+2026-04-14 08:52:24,271 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:24,271 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:24,568 | INFO | [TICK] 257720 tick_no=30 price=47300 vol=6 chg=0.85 strength=0.0 vr=0.69 news=0.0 theme=0 leader=0
+2026-04-14 08:52:24,569 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:24,569 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:52:24,878 | INFO | [TICK] 490470 tick_no=82 price=37050 vol=22 chg=1.51 strength=0.0 vr=0.1 news=0.0 theme=0 leader=0
+2026-04-14 08:52:24,879 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:24,881 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:24,973 | INFO | [TICK] 490470 tick_no=83 price=37050 vol=75 chg=1.51 strength=0.0 vr=0.16 news=0.0 theme=0 leader=0
+2026-04-14 08:52:24,974 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:24,975 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:25,378 | INFO | [TICK] 490470 tick_no=84 price=37050 vol=7 chg=1.51 strength=0.0 vr=0.13 news=0.0 theme=0 leader=0
+2026-04-14 08:52:25,378 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:25,379 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:27,276 | INFO | [TICK] 490470 tick_no=85 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.17 news=0.0 theme=0 leader=0
+2026-04-14 08:52:27,277 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:27,277 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:27,664 | INFO | [TICK] 490470 tick_no=86 price=37050 vol=7 chg=1.51 strength=0.0 vr=0.14 news=0.0 theme=0 leader=0
+2026-04-14 08:52:27,665 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:27,665 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:28,475 | INFO | [TICK] 490470 tick_no=87 price=37050 vol=50 chg=1.51 strength=0.0 vr=0.17 news=0.0 theme=0 leader=0
+2026-04-14 08:52:28,476 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:28,476 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:28,770 | INFO | [TICK] 490470 tick_no=88 price=37050 vol=50 chg=1.51 strength=0.0 vr=0.14 news=0.0 theme=0 leader=0
+2026-04-14 08:52:28,771 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:28,772 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:28,971 | INFO | [TICK] 490470 tick_no=89 price=37050 vol=51 chg=1.51 strength=0.0 vr=0.2 news=0.0 theme=0 leader=0
+2026-04-14 08:52:28,972 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:28,973 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:29,472 | INFO | [TICK] 490470 tick_no=90 price=37050 vol=50 chg=1.51 strength=0.0 vr=0.2 news=0.0 theme=0 leader=0
+2026-04-14 08:52:29,473 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:29,473 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:29,612 | INFO | 조건검색 재조회 | active_count=0
+2026-04-14 08:52:29,613 | INFO | 조건검색 시작 시도
+2026-04-14 08:52:29,614 | INFO | 조건검색 목록 로드 시작
+2026-04-14 08:52:29,616 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-14 08:52:29,673 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-14 08:52:29,690 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-14 08:52:29,691 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-14 08:52:29,722 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-14 08:52:29,725 | INFO | 실시간 등록 | codes=257720;490470 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-14 08:52:29,726 | INFO | 실시간 구독 동기화 | total=2 codes=257720(실리콘투), 490470(세미파이브)
+2026-04-14 08:52:29,734 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-14 08:52:30,718 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-14 08:52:30,718 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-14 08:52:31,667 | INFO | [TICK] 257720 tick_no=31 price=47300 vol=11 chg=0.85 strength=0.0 vr=0.26 news=0.0 theme=0 leader=0
+2026-04-14 08:52:31,668 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:31,668 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:52:31,978 | INFO | [TICK] 490470 tick_no=91 price=37050 vol=1 chg=1.51 strength=0.0 vr=0.19 news=0.0 theme=0 leader=0
+2026-04-14 08:52:31,978 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:31,980 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:32,880 | INFO | [TICK] 490470 tick_no=92 price=37050 vol=2 chg=1.51 strength=0.0 vr=0.15 news=0.0 theme=0 leader=0
+2026-04-14 08:52:32,880 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:32,881 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:34,666 | INFO | [TICK] 490470 tick_no=93 price=37050 vol=80 chg=1.51 strength=0.0 vr=0.17 news=0.0 theme=0 leader=0
+2026-04-14 08:52:34,667 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:52:34,668 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:35,584 | INFO | [TICK] 490470 tick_no=94 price=37100 vol=13 chg=1.64 strength=0.0 vr=0.14 news=0.0 theme=0 leader=0
+2026-04-14 08:52:35,584 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:35,585 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:37,668 | INFO | [TICK] 490470 tick_no=95 price=37100 vol=39 chg=1.64 strength=0.0 vr=0.13 news=0.0 theme=0 leader=0
+2026-04-14 08:52:37,669 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:37,669 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:37,979 | INFO | [TICK] 257720 tick_no=32 price=47300 vol=4 chg=0.85 strength=0.0 vr=0.26 news=0.0 theme=0 leader=0
+2026-04-14 08:52:37,979 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:37,980 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:52:38,275 | INFO | [TICK] 490470 tick_no=96 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.13 news=0.0 theme=0 leader=0
+2026-04-14 08:52:38,275 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:38,276 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:41,168 | INFO | [TICK] 490470 tick_no=97 price=37100 vol=3 chg=1.64 strength=0.0 vr=0.14 news=0.0 theme=0 leader=0
+2026-04-14 08:52:41,169 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:41,170 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:41,276 | INFO | [TICK] 257720 tick_no=33 price=47300 vol=20 chg=0.85 strength=0.0 vr=0.09 news=0.0 theme=0 leader=0
+2026-04-14 08:52:41,277 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:41,278 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:52:42,271 | INFO | [TICK] 490470 tick_no=98 price=37100 vol=40 chg=1.64 strength=0.0 vr=0.1 news=0.0 theme=0 leader=0
+2026-04-14 08:52:42,272 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:42,273 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:42,475 | INFO | [TICK] 490470 tick_no=99 price=37100 vol=0 chg=1.64 strength=0.0 vr=0.1 news=0.0 theme=0 leader=0
+2026-04-14 08:52:42,475 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:42,476 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:42,769 | INFO | [TICK] 490470 tick_no=100 price=37100 vol=0 chg=1.64 strength=0.0 vr=0.12 news=0.0 theme=0 leader=0
+2026-04-14 08:52:42,770 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:42,770 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:43,768 | INFO | [TICK] 490470 tick_no=101 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.12 news=0.0 theme=0 leader=0
+2026-04-14 08:52:43,769 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:43,770 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:44,673 | INFO | [TICK] 490470 tick_no=102 price=37100 vol=0 chg=1.64 strength=0.0 vr=0.01 news=0.0 theme=0 leader=0
+2026-04-14 08:52:44,674 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:44,674 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:44,970 | INFO | [TICK] 257720 tick_no=34 price=47300 vol=10 chg=0.85 strength=0.0 vr=0.09 news=0.0 theme=0 leader=0
+2026-04-14 08:52:44,972 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:44,972 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:52:45,375 | INFO | [TICK] 490470 tick_no=103 price=37100 vol=300 chg=1.64 strength=0.0 vr=0.92 news=0.0 theme=0 leader=0
+2026-04-14 08:52:45,376 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:45,376 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:52:45,563 | INFO | [TICK] 257720 tick_no=35 price=47300 vol=0 chg=0.85 strength=0.0 vr=0.1 news=0.0 theme=0 leader=0
+2026-04-14 08:52:45,564 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:45,564 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:52:45,670 | INFO | [TICK] 490470 tick_no=104 price=37100 vol=9 chg=1.64 strength=0.0 vr=0.87 news=0.0 theme=0 leader=0
+2026-04-14 08:52:45,672 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:45,673 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:52:46,370 | INFO | [TICK] 257720 tick_no=36 price=47300 vol=0 chg=0.85 strength=0.0 vr=0.16 news=0.0 theme=0 leader=0
+2026-04-14 08:52:46,371 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:46,371 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:52:46,570 | INFO | [TICK] 490470 tick_no=105 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.62 news=0.0 theme=0 leader=0
+2026-04-14 08:52:46,572 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:46,572 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:47,180 | INFO | [TICK] 490470 tick_no=106 price=37100 vol=13 chg=1.64 strength=0.0 vr=0.65 news=0.0 theme=0 leader=0
+2026-04-14 08:52:47,181 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:47,181 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:47,865 | INFO | [TICK] 490470 tick_no=107 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.52 news=0.0 theme=0 leader=0
+2026-04-14 08:52:47,866 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:47,867 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:48,177 | INFO | [TICK] 490470 tick_no=108 price=37100 vol=40 chg=1.64 strength=0.0 vr=0.09 news=0.0 theme=0 leader=0
+2026-04-14 08:52:48,178 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:48,178 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:48,364 | INFO | [TICK] 490470 tick_no=109 price=37100 vol=120 chg=1.64 strength=0.0 vr=0.27 news=0.0 theme=0 leader=0
+2026-04-14 08:52:48,365 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:48,365 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:48,676 | INFO | [TICK] 490470 tick_no=110 price=37100 vol=70 chg=1.64 strength=0.0 vr=1.33 news=0.0 theme=0 leader=0
+2026-04-14 08:52:48,677 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:48,678 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:49,066 | INFO | [TICK] 490470 tick_no=111 price=37100 vol=2 chg=1.64 strength=0.0 vr=1.31 news=0.0 theme=0 leader=0
+2026-04-14 08:52:49,067 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:49,068 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:49,673 | INFO | [TICK] 490470 tick_no=112 price=37100 vol=12 chg=1.64 strength=0.0 vr=1.37 news=0.0 theme=0 leader=0
+2026-04-14 08:52:49,674 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:49,674 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:49,874 | INFO | [TICK] 490470 tick_no=113 price=37100 vol=2 chg=1.64 strength=0.0 vr=1.15 news=0.0 theme=0 leader=0
+2026-04-14 08:52:49,875 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:49,876 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:52,063 | INFO | [TICK] 490470 tick_no=114 price=37100 vol=3 chg=1.64 strength=0.0 vr=0.45 news=0.0 theme=0 leader=0
+2026-04-14 08:52:52,064 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:52,064 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:52,376 | INFO | [TICK] 257720 tick_no=37 price=47300 vol=2 chg=0.85 strength=0.0 vr=0.15 news=0.0 theme=0 leader=0
+2026-04-14 08:52:52,377 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:52,378 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:52:53,076 | INFO | [TICK] 490470 tick_no=115 price=37100 vol=11 chg=1.64 strength=0.0 vr=0.14 news=0.0 theme=0 leader=0
+2026-04-14 08:52:53,078 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:53,078 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:52:56,667 | INFO | [TICK] 490470 tick_no=116 price=37100 vol=529 chg=1.64 strength=0.0 vr=2.76 news=0.0 theme=0 leader=0
+2026-04-14 08:52:56,667 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:52:56,668 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:52:57,878 | INFO | [TICK] 257720 tick_no=38 price=47300 vol=0 chg=0.85 strength=0.0 vr=0.02 news=0.0 theme=0 leader=0
+2026-04-14 08:52:57,879 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:52:57,880 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:53:00,274 | INFO | [TICK] 490470 tick_no=117 price=37100 vol=100 chg=1.64 strength=0.0 vr=3.23 news=0.0 theme=0 leader=0
+2026-04-14 08:53:00,276 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:00,276 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:53:00,975 | INFO | [TICK] 490470 tick_no=118 price=37100 vol=30 chg=1.64 strength=0.0 vr=3.63 news=0.0 theme=0 leader=0
+2026-04-14 08:53:00,976 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:00,976 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:53:01,473 | INFO | [TICK] 490470 tick_no=119 price=37100 vol=9 chg=1.64 strength=0.0 vr=3.67 news=0.0 theme=0 leader=0
+2026-04-14 08:53:01,474 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:01,475 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:53:02,472 | INFO | [TICK] 257720 tick_no=39 price=47300 vol=10 chg=0.85 strength=0.0 vr=0.06 news=0.0 theme=0 leader=0
+2026-04-14 08:53:02,474 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:53:02,474 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:53:04,074 | INFO | [NEWS_PROVIDER] symbol=490470 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:53:04,074 | INFO | [TICK] 490470 tick_no=120 price=37100 vol=2 chg=1.64 strength=0.0 vr=3.72 news=0.0 theme=0 leader=0
+2026-04-14 08:53:04,074 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:04,076 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:53:04,478 | INFO | [TICK] 490470 tick_no=121 price=37100 vol=3 chg=1.64 strength=0.0 vr=0.52 news=0.0 theme=0 leader=0
+2026-04-14 08:53:04,479 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:04,479 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:05,567 | INFO | [TICK] 257720 tick_no=40 price=47300 vol=4 chg=0.85 strength=0.0 vr=0.08 news=0.0 theme=0 leader=0
+2026-04-14 08:53:05,569 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:53:05,569 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:53:06,375 | INFO | [TICK] 490470 tick_no=122 price=37100 vol=0 chg=1.64 strength=0.0 vr=0.19 news=0.0 theme=0 leader=0
+2026-04-14 08:53:06,376 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:06,376 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:07,664 | INFO | [TICK] 490470 tick_no=123 price=37100 vol=100 chg=1.64 strength=0.0 vr=0.5 news=0.0 theme=0 leader=0
+2026-04-14 08:53:07,665 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:07,666 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:08,379 | INFO | [TICK] 490470 tick_no=124 price=37100 vol=3 chg=1.64 strength=0.0 vr=0.49 news=0.0 theme=0 leader=0
+2026-04-14 08:53:08,380 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:08,381 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:09,577 | INFO | [TICK] 490470 tick_no=125 price=37100 vol=3 chg=1.64 strength=0.0 vr=0.51 news=0.0 theme=0 leader=0
+2026-04-14 08:53:09,579 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:09,579 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:10,574 | INFO | [TICK] 490470 tick_no=126 price=37100 vol=100 chg=1.64 strength=0.0 vr=0.97 news=0.0 theme=0 leader=0
+2026-04-14 08:53:10,574 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:10,574 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:12,366 | INFO | [TICK] 490470 tick_no=127 price=37100 vol=50 chg=1.64 strength=0.0 vr=0.93 news=0.0 theme=0 leader=0
+2026-04-14 08:53:12,366 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:12,367 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:12,970 | INFO | [TICK] 490470 tick_no=128 price=37100 vol=5 chg=1.64 strength=0.0 vr=0.58 news=0.0 theme=0 leader=0
+2026-04-14 08:53:12,970 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:12,972 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:13,778 | INFO | [TICK] 490470 tick_no=129 price=37100 vol=90 chg=1.64 strength=0.0 vr=0.89 news=0.0 theme=0 leader=0
+2026-04-14 08:53:13,779 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:13,780 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:13,872 | INFO | [TICK] 490470 tick_no=130 price=37100 vol=0 chg=1.64 strength=0.0 vr=1.13 news=0.0 theme=0 leader=0
+2026-04-14 08:53:13,873 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:13,874 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:53:14,169 | INFO | [TICK] 490470 tick_no=131 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.63 news=0.0 theme=0 leader=0
+2026-04-14 08:53:14,169 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:14,170 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:15,177 | INFO | [TICK] 490470 tick_no=132 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.41 news=0.0 theme=0 leader=0
+2026-04-14 08:53:15,178 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:15,179 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:16,377 | INFO | [TICK] 490470 tick_no=133 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.4 news=0.0 theme=0 leader=0
+2026-04-14 08:53:16,379 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:16,380 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:16,971 | INFO | [TICK] 490470 tick_no=134 price=37100 vol=2 chg=1.64 strength=0.0 vr=0.02 news=0.0 theme=0 leader=0
+2026-04-14 08:53:16,972 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:16,973 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:18,274 | INFO | [TICK] 490470 tick_no=135 price=37050 vol=334 chg=1.51 strength=0.0 vr=1.14 news=0.0 theme=0 leader=0
+2026-04-14 08:53:18,276 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:18,276 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:53:18,368 | INFO | [TICK] 490470 tick_no=136 price=37050 vol=1 chg=1.51 strength=0.0 vr=1.14 news=0.0 theme=0 leader=0
+2026-04-14 08:53:18,369 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:18,369 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:53:18,477 | INFO | [TICK] 490470 tick_no=137 price=37050 vol=25 chg=1.51 strength=0.0 vr=1.26 news=0.0 theme=0 leader=0
+2026-04-14 08:53:18,478 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:18,479 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:53:19,177 | INFO | [TICK] 490470 tick_no=138 price=37050 vol=2 chg=1.51 strength=0.0 vr=1.55 news=0.0 theme=0 leader=0
+2026-04-14 08:53:19,179 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:19,180 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:53:19,567 | INFO | [TICK] 490470 tick_no=139 price=37050 vol=26 chg=1.51 strength=0.0 vr=1.67 news=0.0 theme=0 leader=0
+2026-04-14 08:53:19,568 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:19,568 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:53:21,775 | INFO | [TICK] 490470 tick_no=140 price=37050 vol=6 chg=1.51 strength=0.0 vr=0.21 news=0.0 theme=0 leader=0
+2026-04-14 08:53:21,776 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:21,776 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:22,569 | INFO | [TICK] 490470 tick_no=141 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.25 news=0.0 theme=0 leader=0
+2026-04-14 08:53:22,569 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:22,569 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:23,766 | INFO | [TICK] 490470 tick_no=142 price=37050 vol=26 chg=1.51 strength=0.0 vr=0.25 news=0.0 theme=0 leader=0
+2026-04-14 08:53:23,767 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:23,767 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:24,776 | INFO | [TICK] 490470 tick_no=143 price=37050 vol=2 chg=1.51 strength=0.0 vr=0.26 news=0.0 theme=0 leader=0
+2026-04-14 08:53:24,776 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:24,777 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:25,072 | INFO | [TICK] 490470 tick_no=144 price=37050 vol=1 chg=1.51 strength=0.0 vr=0.16 news=0.0 theme=0 leader=0
+2026-04-14 08:53:25,073 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:25,073 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:25,569 | INFO | [TICK] 490470 tick_no=145 price=37050 vol=4 chg=1.51 strength=0.0 vr=0.16 news=0.0 theme=0 leader=0
+2026-04-14 08:53:25,569 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:25,570 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:25,675 | INFO | [TICK] 490470 tick_no=146 price=37050 vol=10 chg=1.51 strength=0.0 vr=0.16 news=0.0 theme=0 leader=0
+2026-04-14 08:53:25,676 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:25,677 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:26,265 | INFO | [NEWS_PROVIDER] symbol=257720 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:53:26,266 | INFO | [TICK] 257720 tick_no=41 price=47350 vol=404 chg=0.96 strength=0.0 vr=1.45 news=0.0 theme=0 leader=0
+2026-04-14 08:53:26,267 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:53:26,268 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:53:29,611 | INFO | 조건검색 재조회 | active_count=0
+2026-04-14 08:53:29,612 | INFO | 조건검색 시작 시도
+2026-04-14 08:53:29,612 | INFO | 조건검색 목록 로드 시작
+2026-04-14 08:53:29,615 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-14 08:53:29,672 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-14 08:53:29,687 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-14 08:53:29,689 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-14 08:53:29,720 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-14 08:53:29,723 | INFO | 실시간 등록 | codes=257720;490470 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-14 08:53:29,724 | INFO | 실시간 구독 동기화 | total=2 codes=257720(실리콘투), 490470(세미파이브)
+2026-04-14 08:53:29,732 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-14 08:53:30,724 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-14 08:53:30,724 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-14 08:53:31,168 | INFO | [TICK] 490470 tick_no=147 price=37050 vol=30 chg=1.51 strength=0.0 vr=0.17 news=0.0 theme=0 leader=0
+2026-04-14 08:53:31,169 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:31,170 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:31,572 | INFO | [TICK] 490470 tick_no=148 price=37050 vol=9 chg=1.51 strength=0.0 vr=0.2 news=0.0 theme=0 leader=0
+2026-04-14 08:53:31,574 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:31,575 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:32,769 | INFO | [TICK] 490470 tick_no=149 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.24 news=0.0 theme=0 leader=0
+2026-04-14 08:53:32,771 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:32,772 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:33,876 | INFO | [TICK] 490470 tick_no=150 price=37050 vol=12 chg=1.51 strength=0.0 vr=0.28 news=0.0 theme=0 leader=0
+2026-04-14 08:53:33,877 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:33,878 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:34,670 | INFO | [TICK] 257720 tick_no=42 price=47350 vol=107 chg=0.96 strength=0.0 vr=2.37 news=0.0 theme=0 leader=0
+2026-04-14 08:53:34,672 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:53:34,673 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:53:37,164 | INFO | [TICK] 257720 tick_no=43 price=47350 vol=50 chg=0.96 strength=0.0 vr=2.29 news=0.0 theme=0 leader=0
+2026-04-14 08:53:37,164 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:53:37,165 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:53:39,372 | INFO | [TICK] 490470 tick_no=151 price=37050 vol=86 chg=1.51 strength=0.0 vr=0.99 news=0.0 theme=0 leader=0
+2026-04-14 08:53:39,372 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:39,372 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:40,978 | INFO | [TICK] 490470 tick_no=152 price=37050 vol=5 chg=1.51 strength=0.0 vr=0.87 news=0.0 theme=0 leader=0
+2026-04-14 08:53:40,979 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:40,979 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:41,968 | INFO | [TICK] 257720 tick_no=44 price=47350 vol=0 chg=0.96 strength=0.0 vr=2.92 news=0.0 theme=0 leader=0
+2026-04-14 08:53:41,968 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:53:41,969 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:53:43,075 | INFO | [TICK] 490470 tick_no=153 price=37050 vol=1 chg=1.51 strength=0.0 vr=0.83 news=0.0 theme=0 leader=0
+2026-04-14 08:53:43,075 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:43,075 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:43,275 | INFO | [TICK] 490470 tick_no=154 price=37100 vol=41 chg=1.64 strength=0.0 vr=0.9 news=0.0 theme=0 leader=0
+2026-04-14 08:53:43,275 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:43,275 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:46,278 | INFO | [TICK] 490470 tick_no=155 price=37100 vol=10 chg=1.64 strength=0.0 vr=0.88 news=0.0 theme=0 leader=0
+2026-04-14 08:53:46,278 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:46,280 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:46,979 | INFO | [TICK] 257720 tick_no=45 price=47350 vol=10 chg=0.96 strength=0.0 vr=2.96 news=0.0 theme=0 leader=0
+2026-04-14 08:53:46,980 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:53:46,980 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:53:47,475 | INFO | [TICK] 490470 tick_no=156 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.32 news=0.0 theme=0 leader=0
+2026-04-14 08:53:47,475 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:47,476 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:48,268 | INFO | [TICK] 257720 tick_no=46 price=47350 vol=1 chg=0.96 strength=0.0 vr=0.69 news=0.0 theme=0 leader=0
+2026-04-14 08:53:48,270 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:53:48,271 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:53:48,677 | INFO | [TICK] 257720 tick_no=47 price=47350 vol=30 chg=0.96 strength=0.0 vr=0.42 news=0.0 theme=0 leader=0
+2026-04-14 08:53:48,677 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:53:48,677 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:53:49,066 | INFO | [TICK] 490470 tick_no=157 price=37100 vol=65 chg=1.64 strength=0.0 vr=0.68 news=0.0 theme=0 leader=0
+2026-04-14 08:53:49,066 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:49,068 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:50,775 | INFO | [TICK] 490470 tick_no=158 price=37100 vol=23 chg=1.64 strength=0.0 vr=0.9 news=0.0 theme=0 leader=0
+2026-04-14 08:53:50,777 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:50,778 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:51,368 | INFO | [TICK] 490470 tick_no=159 price=37100 vol=50 chg=1.64 strength=0.0 vr=0.92 news=0.0 theme=0 leader=0
+2026-04-14 08:53:51,369 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:51,369 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:51,773 | INFO | [TICK] 490470 tick_no=160 price=37100 vol=10 chg=1.64 strength=0.0 vr=0.91 news=0.0 theme=0 leader=0
+2026-04-14 08:53:51,773 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:51,773 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:53,763 | INFO | [TICK] 490470 tick_no=161 price=37100 vol=10 chg=1.64 strength=0.0 vr=1.09 news=0.0 theme=0 leader=0
+2026-04-14 08:53:53,764 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:53:53,766 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:54,276 | INFO | [TICK] 490470 tick_no=162 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.79 news=0.0 theme=0 leader=0
+2026-04-14 08:53:54,277 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:54,278 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:54,464 | INFO | [TICK] 490470 tick_no=163 price=37050 vol=70 chg=1.51 strength=0.0 vr=1.16 news=0.0 theme=0 leader=0
+2026-04-14 08:53:54,465 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:54,465 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:53:55,567 | INFO | [TICK] 490470 tick_no=164 price=37050 vol=5 chg=1.51 strength=0.0 vr=0.83 news=0.0 theme=0 leader=0
+2026-04-14 08:53:55,568 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:55,568 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:56,266 | INFO | [TICK] 490470 tick_no=165 price=37050 vol=1 chg=1.51 strength=0.0 vr=0.77 news=0.0 theme=0 leader=0
+2026-04-14 08:53:56,266 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:56,267 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:57,571 | INFO | [TICK] 257720 tick_no=48 price=47350 vol=100 chg=0.96 strength=0.0 vr=0.63 news=0.0 theme=0 leader=0
+2026-04-14 08:53:57,572 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:53:57,573 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:53:57,773 | INFO | [TICK] 490470 tick_no=166 price=37050 vol=1 chg=1.51 strength=0.0 vr=0.68 news=0.0 theme=0 leader=0
+2026-04-14 08:53:57,774 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:57,774 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:57,867 | INFO | [TICK] 490470 tick_no=167 price=37050 vol=40 chg=1.51 strength=0.0 vr=0.8 news=0.0 theme=0 leader=0
+2026-04-14 08:53:57,868 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:57,868 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:53:58,068 | INFO | [TICK] 490470 tick_no=168 price=37050 vol=5 chg=1.51 strength=0.0 vr=0.33 news=0.0 theme=0 leader=0
+2026-04-14 08:53:58,069 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:58,069 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:58,970 | INFO | [TICK] 490470 tick_no=169 price=37050 vol=1 chg=1.51 strength=0.0 vr=0.3 news=0.0 theme=0 leader=0
+2026-04-14 08:53:58,971 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:58,971 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:53:59,267 | INFO | [TICK] 490470 tick_no=170 price=37050 vol=2 chg=1.51 strength=0.0 vr=0.5 news=0.0 theme=0 leader=0
+2026-04-14 08:53:59,268 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:53:59,269 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:00,667 | INFO | [TICK] 490470 tick_no=171 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.61 news=0.0 theme=0 leader=0
+2026-04-14 08:54:00,668 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:00,670 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:00,872 | INFO | [TICK] 490470 tick_no=172 price=37100 vol=44 chg=1.64 strength=0.0 vr=0.64 news=0.0 theme=0 leader=0
+2026-04-14 08:54:00,872 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:00,873 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:02,162 | INFO | [TICK] 490470 tick_no=173 price=37100 vol=13 chg=1.64 strength=0.0 vr=0.74 news=0.0 theme=0 leader=0
+2026-04-14 08:54:02,163 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:02,164 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:02,271 | INFO | [TICK] 490470 tick_no=174 price=37100 vol=0 chg=1.64 strength=0.0 vr=1.01 news=0.0 theme=0 leader=0
+2026-04-14 08:54:02,272 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:02,272 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:54:02,366 | INFO | [TICK] 490470 tick_no=175 price=37100 vol=25 chg=1.64 strength=0.0 vr=1.42 news=0.0 theme=0 leader=0
+2026-04-14 08:54:02,366 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:02,368 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:02,567 | INFO | [TICK] 490470 tick_no=176 price=37050 vol=398 chg=1.51 strength=0.0 vr=6.22 news=0.0 theme=0 leader=0
+2026-04-14 08:54:02,569 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:02,570 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:02,769 | INFO | [TICK] 490470 tick_no=177 price=37050 vol=13 chg=1.51 strength=0.0 vr=5.62 news=0.0 theme=0 leader=0
+2026-04-14 08:54:02,771 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:02,771 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:04,278 | INFO | [NEWS_PROVIDER] symbol=490470 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:54:04,278 | INFO | [TICK] 490470 tick_no=178 price=37050 vol=136 chg=1.51 strength=0.0 vr=7.02 news=0.0 theme=0 leader=0
+2026-04-14 08:54:04,279 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:04,279 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:06,069 | INFO | [TICK] 257720 tick_no=49 price=47350 vol=40 chg=0.96 strength=0.0 vr=0.62 news=0.0 theme=0 leader=0
+2026-04-14 08:54:06,070 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:54:06,070 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:06,378 | INFO | [TICK] 490470 tick_no=179 price=37050 vol=12 chg=1.51 strength=0.0 vr=5.53 news=0.0 theme=0 leader=0
+2026-04-14 08:54:06,379 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:06,379 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:06,970 | INFO | [TICK] 490470 tick_no=180 price=37050 vol=1792 chg=1.51 strength=0.0 vr=10.0 news=0.0 theme=0 leader=0
+2026-04-14 08:54:06,971 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:06,971 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:07,764 | INFO | [TICK] 490470 tick_no=181 price=37050 vol=1 chg=1.51 strength=0.0 vr=10.0 news=0.0 theme=0 leader=0
+2026-04-14 08:54:07,767 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:07,768 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:07,965 | INFO | [TICK] 490470 tick_no=182 price=37050 vol=2 chg=1.51 strength=0.0 vr=10.0 news=0.0 theme=0 leader=0
+2026-04-14 08:54:07,967 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:07,968 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:08,276 | INFO | [TICK] 490470 tick_no=183 price=37050 vol=10 chg=1.51 strength=0.0 vr=8.85 news=0.0 theme=0 leader=0
+2026-04-14 08:54:08,277 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:08,277 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:09,474 | INFO | [TICK] 257720 tick_no=50 price=47350 vol=6 chg=0.96 strength=0.0 vr=0.61 news=0.0 theme=0 leader=0
+2026-04-14 08:54:09,475 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:54:09,476 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:09,768 | INFO | [TICK] 490470 tick_no=184 price=37050 vol=60 chg=1.51 strength=0.0 vr=9.32 news=0.0 theme=0 leader=0
+2026-04-14 08:54:09,769 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:09,770 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:10,377 | INFO | [TICK] 490470 tick_no=185 price=37050 vol=10 chg=1.51 strength=0.0 vr=0.16 news=0.0 theme=0 leader=0
+2026-04-14 08:54:10,378 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:10,378 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:11,572 | INFO | [TICK] 257720 tick_no=51 price=47350 vol=30 chg=0.96 strength=0.0 vr=0.74 news=0.0 theme=0 leader=0
+2026-04-14 08:54:11,573 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:54:11,574 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:13,271 | INFO | [TICK] 257720 tick_no=52 price=47350 vol=3 chg=0.96 strength=0.0 vr=0.63 news=0.0 theme=0 leader=0
+2026-04-14 08:54:13,272 | INFO | [CHECK] 257720 price=47350
+2026-04-14 08:54:13,272 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:13,273 | INFO | [TICK] 490470 tick_no=186 price=37050 vol=57 chg=1.51 strength=0.0 vr=0.27 news=0.0 theme=0 leader=0
+2026-04-14 08:54:13,274 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:13,274 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:13,473 | INFO | [TICK] 490470 tick_no=187 price=37050 vol=30 chg=1.51 strength=0.0 vr=0.33 news=0.0 theme=0 leader=0
+2026-04-14 08:54:13,474 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:13,475 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:13,768 | INFO | [TICK] 490470 tick_no=188 price=37050 vol=20 chg=1.51 strength=0.0 vr=0.34 news=0.0 theme=0 leader=0
+2026-04-14 08:54:13,769 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:13,770 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:17,068 | INFO | [TICK] 490470 tick_no=189 price=37050 vol=27 chg=1.51 strength=0.0 vr=0.28 news=0.0 theme=0 leader=0
+2026-04-14 08:54:17,070 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:17,071 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:17,177 | INFO | [TICK] 490470 tick_no=190 price=37050 vol=52 chg=1.51 strength=0.0 vr=0.36 news=0.0 theme=0 leader=0
+2026-04-14 08:54:17,178 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:17,178 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:17,769 | INFO | [TICK] 490470 tick_no=191 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.3 news=0.0 theme=0 leader=0
+2026-04-14 08:54:17,771 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:17,772 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:18,578 | INFO | [TICK] 490470 tick_no=192 price=37050 vol=5 chg=1.51 strength=0.0 vr=0.25 news=0.0 theme=0 leader=0
+2026-04-14 08:54:18,579 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:18,579 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:20,773 | INFO | [TICK] 490470 tick_no=193 price=37050 vol=19 chg=1.51 strength=0.0 vr=0.25 news=0.0 theme=0 leader=0
+2026-04-14 08:54:20,774 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:20,775 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:21,069 | INFO | [TICK] 490470 tick_no=194 price=37050 vol=50 chg=1.51 strength=0.0 vr=0.3 news=0.0 theme=0 leader=0
+2026-04-14 08:54:21,071 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:21,071 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:23,065 | INFO | [TICK] 490470 tick_no=195 price=37050 vol=19 chg=1.51 strength=0.0 vr=0.22 news=0.0 theme=0 leader=0
+2026-04-14 08:54:23,066 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:23,066 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:23,578 | INFO | [TICK] 490470 tick_no=196 price=37050 vol=29 chg=1.51 strength=0.0 vr=0.22 news=0.0 theme=0 leader=0
+2026-04-14 08:54:23,579 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:23,581 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:23,764 | INFO | [TICK] 490470 tick_no=197 price=37050 vol=14 chg=1.51 strength=0.0 vr=0.25 news=0.0 theme=0 leader=0
+2026-04-14 08:54:23,766 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:23,767 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:24,978 | INFO | [TICK] 257720 tick_no=53 price=47300 vol=1323 chg=0.85 strength=0.0 vr=4.59 news=0.0 theme=0 leader=0
+2026-04-14 08:54:24,979 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:24,979 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:54:25,366 | INFO | [TICK] 490470 tick_no=198 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.27 news=0.0 theme=0 leader=0
+2026-04-14 08:54:25,368 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:25,368 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:25,866 | INFO | [TICK] 490470 tick_no=199 price=37050 vol=1 chg=1.51 strength=0.0 vr=0.15 news=0.0 theme=0 leader=0
+2026-04-14 08:54:25,867 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:25,868 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:26,675 | INFO | [NEWS_PROVIDER] symbol=257720 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:54:26,676 | INFO | [TICK] 257720 tick_no=54 price=47300 vol=5 chg=0.85 strength=0.0 vr=4.36 news=0.0 theme=0 leader=0
+2026-04-14 08:54:26,676 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:26,676 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:54:26,970 | INFO | [TICK] 490470 tick_no=200 price=37050 vol=121 chg=1.51 strength=0.0 vr=0.39 news=0.0 theme=0 leader=0
+2026-04-14 08:54:26,971 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:26,972 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:27,763 | INFO | [TICK] 490470 tick_no=201 price=37050 vol=1 chg=1.51 strength=0.0 vr=0.32 news=0.0 theme=0 leader=0
+2026-04-14 08:54:27,764 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:27,766 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:28,170 | INFO | [TICK] 490470 tick_no=202 price=37050 vol=3 chg=1.51 strength=0.0 vr=0.3 news=0.0 theme=0 leader=0
+2026-04-14 08:54:28,171 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:28,171 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:29,618 | INFO | 조건검색 재조회 | active_count=0
+2026-04-14 08:54:29,618 | INFO | 조건검색 시작 시도
+2026-04-14 08:54:29,618 | INFO | 조건검색 목록 로드 시작
+2026-04-14 08:54:29,620 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-14 08:54:29,685 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-14 08:54:29,703 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-14 08:54:29,704 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-14 08:54:29,729 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-14 08:54:29,733 | INFO | 실시간 등록 | codes=257720;490470 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-14 08:54:29,733 | INFO | 실시간 구독 동기화 | total=2 codes=257720(실리콘투), 490470(세미파이브)
+2026-04-14 08:54:29,739 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-14 08:54:30,810 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-14 08:54:30,810 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-14 08:54:30,987 | INFO | [TICK] 490470 tick_no=203 price=37050 vol=5 chg=1.51 strength=0.0 vr=0.24 news=0.0 theme=0 leader=0
+2026-04-14 08:54:30,987 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:30,988 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:32,568 | INFO | [TICK] 257720 tick_no=55 price=47300 vol=3 chg=0.85 strength=0.0 vr=4.41 news=0.0 theme=0 leader=0
+2026-04-14 08:54:32,570 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:32,570 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:54:33,267 | INFO | [TICK] 490470 tick_no=204 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.3 news=0.0 theme=0 leader=0
+2026-04-14 08:54:33,267 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:33,268 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:33,470 | INFO | [TICK] 490470 tick_no=205 price=37050 vol=80 chg=1.51 strength=0.0 vr=0.2 news=0.0 theme=0 leader=0
+2026-04-14 08:54:33,471 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:33,472 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:33,563 | INFO | [TICK] 490470 tick_no=206 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.27 news=0.0 theme=0 leader=0
+2026-04-14 08:54:33,564 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:33,565 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:34,171 | INFO | [TICK] 490470 tick_no=207 price=37050 vol=10 chg=1.51 strength=0.0 vr=0.29 news=0.0 theme=0 leader=0
+2026-04-14 08:54:34,172 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:34,172 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:35,169 | INFO | [TICK] 257720 tick_no=56 price=47300 vol=5 chg=0.85 strength=0.0 vr=4.24 news=0.0 theme=0 leader=0
+2026-04-14 08:54:35,170 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:35,171 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:54:35,667 | INFO | [TICK] 490470 tick_no=208 price=37050 vol=5 chg=1.51 strength=0.0 vr=0.29 news=0.0 theme=0 leader=0
+2026-04-14 08:54:35,668 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:35,669 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:35,776 | INFO | [TICK] 257720 tick_no=57 price=47300 vol=4 chg=0.85 strength=0.0 vr=4.43 news=0.0 theme=0 leader=0
+2026-04-14 08:54:35,777 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:35,778 | INFO | [SIGNAL_SKIP] 257720 | trade_strength<110.0
+2026-04-14 08:54:36,773 | INFO | [TICK] 490470 tick_no=209 price=37050 vol=36 chg=1.51 strength=0.0 vr=0.3 news=0.0 theme=0 leader=0
+2026-04-14 08:54:36,773 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:36,774 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:37,472 | INFO | [TICK] 257720 tick_no=58 price=47300 vol=13 chg=0.85 strength=0.0 vr=0.06 news=0.0 theme=0 leader=0
+2026-04-14 08:54:37,473 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:37,474 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:39,464 | INFO | [TICK] 257720 tick_no=59 price=47300 vol=4 chg=0.85 strength=0.0 vr=0.06 news=0.0 theme=0 leader=0
+2026-04-14 08:54:39,464 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:39,464 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:41,365 | INFO | [TICK] 490470 tick_no=210 price=37050 vol=0 chg=1.51 strength=0.0 vr=0.15 news=0.0 theme=0 leader=0
+2026-04-14 08:54:41,366 | INFO | [CHECK] 490470 price=37050
+2026-04-14 08:54:41,366 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:43,264 | INFO | [TICK] 490470 tick_no=211 price=37100 vol=22 chg=1.64 strength=0.0 vr=0.18 news=0.0 theme=0 leader=0
+2026-04-14 08:54:43,264 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:43,264 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:43,372 | INFO | [TICK] 490470 tick_no=212 price=37100 vol=510 chg=1.64 strength=0.0 vr=1.45 news=0.0 theme=0 leader=0
+2026-04-14 08:54:43,374 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:43,374 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:44,164 | INFO | [TICK] 490470 tick_no=213 price=37100 vol=39 chg=1.64 strength=0.0 vr=1.62 news=0.0 theme=0 leader=0
+2026-04-14 08:54:44,166 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:44,167 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:44,973 | INFO | [TICK] 257720 tick_no=60 price=47300 vol=1 chg=0.85 strength=0.0 vr=0.05 news=0.0 theme=0 leader=0
+2026-04-14 08:54:44,974 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:44,975 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:45,065 | INFO | [TICK] 490470 tick_no=214 price=37100 vol=50 chg=1.64 strength=0.0 vr=1.64 news=0.0 theme=0 leader=0
+2026-04-14 08:54:45,067 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:45,068 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:45,470 | INFO | [TICK] 257720 tick_no=61 price=47300 vol=10 chg=0.85 strength=0.0 vr=0.07 news=0.0 theme=0 leader=0
+2026-04-14 08:54:45,471 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:45,472 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:46,063 | INFO | [TICK] 490470 tick_no=215 price=37100 vol=20 chg=1.64 strength=0.0 vr=4.81 news=0.0 theme=0 leader=0
+2026-04-14 08:54:46,064 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:46,065 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:46,873 | INFO | [TICK] 490470 tick_no=216 price=37100 vol=3 chg=1.64 strength=0.0 vr=4.52 news=0.0 theme=0 leader=0
+2026-04-14 08:54:46,875 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:46,875 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:47,170 | INFO | [TICK] 257720 tick_no=62 price=47300 vol=10 chg=0.85 strength=0.0 vr=0.08 news=0.0 theme=0 leader=0
+2026-04-14 08:54:47,170 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:47,171 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:47,872 | INFO | [TICK] 490470 tick_no=217 price=37100 vol=35 chg=1.64 strength=0.0 vr=0.61 news=0.0 theme=0 leader=0
+2026-04-14 08:54:47,873 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:47,874 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:48,962 | INFO | [TICK] 490470 tick_no=218 price=37100 vol=174 chg=1.64 strength=0.0 vr=1.15 news=0.0 theme=0 leader=0
+2026-04-14 08:54:48,963 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:48,963 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:54:49,567 | INFO | [TICK] 490470 tick_no=219 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.96 news=0.0 theme=0 leader=0
+2026-04-14 08:54:49,568 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:49,568 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:54:50,174 | INFO | [TICK] 490470 tick_no=220 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.87 news=0.0 theme=0 leader=0
+2026-04-14 08:54:50,175 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:50,175 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:54:51,371 | INFO | [TICK] 490470 tick_no=221 price=37100 vol=4 chg=1.64 strength=0.0 vr=0.92 news=0.0 theme=0 leader=0
+2026-04-14 08:54:51,372 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:51,372 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:54:51,870 | INFO | [TICK] 490470 tick_no=222 price=37100 vol=10 chg=1.64 strength=0.0 vr=0.81 news=0.0 theme=0 leader=0
+2026-04-14 08:54:51,870 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:51,871 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:54:53,362 | INFO | [TICK] 257720 tick_no=63 price=47300 vol=1 chg=0.85 strength=0.0 vr=0.06 news=0.0 theme=0 leader=0
+2026-04-14 08:54:53,363 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:53,363 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:53,875 | INFO | [TICK] 490470 tick_no=223 price=37100 vol=0 chg=1.64 strength=0.0 vr=0.08 news=0.0 theme=0 leader=0
+2026-04-14 08:54:53,877 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:53,878 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:54,466 | INFO | [TICK] 490470 tick_no=224 price=37100 vol=5 chg=1.64 strength=0.0 vr=0.1 news=0.0 theme=0 leader=0
+2026-04-14 08:54:54,467 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:54,468 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:54,978 | INFO | [TICK] 490470 tick_no=225 price=37100 vol=39 chg=1.64 strength=0.0 vr=0.29 news=0.0 theme=0 leader=0
+2026-04-14 08:54:54,979 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:54,980 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:54:56,568 | INFO | [TICK] 257720 tick_no=64 price=47300 vol=10 chg=0.85 strength=0.0 vr=0.08 news=0.0 theme=0 leader=0
+2026-04-14 08:54:56,569 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:56,570 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:58,765 | INFO | [TICK] 257720 tick_no=65 price=47300 vol=1 chg=0.85 strength=0.0 vr=0.08 news=0.0 theme=0 leader=0
+2026-04-14 08:54:58,767 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:54:58,768 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:54:59,965 | INFO | [TICK] 490470 tick_no=226 price=37100 vol=39 chg=1.64 strength=0.0 vr=0.48 news=0.0 theme=0 leader=0
+2026-04-14 08:54:59,966 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:54:59,967 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:00,277 | INFO | [TICK] 490470 tick_no=227 price=37100 vol=3 chg=1.64 strength=0.0 vr=0.44 news=0.0 theme=0 leader=0
+2026-04-14 08:55:00,277 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:00,277 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:02,473 | INFO | [TICK] 490470 tick_no=228 price=37100 vol=81 chg=1.64 strength=0.0 vr=0.67 news=0.0 theme=0 leader=0
+2026-04-14 08:55:02,474 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:02,475 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:02,675 | INFO | [TICK] 490470 tick_no=229 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.68 news=0.0 theme=0 leader=0
+2026-04-14 08:55:02,676 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:02,678 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:02,862 | INFO | [TICK] 490470 tick_no=230 price=37100 vol=27 chg=1.64 strength=0.0 vr=0.62 news=0.0 theme=0 leader=0
+2026-04-14 08:55:02,863 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:02,863 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:06,471 | INFO | [NEWS_PROVIDER] symbol=490470 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:55:06,472 | INFO | [TICK] 490470 tick_no=231 price=37100 vol=40 chg=1.64 strength=0.0 vr=0.62 news=0.0 theme=0 leader=0
+2026-04-14 08:55:06,473 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:06,473 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:06,862 | INFO | [TICK] 490470 tick_no=232 price=37100 vol=31 chg=1.64 strength=0.0 vr=0.74 news=0.0 theme=0 leader=0
+2026-04-14 08:55:06,863 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:06,864 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:07,174 | INFO | [TICK] 490470 tick_no=233 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.4 news=0.0 theme=0 leader=0
+2026-04-14 08:55:07,174 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:07,174 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:08,277 | INFO | [TICK] 490470 tick_no=234 price=37100 vol=54 chg=1.64 strength=0.0 vr=0.61 news=0.0 theme=0 leader=0
+2026-04-14 08:55:08,278 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:08,279 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:09,075 | INFO | [TICK] 257720 tick_no=66 price=47300 vol=117 chg=0.85 strength=0.0 vr=0.33 news=0.0 theme=0 leader=0
+2026-04-14 08:55:09,075 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:09,075 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:09,372 | INFO | [TICK] 257720 tick_no=67 price=47300 vol=1 chg=0.85 strength=0.0 vr=0.31 news=0.0 theme=0 leader=0
+2026-04-14 08:55:09,373 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:09,373 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:09,967 | INFO | [TICK] 257720 tick_no=68 price=47300 vol=10 chg=0.85 strength=0.0 vr=0.33 news=0.0 theme=0 leader=0
+2026-04-14 08:55:09,967 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:09,969 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:12,267 | INFO | [TICK] 490470 tick_no=235 price=37100 vol=10 chg=1.64 strength=0.0 vr=0.59 news=0.0 theme=0 leader=0
+2026-04-14 08:55:12,267 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:12,268 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:12,473 | INFO | [TICK] 257720 tick_no=69 price=47300 vol=30 chg=0.85 strength=0.0 vr=0.38 news=0.0 theme=0 leader=0
+2026-04-14 08:55:12,473 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:12,474 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:12,766 | INFO | [TICK] 257720 tick_no=70 price=47300 vol=2 chg=0.85 strength=0.0 vr=0.4 news=0.0 theme=0 leader=0
+2026-04-14 08:55:12,766 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:12,767 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:13,374 | INFO | [TICK] 490470 tick_no=236 price=37100 vol=34 chg=1.64 strength=0.0 vr=0.54 news=0.0 theme=0 leader=0
+2026-04-14 08:55:13,376 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:13,376 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:14,463 | INFO | [TICK] 490470 tick_no=237 price=37100 vol=0 chg=1.64 strength=0.0 vr=0.51 news=0.0 theme=0 leader=0
+2026-04-14 08:55:14,465 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:14,466 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:14,571 | INFO | [TICK] 257720 tick_no=71 price=47300 vol=50 chg=0.85 strength=0.0 vr=0.23 news=0.0 theme=0 leader=0
+2026-04-14 08:55:14,573 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:14,574 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:15,164 | INFO | [TICK] 490470 tick_no=238 price=37100 vol=15 chg=1.64 strength=0.0 vr=0.58 news=0.0 theme=0 leader=0
+2026-04-14 08:55:15,167 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:15,168 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:16,171 | INFO | [TICK] 257720 tick_no=72 price=47300 vol=2 chg=0.85 strength=0.0 vr=0.23 news=0.0 theme=0 leader=0
+2026-04-14 08:55:16,172 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:16,172 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:17,063 | INFO | [TICK] 257720 tick_no=73 price=47300 vol=3 chg=0.85 strength=0.0 vr=0.22 news=0.0 theme=0 leader=0
+2026-04-14 08:55:17,064 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:17,064 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:17,065 | INFO | [TICK] 490470 tick_no=239 price=37100 vol=5 chg=1.64 strength=0.0 vr=0.33 news=0.0 theme=0 leader=0
+2026-04-14 08:55:17,065 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:17,065 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:17,172 | INFO | [TICK] 257720 tick_no=74 price=47300 vol=1 chg=0.85 strength=0.0 vr=0.14 news=0.0 theme=0 leader=0
+2026-04-14 08:55:17,172 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:17,173 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:17,765 | INFO | [TICK] 490470 tick_no=240 price=37100 vol=0 chg=1.64 strength=0.0 vr=0.39 news=0.0 theme=0 leader=0
+2026-04-14 08:55:17,765 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:17,765 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:18,372 | INFO | [TICK] 490470 tick_no=241 price=37100 vol=46 chg=1.64 strength=0.0 vr=0.48 news=0.0 theme=0 leader=0
+2026-04-14 08:55:18,372 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:18,373 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:19,076 | INFO | [TICK] 490470 tick_no=242 price=37100 vol=19 chg=1.64 strength=0.0 vr=0.45 news=0.0 theme=0 leader=0
+2026-04-14 08:55:19,076 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:19,077 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:20,277 | INFO | [TICK] 490470 tick_no=243 price=37100 vol=1 chg=1.64 strength=0.0 vr=0.37 news=0.0 theme=0 leader=0
+2026-04-14 08:55:20,277 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:20,278 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:20,279 | INFO | [TICK] 257720 tick_no=75 price=47300 vol=4 chg=0.85 strength=0.0 vr=0.15 news=0.0 theme=0 leader=0
+2026-04-14 08:55:20,280 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:20,280 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:20,572 | INFO | [TICK] 490470 tick_no=244 price=37100 vol=153 chg=1.64 strength=0.0 vr=1.18 news=0.0 theme=0 leader=0
+2026-04-14 08:55:20,573 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:20,574 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:55:20,870 | INFO | [TICK] 490470 tick_no=245 price=37100 vol=14 chg=1.64 strength=0.0 vr=1.0 news=0.0 theme=0 leader=0
+2026-04-14 08:55:20,871 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:20,872 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:55:20,964 | INFO | [TICK] 257720 tick_no=76 price=47300 vol=0 chg=0.85 strength=0.0 vr=0.04 news=0.0 theme=0 leader=0
+2026-04-14 08:55:20,964 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:20,965 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:21,665 | INFO | [TICK] 490470 tick_no=246 price=37100 vol=5 chg=1.64 strength=0.0 vr=0.81 news=0.0 theme=0 leader=0
+2026-04-14 08:55:21,665 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:21,666 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<1.1
+2026-04-14 08:55:22,069 | INFO | [TICK] 490470 tick_no=247 price=37100 vol=1 chg=1.64 strength=0.0 vr=1.19 news=0.0 theme=0 leader=0
+2026-04-14 08:55:22,070 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:22,071 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:55:25,574 | INFO | [TICK] 257720 tick_no=77 price=47300 vol=1 chg=0.85 strength=0.0 vr=0.03 news=0.0 theme=0 leader=0
+2026-04-14 08:55:25,575 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:25,575 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:25,669 | INFO | [TICK] 257720 tick_no=78 price=47300 vol=100 chg=0.85 strength=0.0 vr=0.42 news=0.0 theme=0 leader=0
+2026-04-14 08:55:25,669 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:25,670 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:26,464 | INFO | [TICK] 490470 tick_no=248 price=37100 vol=0 chg=1.64 strength=0.0 vr=1.56 news=0.0 theme=0 leader=0
+2026-04-14 08:55:26,465 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:26,465 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 08:55:28,361 | INFO | [TICK] 490470 tick_no=249 price=37100 vol=8 chg=1.64 strength=0.0 vr=0.22 news=0.0 theme=0 leader=0
+2026-04-14 08:55:28,362 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:28,362 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:28,563 | INFO | [NEWS_PROVIDER] symbol=257720 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 08:55:28,564 | INFO | [TICK] 257720 tick_no=79 price=47300 vol=0 chg=0.85 strength=0.0 vr=0.58 news=0.0 theme=0 leader=0
+2026-04-14 08:55:28,565 | INFO | [CHECK] 257720 price=47300
+2026-04-14 08:55:28,565 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 08:55:28,767 | INFO | [TICK] 490470 tick_no=250 price=37100 vol=13 chg=1.64 strength=0.0 vr=0.22 news=0.0 theme=0 leader=0
+2026-04-14 08:55:28,767 | INFO | [CHECK] 490470 price=37100
+2026-04-14 08:55:28,768 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 08:55:29,638 | INFO | 조건검색 재조회 | active_count=0
+2026-04-14 08:55:29,638 | INFO | 조건검색 시작 시도
+2026-04-14 08:55:29,640 | INFO | 조건검색 목록 로드 시작
+2026-04-14 08:55:29,642 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-14 08:55:29,706 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-14 08:55:29,726 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-14 08:55:29,728 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=1 ret=1
+2026-04-14 08:55:29,749 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=0 next=0
+2026-04-14 08:55:29,752 | INFO | 실시간 등록 | codes=257720;490470 fids=10;12;13;15;16;17;18;228 ret=0
+2026-04-14 08:55:29,752 | INFO | 실시간 구독 동기화 | total=2 codes=257720(실리콘투), 490470(세미파이브)
+2026-04-14 08:55:29,761 | INFO | 조건검색 초기 편입 반영 | name=주도주_스나이퍼 count=0 codes=(empty)
+2026-04-14 15:40:50,159 | ERROR | 텔레그램 전송 예외 | ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+Traceback (most recent call last):
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\urllib3\connectionpool.py", line 534, in _make_request
+    response = conn.getresponse()
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\urllib3\connection.py", line 571, in getresponse
+    httplib_response = super().getresponse()
+  File "C:\Users\sungmin\AppData\Local\Programs\Python\Python310-32\lib\http\client.py", line 1374, in getresponse
+    response.begin()
+  File "C:\Users\sungmin\AppData\Local\Programs\Python\Python310-32\lib\http\client.py", line 318, in begin
+    version, status, reason = self._read_status()
+  File "C:\Users\sungmin\AppData\Local\Programs\Python\Python310-32\lib\http\client.py", line 287, in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+http.client.RemoteDisconnected: Remote end closed connection without response
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\requests\adapters.py", line 645, in send
+    resp = conn.urlopen(
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\urllib3\connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\urllib3\util\retry.py", line 490, in increment
+    raise reraise(type(error), error, _stacktrace)
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\urllib3\util\util.py", line 38, in reraise
+    raise value.with_traceback(tb)
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\urllib3\connectionpool.py", line 534, in _make_request
+    response = conn.getresponse()
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\urllib3\connection.py", line 571, in getresponse
+    httplib_response = super().getresponse()
+  File "C:\Users\sungmin\AppData\Local\Programs\Python\Python310-32\lib\http\client.py", line 1374, in getresponse
+    response.begin()
+  File "C:\Users\sungmin\AppData\Local\Programs\Python\Python310-32\lib\http\client.py", line 318, in begin
+    version, status, reason = self._read_status()
+  File "C:\Users\sungmin\AppData\Local\Programs\Python\Python310-32\lib\http\client.py", line 287, in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+urllib3.exceptions.ProtocolError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\infra\telegram_notifier.py", line 70, in send
+    resp = requests.post(
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\requests\api.py", line 115, in post
+    return request("post", url, data=data, json=json, **kwargs)
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\requests\sessions.py", line 592, in request
+    resp = self.send(prep, **send_kwargs)
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\requests\sessions.py", line 706, in send
+    r = adapter.send(request, **kwargs)
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\.venv\lib\site-packages\requests\adapters.py", line 660, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+2026-04-14 15:40:50,351 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=0
+2026-04-14 15:40:50,351 | WARNING | 조건검색 초기 결과 비어 있음 | name=주도주_스나이퍼 | 재시도 유지
+2026-04-14 15:40:50,352 | INFO | [NEWS_PROVIDER] symbol=490470 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 15:40:50,353 | INFO | [TICK] 490470 tick_no=251 price=37100 vol=0 chg=1.64 strength=0.0 vr=0.23 news=0.0 theme=0 leader=0
+2026-04-14 15:40:50,353 | INFO | [CHECK] 490470 price=37100
+2026-04-14 15:40:50,353 | INFO | [SIGNAL_SKIP] 490470 | volume_ratio<0.8
+2026-04-14 15:40:50,354 | INFO | [NEWS_PROVIDER] symbol=257720 news_items=0 news_score=0.0 theme_score=0 leader_score=0
+2026-04-14 15:40:50,354 | INFO | [TICK] 257720 tick_no=80 price=47300 vol=1 chg=0.85 strength=0.0 vr=0.56 news=0.0 theme=0 leader=0
+2026-04-14 15:40:50,355 | INFO | [CHECK] 257720 price=47300
+2026-04-14 15:40:50,355 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 15:40:50,356 | INFO | [TICK] 490470 tick_no=252 price=37100 vol=225 chg=1.64 strength=0.0 vr=2.72 news=0.0 theme=0 leader=0
+2026-04-14 15:40:50,356 | INFO | [CHECK] 490470 price=37100
+2026-04-14 15:40:50,356 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 15:40:50,357 | INFO | [TICK] 490470 tick_no=253 price=37100 vol=0 chg=1.64 strength=0.0 vr=3.33 news=0.0 theme=0 leader=0
+2026-04-14 15:40:50,359 | INFO | [CHECK] 490470 price=37100
+2026-04-14 15:40:50,361 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 15:40:50,363 | INFO | [TICK] 257720 tick_no=81 price=47300 vol=0 chg=0.85 strength=0.0 vr=0.54 news=0.0 theme=0 leader=0
+2026-04-14 15:40:50,363 | INFO | [CHECK] 257720 price=47300
+2026-04-14 15:40:50,364 | INFO | [SIGNAL_SKIP] 257720 | volume_ratio<0.8
+2026-04-14 15:40:50,364 | INFO | [TICK] 490470 tick_no=254 price=37100 vol=1 chg=1.64 strength=0.0 vr=3.2 news=0.0 theme=0 leader=0
+2026-04-14 15:40:50,364 | INFO | [CHECK] 490470 price=37100
+2026-04-14 15:40:50,366 | INFO | [SIGNAL_SKIP] 490470 | trade_strength<110.0
+2026-04-14 15:41:42,557 | INFO | OnEventConnect 호출 | err_code=-106
+2026-04-14 15:41:42,558 | ERROR | 로그인 실패
+2026-04-14 15:41:51,268 | INFO | 조건검색 재조회 | active_count=0
+2026-04-14 15:41:51,269 | INFO | 조건검색 시작 시도
+2026-04-14 15:41:51,270 | INFO | 조건검색 목록 로드 시작
+2026-04-14 15:41:51,271 | INFO | GetConditionLoad 호출 | ret=0
+2026-04-14 15:41:51,272 | ERROR | 조건검색 시작 실패 | condition_name=주도주_스나이퍼 err=GetConditionLoad 실패 | ret=0
+Traceback (most recent call last):
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\main_live.py", line 393, in start_condition_search
+    self.broker.load_condition_list()
+  File "E:\codexAi\_review_extract\CherryPulse-KR-01\broker\kiwoom_broker.py", line 1093, in load_condition_list
+    raise RuntimeError(f"GetConditionLoad 실패 | ret={ret}")
+RuntimeError: GetConditionLoad 실패 | ret=0
+2026-04-14 15:41:52,307 | INFO | 🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at=15:20
+2026-04-14 15:41:52,307 | INFO | 종료 신호 수신
+2026-04-14 15:41:52,308 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-14 15:41:52,308 | INFO | 실시간 구독 해제 완료
+2026-04-14 15:41:52,308 | INFO | 엔진 종료 시작
+2026-04-14 15:41:52,309 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-14 15:41:53,290 | INFO | 브로커 종료 시작
+2026-04-14 15:41:53,291 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-14 15:41:53,292 | INFO | 브로커 종료 완료
+2026-04-14 15:41:53,294 | INFO | 엔진 종료 완료
+2026-04-14 15:41:53,294 | INFO | 프로그램 종료
