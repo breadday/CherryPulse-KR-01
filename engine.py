@@ -202,6 +202,23 @@ class TradingEngine:
                 ),
         )
 
+    def _normalize_buy_signal_qty(self, signal, tick) -> None:
+        if self._side_value(getattr(signal, "side", "")) != "BUY":
+            return
+
+        price = max(0, self._safe_float(getattr(tick, "price", 0), 0.0))
+        if price <= 0:
+            return
+
+        order_amount_limit = self._effective_order_amount_limit(signal=signal)
+        if order_amount_limit <= 0:
+            return
+
+        cash = max(0.0, float(getattr(self.portfolio, "cash", 0.0)))
+        max_affordable_amount = min(float(order_amount_limit), cash)
+        normalized_qty = int(max_affordable_amount // price)
+        signal.qty = max(0, normalized_qty)
+
     def _restore_position_route_context(self, symbol: str, qty: int, avg_price: float):
         if qty <= 0:
             return
@@ -2134,6 +2151,8 @@ class TradingEngine:
                 if reject_reason:
                     self.logger.info(f"[SIGNAL_SKIP] {symbol} | {reject_reason}")
                 return
+
+            self._normalize_buy_signal_qty(signal, tick)
             strategy_name = self._strategy_name_for_signal(signal)
 
             entry_score = self._extract_score_from_reason(getattr(signal, "reason", ""))
