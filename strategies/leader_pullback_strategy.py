@@ -81,6 +81,12 @@ class LeaderPullbackStrategy(BaseStrategy):
     def generate_signal(self, tick, portfolio=None):
         self.last_reject_reason = ""
 
+        def reject(reason: str):
+            self.last_reject_reason = reason
+            if symbol:
+                self.leader_state.setdefault(symbol, {})["prev_price"] = price
+            return None
+
         symbol = str(getattr(tick, "symbol", "")).strip()
         if not symbol:
             self.last_reject_reason = "symbol empty"
@@ -97,47 +103,36 @@ class LeaderPullbackStrategy(BaseStrategy):
         trade_strength = float(getattr(tick, "trade_strength", 0.0) or 0.0)
 
         if price <= 0:
-            self.last_reject_reason = "invalid price"
-            return None
+            return reject("invalid price")
         if self._time_hhmm(tick) < self.leader_entry_start_hhmm:
-            self.last_reject_reason = f"leader_wait<{self.leader_entry_start_hhmm}"
-            return None
+            return reject(f"leader_wait<{self.leader_entry_start_hhmm}")
         if not bool(state.get("rally_seen", False)):
-            self.last_reject_reason = "leader_rally_not_seen"
-            return None
+            return reject("leader_rally_not_seen")
 
         open_price = float(state.get("open_price", 0.0) or 0.0)
         intraday_high = float(state.get("intraday_high", price) or price)
         prev_price = float(state.get("prev_price", 0.0) or 0.0)
         if open_price <= 0 or intraday_high <= 0:
-            self.last_reject_reason = "leader_state_invalid"
-            return None
+            return reject("leader_state_invalid")
 
         pullback_pct = ((intraday_high - price) / intraday_high) * 100.0 if intraday_high else 0.0
         support_floor = open_price * (1.0 - self.leader_support_open_tolerance_pct / 100.0)
         rebound_confirmed = price > prev_price if prev_price > 0 else False
 
         if pullback_pct < self.leader_pullback_min_pct:
-            self.last_reject_reason = f"leader_pullback<{self.leader_pullback_min_pct}"
-            return None
+            return reject(f"leader_pullback<{self.leader_pullback_min_pct}")
         if pullback_pct > self.leader_pullback_max_pct:
-            self.last_reject_reason = f"leader_pullback>{self.leader_pullback_max_pct}"
-            return None
+            return reject(f"leader_pullback>{self.leader_pullback_max_pct}")
         if price < support_floor:
-            self.last_reject_reason = "leader_open_support_broken"
-            return None
+            return reject("leader_open_support_broken")
         if not rebound_confirmed:
-            self.last_reject_reason = "leader_rebound_not_confirmed"
-            return None
+            return reject("leader_rebound_not_confirmed")
         if price_change_pct < self.leader_price_change_floor:
-            self.last_reject_reason = f"leader_price_change<{self.leader_price_change_floor}"
-            return None
+            return reject(f"leader_price_change<{self.leader_price_change_floor}")
         if volume_ratio < self.leader_volume_ratio_floor:
-            self.last_reject_reason = f"leader_volume_ratio<{self.leader_volume_ratio_floor}"
-            return None
+            return reject(f"leader_volume_ratio<{self.leader_volume_ratio_floor}")
         if 0.0 < trade_strength < self.leader_strength_floor:
-            self.last_reject_reason = f"leader_strength<{self.leader_strength_floor}"
-            return None
+            return reject(f"leader_strength<{self.leader_strength_floor}")
 
         leader_value = float(getattr(tick, "leader_score", 0.0) or 0.0)
         theme_value = float(getattr(tick, "theme_score", 0.0) or 0.0)
@@ -164,4 +159,3 @@ class LeaderPullbackStrategy(BaseStrategy):
 
     def mark_entry(self, symbol: str, ts):
         return None
-
