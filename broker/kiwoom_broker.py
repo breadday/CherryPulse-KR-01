@@ -921,9 +921,9 @@ class KiwoomBroker(QObject):
 
         local_id = f"ORD_{int(time.time() * 1000)}"
 
-        if config.DRY_RUN or not config.LIVE_MODE:
+        if getattr(config, "PAPER_TRADING", config.DRY_RUN) or not getattr(config, "ALLOW_LIVE_ORDERS", config.LIVE_MODE):
             self.logger.warning(
-                f"[DRY_RUN] 주문 모의 처리 | symbol={signal.symbol} side={signal.side} "
+                f"[PAPER] 주문 모의 처리 | symbol={signal.symbol} side={signal.side} "
                 f"qty={signal.qty} price={price} order_type={signal.order_type} reason={signal.reason}"
             )
 
@@ -993,9 +993,9 @@ class KiwoomBroker(QObject):
     def cancel_order(self, symbol: str, order_no: str, qty: int, side: Side = Side.SELL) -> int:
         try:
 
-            if config.DRY_RUN or not config.LIVE_MODE:
+            if getattr(config, "PAPER_TRADING", config.DRY_RUN) or not getattr(config, "ALLOW_LIVE_ORDERS", config.LIVE_MODE):
                 self.logger.warning(
-                    f"[DRY_RUN] 취소 모의 처리 | symbol={symbol} order_no={order_no} qty={qty} side={side}"
+                    f"[PAPER] 취소 모의 처리 | symbol={symbol} order_no={order_no} qty={qty} side={side}"
                 )
                 return 0
 
@@ -1279,7 +1279,7 @@ class KiwoomBroker(QObject):
 
                 idx_str, name = part.split("^", 1)
                 idx = int(str(idx_str).strip())
-                cond_name = str(name).strip()
+                cond_name = self._repair_kiwoom_text(name)
 
                 items.append((idx, cond_name))
                 name_to_index[cond_name] = idx
@@ -1296,6 +1296,7 @@ class KiwoomBroker(QObject):
                 self.condition_loop = None
 
     def _on_receive_tr_condition(self, screen_no, code_list, condition_name, index, next_):
+        clean_condition_name = self._repair_kiwoom_text(condition_name)
         codes = []
         for code in str(code_list).split(";"):
             clean_code = self._clean_code(code)
@@ -1304,13 +1305,13 @@ class KiwoomBroker(QObject):
 
         self._condition_result_codes = codes
         self.logger.info(
-            f"OnReceiveTrCondition | screen={screen_no} name={condition_name} "
+            f"OnReceiveTrCondition | screen={screen_no} name={clean_condition_name} "
             f"index={index} count={len(codes)} next={next_}"
         )
 
         if callable(self.on_condition_initial_callback):
             try:
-                self.on_condition_initial_callback(condition_name, list(codes))
+                self.on_condition_initial_callback(clean_condition_name, list(codes))
             except Exception as e:
                 self.logger.exception(f"조건검색 초기 콜백 오류 | err={e}")
 
@@ -1320,10 +1321,11 @@ class KiwoomBroker(QObject):
 
     def _on_receive_real_condition(self, code, event_type, condition_name, condition_index):
         clean_code = self._clean_code(code)
+        clean_condition_name = self._repair_kiwoom_text(condition_name)
         ev = str(event_type).strip()
         self.logger.info(
             f"OnReceiveRealCondition | code={clean_code} event={ev} "
-            f"name={condition_name} index={condition_index}"
+            f"name={clean_condition_name} index={condition_index}"
         )
 
         if callable(self.on_condition_realtime_callback):
@@ -1331,7 +1333,7 @@ class KiwoomBroker(QObject):
                 self.on_condition_realtime_callback(
                     clean_code,
                     ev,
-                    str(condition_name).strip(),
+                    clean_condition_name,
                     int(condition_index),
                 )
             except Exception as e:
@@ -1421,3 +1423,13 @@ class KiwoomBroker(QObject):
         if code.startswith("A"):
             return code[1:]
         return code
+
+    def _repair_kiwoom_text(self, value) -> str:
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        try:
+            repaired = text.encode("latin1").decode("cp949")
+        except Exception:
+            return text
+        return repaired.strip() or text

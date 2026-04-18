@@ -145,8 +145,54 @@ class SQLiteStore:
                     is_active INTEGER NOT NULL,
                     PRIMARY KEY (condition_name, symbol)
                 );
+
+                CREATE TABLE IF NOT EXISTS strategy_daily_summary (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    trade_date TEXT NOT NULL,
+                    test_name TEXT,
+                    strategy_name TEXT NOT NULL,
+                    selector_name TEXT,
+                    universe_name TEXT,
+                    total_trades INTEGER,
+                    wins INTEGER,
+                    losses INTEGER,
+                    win_rate REAL,
+                    net_pnl REAL,
+                    avg_pnl_pct REAL,
+                    raw_payload TEXT,
+                    UNIQUE(trade_date, test_name, strategy_name, selector_name, universe_name)
+                );
+
+                CREATE TABLE IF NOT EXISTS strategy_universe_symbols (
+                    trade_date TEXT NOT NULL,
+                    test_name TEXT,
+                    strategy_name TEXT NOT NULL,
+                    universe_name TEXT NOT NULL,
+                    source_type TEXT NOT NULL,
+                    symbol TEXT NOT NULL,
+                    name TEXT,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY (trade_date, test_name, strategy_name, universe_name, source_type, symbol)
+                );
                 """
             )
+            self._ensure_column(conn, "signals", "selector_name", "TEXT")
+            self._ensure_column(conn, "signals", "universe_name", "TEXT")
+            self._ensure_column(conn, "orders", "strategy_name", "TEXT")
+            self._ensure_column(conn, "orders", "selector_name", "TEXT")
+            self._ensure_column(conn, "orders", "universe_name", "TEXT")
+            self._ensure_column(conn, "fills", "strategy_name", "TEXT")
+            self._ensure_column(conn, "fills", "selector_name", "TEXT")
+            self._ensure_column(conn, "fills", "universe_name", "TEXT")
+            self._ensure_column(conn, "trades", "strategy_name", "TEXT")
+            self._ensure_column(conn, "trades", "selector_name", "TEXT")
+            self._ensure_column(conn, "trades", "universe_name", "TEXT")
+
+    def _ensure_column(self, conn, table_name: str, column_name: str, column_type: str):
+        columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table_name})")}
+        if column_name not in columns:
+            conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
 
     def _now(self) -> str:
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -157,7 +203,18 @@ class SQLiteStore:
         except Exception:
             return "{}"
 
-    def record_signal(self, *, test_name: str, strategy_name: str, signal, tick, allowed: bool, block_reason: str = ""):
+    def record_signal(
+        self,
+        *,
+        test_name: str,
+        strategy_name: str,
+        selector_name: str = "",
+        universe_name: str = "",
+        signal=None,
+        tick=None,
+        allowed: bool,
+        block_reason: str = "",
+    ):
         payload = {
             "signal": {
                 "symbol": getattr(signal, "symbol", ""),
@@ -181,10 +238,10 @@ class SQLiteStore:
                 """
                 INSERT INTO signals (
                     created_at, test_name, strategy_name, symbol, side, qty, reason,
-                    allowed, block_reason, signal_price, tick_price, price_change_pct,
+                    selector_name, universe_name, allowed, block_reason, signal_price, tick_price, price_change_pct,
                     trade_strength, volume_ratio, news_score, theme_score, leader_score,
                     raw_payload
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     self._now(),
@@ -194,6 +251,8 @@ class SQLiteStore:
                     str(getattr(signal, "side", "")),
                     int(getattr(signal, "qty", 0) or 0),
                     getattr(signal, "reason", ""),
+                    selector_name,
+                    universe_name,
                     1 if allowed else 0,
                     block_reason,
                     getattr(signal, "price", None),
@@ -208,14 +267,14 @@ class SQLiteStore:
                 ),
             )
 
-    def record_order(self, *, test_name: str, order, request_price=None):
+    def record_order(self, *, test_name: str, order, request_price=None, strategy_name: str = "", selector_name: str = "", universe_name: str = ""):
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO orders (
                     created_at, test_name, order_id, symbol, side, qty, price,
-                    order_type, status, reason, request_price, raw_payload
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    order_type, status, reason, request_price, strategy_name, selector_name, universe_name, raw_payload
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     self._now(),
@@ -229,6 +288,9 @@ class SQLiteStore:
                     str(getattr(order, "status", "")),
                     getattr(order, "reason", ""),
                     request_price,
+                    strategy_name,
+                    selector_name,
+                    universe_name,
                     self._json({
                         "filled_qty": getattr(order, "filled_qty", None),
                         "avg_fill_price": getattr(order, "avg_fill_price", None),
@@ -246,6 +308,9 @@ class SQLiteStore:
         realized_delta=None,
         cash_after=None,
         realized_pnl_after=None,
+        strategy_name: str = "",
+        selector_name: str = "",
+        universe_name: str = "",
     ):
         with self._connect() as conn:
             conn.execute(
@@ -253,8 +318,8 @@ class SQLiteStore:
                 INSERT INTO fills (
                     created_at, test_name, order_id, local_order_id, symbol, side,
                     fill_qty, fill_price, unfilled_qty, realized_delta, cash_after,
-                    realized_pnl_after, raw_payload
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    realized_pnl_after, strategy_name, selector_name, universe_name, raw_payload
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     self._now(),
@@ -269,6 +334,9 @@ class SQLiteStore:
                     realized_delta,
                     cash_after,
                     realized_pnl_after,
+                    strategy_name,
+                    selector_name,
+                    universe_name,
                     self._json({
                         "ts": getattr(fill, "ts", None),
                     }),
@@ -281,8 +349,9 @@ class SQLiteStore:
                 """
                 INSERT INTO trades (
                     created_at, trade_date, test_name, symbol, entry_time, exit_time,
-                    entry_price, exit_price, qty, pnl, pnl_pct, result, exit_reason, raw_payload
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    entry_price, exit_price, qty, pnl, pnl_pct, result, exit_reason,
+                    strategy_name, selector_name, universe_name, raw_payload
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     self._now(),
@@ -298,6 +367,9 @@ class SQLiteStore:
                     trade_item.get("pnl_pct", 0.0),
                     trade_item.get("result", ""),
                     trade_item.get("exit_reason", ""),
+                    trade_item.get("strategy_name", ""),
+                    trade_item.get("selector_name", ""),
+                    trade_item.get("universe_name", ""),
                     self._json(trade_item),
                 ),
             )
@@ -357,6 +429,363 @@ class SQLiteStore:
                     self._json(summary),
                 ),
             )
+
+    def upsert_strategy_daily_summary(
+        self,
+        *,
+        test_name: str,
+        strategy_name: str,
+        selector_name: str,
+        universe_name: str,
+        summary: dict,
+    ):
+        trade_date = datetime.now().strftime("%Y-%m-%d")
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO strategy_daily_summary (
+                    created_at, trade_date, test_name, strategy_name, selector_name, universe_name,
+                    total_trades, wins, losses, win_rate, net_pnl, avg_pnl_pct, raw_payload
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(trade_date, test_name, strategy_name, selector_name, universe_name) DO UPDATE SET
+                    created_at=excluded.created_at,
+                    total_trades=excluded.total_trades,
+                    wins=excluded.wins,
+                    losses=excluded.losses,
+                    win_rate=excluded.win_rate,
+                    net_pnl=excluded.net_pnl,
+                    avg_pnl_pct=excluded.avg_pnl_pct,
+                    raw_payload=excluded.raw_payload
+                """,
+                (
+                    self._now(),
+                    trade_date,
+                    test_name,
+                    strategy_name,
+                    selector_name,
+                    universe_name,
+                    summary.get("total_trades", 0),
+                    summary.get("wins", 0),
+                    summary.get("losses", 0),
+                    summary.get("win_rate", 0.0),
+                    summary.get("net_pnl", 0.0),
+                    summary.get("avg_pnl_pct", 0.0),
+                    self._json(summary),
+                ),
+            )
+
+    def get_latest_buy_route(self, *, test_name: str, symbol: str) -> dict:
+        symbol = str(symbol or "").strip()
+        if not symbol:
+            return {}
+
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT
+                    created_at,
+                    strategy_name,
+                    selector_name,
+                    universe_name,
+                    fill_price
+                FROM fills
+                WHERE test_name = ?
+                  AND symbol = ?
+                  AND UPPER(side) LIKE '%BUY%'
+                ORDER BY datetime(created_at) DESC, id DESC
+                LIMIT 1
+                """,
+                (test_name, symbol),
+            ).fetchone()
+
+        if not row:
+            return {}
+
+        return {
+            "created_at": str(row["created_at"] or ""),
+            "strategy_name": str(row["strategy_name"] or ""),
+            "selector_name": str(row["selector_name"] or ""),
+            "universe_name": str(row["universe_name"] or ""),
+            "fill_price": float(row["fill_price"] or 0.0),
+        }
+
+    def replace_strategy_universe_snapshot(
+        self,
+        *,
+        test_name: str,
+        strategy_name: str,
+        universe_name: str,
+        source_type: str,
+        rows: Iterable[dict],
+        trade_date: str | None = None,
+    ):
+        trade_date = trade_date or datetime.now().strftime("%Y-%m-%d")
+        clean_rows = []
+        for row in rows:
+            symbol = str(row.get("symbol", "")).strip()
+            if not symbol:
+                continue
+            clean_rows.append(
+                {
+                    "symbol": symbol,
+                    "name": str(row.get("name", "")).strip(),
+                }
+            )
+
+        with self._connect() as conn:
+            conn.execute(
+                """
+                DELETE FROM strategy_universe_symbols
+                WHERE trade_date = ?
+                  AND test_name = ?
+                  AND strategy_name = ?
+                  AND universe_name = ?
+                  AND source_type = ?
+                """,
+                (trade_date, test_name, strategy_name, universe_name, source_type),
+            )
+            for row in clean_rows:
+                conn.execute(
+                    """
+                    INSERT INTO strategy_universe_symbols (
+                        trade_date, test_name, strategy_name, universe_name, source_type,
+                        symbol, name, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        trade_date,
+                        test_name,
+                        strategy_name,
+                        universe_name,
+                        source_type,
+                        row["symbol"],
+                        row["name"],
+                        self._now(),
+                    ),
+                )
+
+    def fetch_strategy_universe_symbols(self, *, trade_date: str, test_name: str | None = None):
+        with self._connect() as conn:
+            if test_name:
+                return conn.execute(
+                    """
+                    SELECT trade_date, test_name, strategy_name, universe_name, source_type, symbol, name
+                    FROM strategy_universe_symbols
+                    WHERE trade_date = ? AND test_name = ?
+                    ORDER BY strategy_name, source_type, symbol
+                    """,
+                    (trade_date, test_name),
+                ).fetchall()
+            return conn.execute(
+                """
+                SELECT trade_date, test_name, strategy_name, universe_name, source_type, symbol, name
+                FROM strategy_universe_symbols
+                WHERE trade_date = ?
+                ORDER BY strategy_name, source_type, symbol
+                """,
+                (trade_date,),
+            ).fetchall()
+
+    def fetch_strategy_day_rollup(self, *, trade_date: str, test_name: str):
+        with self._connect() as conn:
+            return conn.execute(
+                """
+                WITH signal_stats AS (
+                    SELECT
+                        COALESCE(strategy_name, '') AS strategy_name,
+                        COUNT(*) AS signal_count,
+                        SUM(CASE WHEN allowed = 1 THEN 1 ELSE 0 END) AS allowed_signal_count
+                    FROM signals
+                    WHERE substr(created_at, 1, 10) = ?
+                      AND test_name = ?
+                    GROUP BY strategy_name
+                ),
+                order_stats AS (
+                    SELECT
+                        COALESCE(strategy_name, '') AS strategy_name,
+                        COUNT(*) AS order_count
+                    FROM orders
+                    WHERE substr(created_at, 1, 10) = ?
+                      AND test_name = ?
+                    GROUP BY strategy_name
+                ),
+                trade_stats AS (
+                    SELECT
+                        COALESCE(strategy_name, '') AS strategy_name,
+                        COUNT(*) AS trade_count,
+                        SUM(CASE WHEN result = 'WIN' THEN 1 ELSE 0 END) AS wins,
+                        ROUND(COALESCE(SUM(pnl), 0), 2) AS net_pnl,
+                        ROUND(COALESCE(AVG(pnl_pct), 0), 4) AS avg_pnl_pct
+                    FROM trades
+                    WHERE trade_date = ?
+                      AND test_name = ?
+                    GROUP BY strategy_name
+                ),
+                universe_stats AS (
+                    SELECT
+                        strategy_name,
+                        COUNT(DISTINCT symbol) AS universe_count
+                    FROM strategy_universe_symbols
+                    WHERE trade_date = ?
+                      AND test_name = ?
+                    GROUP BY strategy_name
+                ),
+                keys AS (
+                    SELECT strategy_name FROM signal_stats
+                    UNION
+                    SELECT strategy_name FROM order_stats
+                    UNION
+                    SELECT strategy_name FROM trade_stats
+                    UNION
+                    SELECT strategy_name FROM universe_stats
+                )
+                SELECT
+                    COALESCE(k.strategy_name, '') AS strategy_name,
+                    COALESCE(u.universe_count, 0) AS universe_count,
+                    COALESCE(s.signal_count, 0) AS signal_count,
+                    COALESCE(s.allowed_signal_count, 0) AS allowed_signal_count,
+                    COALESCE(o.order_count, 0) AS order_count,
+                    COALESCE(t.trade_count, 0) AS trade_count,
+                    COALESCE(t.wins, 0) AS wins,
+                    COALESCE(t.net_pnl, 0) AS net_pnl,
+                    COALESCE(t.avg_pnl_pct, 0) AS avg_pnl_pct
+                FROM keys k
+                LEFT JOIN signal_stats s ON k.strategy_name = s.strategy_name
+                LEFT JOIN order_stats o ON k.strategy_name = o.strategy_name
+                LEFT JOIN trade_stats t ON k.strategy_name = t.strategy_name
+                LEFT JOIN universe_stats u ON k.strategy_name = u.strategy_name
+                ORDER BY net_pnl DESC, order_count DESC, signal_count DESC, strategy_name
+                """,
+                (
+                    trade_date,
+                    test_name,
+                    trade_date,
+                    test_name,
+                    trade_date,
+                    test_name,
+                    trade_date,
+                    test_name,
+                ),
+            ).fetchall()
+
+    def fetch_strategy_day_detail(self, *, trade_date: str, test_name: str):
+        with self._connect() as conn:
+            return conn.execute(
+                """
+                WITH exit_ranked AS (
+                    SELECT
+                        COALESCE(strategy_name, '') AS strategy_name,
+                        COALESCE(exit_reason, '') AS exit_reason,
+                        COUNT(*) AS exit_count,
+                        ROUND(COALESCE(SUM(pnl), 0), 2) AS exit_pnl,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY COALESCE(strategy_name, '')
+                            ORDER BY COUNT(*) DESC, ROUND(COALESCE(SUM(pnl), 0), 2) DESC, COALESCE(exit_reason, '')
+                        ) AS rn
+                    FROM trades
+                    WHERE trade_date = ?
+                      AND test_name = ?
+                    GROUP BY strategy_name, exit_reason
+                )
+                SELECT
+                    COALESCE(r.strategy_name, '') AS strategy_name,
+                    COALESCE(r.universe_count, 0) AS universe_count,
+                    COALESCE(r.signal_count, 0) AS signal_count,
+                    COALESCE(r.allowed_signal_count, 0) AS allowed_signal_count,
+                    COALESCE(r.order_count, 0) AS order_count,
+                    COALESCE(r.trade_count, 0) AS trade_count,
+                    COALESCE(r.wins, 0) AS wins,
+                    COALESCE(r.net_pnl, 0) AS net_pnl,
+                    COALESCE(r.avg_pnl_pct, 0) AS avg_pnl_pct,
+                    COALESCE(e1.exit_reason, '') AS top_exit_reason,
+                    COALESCE(e1.exit_count, 0) AS top_exit_count,
+                    COALESCE(e2.exit_reason, '') AS second_exit_reason,
+                    COALESCE(e2.exit_count, 0) AS second_exit_count
+                FROM (
+                    WITH signal_stats AS (
+                        SELECT
+                            COALESCE(strategy_name, '') AS strategy_name,
+                            COUNT(*) AS signal_count,
+                            SUM(CASE WHEN allowed = 1 THEN 1 ELSE 0 END) AS allowed_signal_count
+                        FROM signals
+                        WHERE substr(created_at, 1, 10) = ?
+                          AND test_name = ?
+                        GROUP BY strategy_name
+                    ),
+                    order_stats AS (
+                        SELECT
+                            COALESCE(strategy_name, '') AS strategy_name,
+                            COUNT(*) AS order_count
+                        FROM orders
+                        WHERE substr(created_at, 1, 10) = ?
+                          AND test_name = ?
+                        GROUP BY strategy_name
+                    ),
+                    trade_stats AS (
+                        SELECT
+                            COALESCE(strategy_name, '') AS strategy_name,
+                            COUNT(*) AS trade_count,
+                            SUM(CASE WHEN result = 'WIN' THEN 1 ELSE 0 END) AS wins,
+                            ROUND(COALESCE(SUM(pnl), 0), 2) AS net_pnl,
+                            ROUND(COALESCE(AVG(pnl_pct), 0), 4) AS avg_pnl_pct
+                        FROM trades
+                        WHERE trade_date = ?
+                          AND test_name = ?
+                        GROUP BY strategy_name
+                    ),
+                    universe_stats AS (
+                        SELECT
+                            strategy_name,
+                            COUNT(DISTINCT symbol) AS universe_count
+                        FROM strategy_universe_symbols
+                        WHERE trade_date = ?
+                          AND test_name = ?
+                        GROUP BY strategy_name
+                    ),
+                    keys AS (
+                        SELECT strategy_name FROM signal_stats
+                        UNION
+                        SELECT strategy_name FROM order_stats
+                        UNION
+                        SELECT strategy_name FROM trade_stats
+                        UNION
+                        SELECT strategy_name FROM universe_stats
+                    )
+                    SELECT
+                        COALESCE(k.strategy_name, '') AS strategy_name,
+                        COALESCE(u.universe_count, 0) AS universe_count,
+                        COALESCE(s.signal_count, 0) AS signal_count,
+                        COALESCE(s.allowed_signal_count, 0) AS allowed_signal_count,
+                        COALESCE(o.order_count, 0) AS order_count,
+                        COALESCE(t.trade_count, 0) AS trade_count,
+                        COALESCE(t.wins, 0) AS wins,
+                        COALESCE(t.net_pnl, 0) AS net_pnl,
+                        COALESCE(t.avg_pnl_pct, 0) AS avg_pnl_pct
+                    FROM keys k
+                    LEFT JOIN signal_stats s ON k.strategy_name = s.strategy_name
+                    LEFT JOIN order_stats o ON k.strategy_name = o.strategy_name
+                    LEFT JOIN trade_stats t ON k.strategy_name = t.strategy_name
+                    LEFT JOIN universe_stats u ON k.strategy_name = u.strategy_name
+                ) r
+                LEFT JOIN exit_ranked e1
+                  ON r.strategy_name = e1.strategy_name AND e1.rn = 1
+                LEFT JOIN exit_ranked e2
+                  ON r.strategy_name = e2.strategy_name AND e2.rn = 2
+                ORDER BY r.net_pnl DESC, r.order_count DESC, r.signal_count DESC, r.strategy_name
+                """,
+                (
+                    trade_date,
+                    test_name,
+                    trade_date,
+                    test_name,
+                    trade_date,
+                    test_name,
+                    trade_date,
+                    test_name,
+                    trade_date,
+                    test_name,
+                ),
+            ).fetchall()
 
     def replace_condition_snapshot(self, *, condition_name: str, rows: Iterable[dict], source: str):
         now = self._now()
@@ -472,4 +901,3 @@ class SQLiteStore:
                     is_active,
                 ),
             )
-

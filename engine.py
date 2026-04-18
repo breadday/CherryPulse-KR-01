@@ -35,6 +35,7 @@ class TradingEngine:
         self.last_order_time = {}
         self.order_cooldown_sec = 10
         self.daily_order_count = 0
+        self.daily_order_count_by_strategy = {}
         self.max_daily_orders = 20
         self.current_trading_date = datetime.now().date()
         self.daily_realized_pnl_base = 0.0
@@ -60,6 +61,7 @@ class TradingEngine:
         self.breakeven_active = set()
         self.trailing_high_price = {}
         self.trailing_armed = set()
+        self.trend_hold_active = set()
 
         self.cancel_in_progress = set()
         self.pending_resell = {}
@@ -85,6 +87,7 @@ class TradingEngine:
         self.tick_seq = {}
         self.last_entry_signal_context = {}
         self.position_entry_context = {}
+        self.order_route_context = {}
 
         self.engine_early_stop_enabled = True
         self.engine_early_stop_max_hold_ticks = 4
@@ -124,6 +127,282 @@ class TradingEngine:
 
     def _cfg(self, name, default):
         return getattr(config, name, default)
+
+    def _strategy_runtime_cfg(self, strategy_name: str) -> dict:
+        all_cfg = getattr(config, "STRATEGY_RUNTIME_CONFIG", {}) or {}
+        if not isinstance(all_cfg, dict):
+            return {}
+        strategy_cfg = all_cfg.get(str(strategy_name or "").strip(), {})
+        return strategy_cfg if isinstance(strategy_cfg, dict) else {}
+
+    def _strategy_name_for_symbol(self, symbol: str) -> str:
+        ctx = self.position_entry_context.get(symbol, {})
+        strategy_name = str(ctx.get("strategy_name", "") or "").strip()
+        if strategy_name:
+            return strategy_name
+        trade_info = self.trade_open_info.get(symbol, {})
+        return str(trade_info.get("strategy_name", "") or "").strip()
+
+    def _strategy_name_for_signal(self, signal) -> str:
+        route = self._get_signal_route_context(signal)
+        return str(route.get("strategy_name", "") or "").strip()
+
+    def _strategy_cfg_value(self, strategy_name: str, key: str, default):
+        return self._strategy_runtime_cfg(strategy_name).get(key, default)
+
+    def _strategy_cfg_float(self, strategy_name: str, key: str, default: float) -> float:
+        return self._safe_float(self._strategy_cfg_value(strategy_name, key, default), default)
+
+    def _strategy_cfg_bool(self, strategy_name: str, key: str, default: bool) -> bool:
+        return bool(self._strategy_cfg_value(strategy_name, key, default))
+
+    def _parse_dt(self, value):
+        text = str(value or "").strip()
+        if not text:
+            return None
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+            try:
+                return datetime.strptime(text[:19], fmt)
+            except Exception:
+                continue
+        return None
+
+    def _strategy_enabled(self, strategy_name: str) -> bool:
+        return self._strategy_cfg_bool(strategy_name, "enabled", True)
+
+    def _strategy_daily_order_limit(self, strategy_name: str) -> int:
+        return max(
+            1,
+            self._safe_int(
+                self._strategy_cfg_value(strategy_name, "max_daily_orders", self.max_daily_orders),
+                self.max_daily_orders,
+            ),
+        )
+
+    def _strategy_daily_order_count(self, strategy_name: str) -> int:
+        return int(self.daily_order_count_by_strategy.get(str(strategy_name or "").strip(), 0))
+
+    def _increment_strategy_daily_order_count(self, strategy_name: str):
+        strategy_name = str(strategy_name or "").strip()
+        if not strategy_name:
+            return
+        self.daily_order_count_by_strategy[strategy_name] = self._strategy_daily_order_count(strategy_name) + 1
+
+    def _effective_order_amount_limit(self, signal=None, symbol: str = "") -> int:
+        strategy_name = ""
+        if signal is not None:
+            strategy_name = self._strategy_name_for_signal(signal)
+        elif symbol:
+            strategy_name = self._strategy_name_for_symbol(symbol)
+        return max(
+            0,
+                self._safe_int(
+                    self._strategy_cfg_value(strategy_name, "order_amount_per_trade", self.order_amount_per_trade),
+                    self.order_amount_per_trade,
+                ),
+        )
+
+    def _restore_position_route_context(self, symbol: str, qty: int, avg_price: float):
+        if qty <= 0:
+            return
+
+        route = {}
+        if self.sqlite_store:
+            try:
+                route = self.sqlite_store.get_latest_buy_route(
+                    test_name=self.test_name,
+                    symbol=symbol,
+                )
+            except Exception as e:
+                self.logger.warning(f"포지션 전략 복원 실패 | symbol={symbol} err={e}")
+
+        entry_dt = self._parse_dt(route.get("created_at", ""))
+        strategy_name = str(route.get("strategy_name", "") or "").strip()
+        selector_name = str(route.get("selector_name", "") or "").strip()
+        universe_name = str(route.get("universe_name", "") or "").strip()
+        fill_price = float(route.get("fill_price", 0.0) or 0.0) or float(avg_price)
+
+        self.trade_open_info[symbol] = {
+            "entry_time": entry_dt or datetime.now(),
+            "entry_price": float(avg_price),
+            "entry_qty": int(qty),
+            "strategy_name": strategy_name,
+            "selector_name": selector_name,
+            "universe_name": universe_name,
+        }
+        self.trade_cycle_realized_pnl.setdefault(symbol, 0.0)
+        self.position_entry_context[symbol] = {
+            "entry_tick_no": int(self.tick_seq.get(symbol, 0)),
+            "entry_signal_price": float(fill_price),
+            "entry_signal_strength": 0.0,
+            "entry_signal_price_change_pct": 0.0,
+            "entry_signal_volume_ratio": 0.0,
+            "strategy_name": strategy_name,
+            "selector_name": selector_name,
+            "universe_name": universe_name,
+            "peak_price_after_entry": float(avg_price),
+            "entry_time": (entry_dt.strftime("%Y-%m-%d %H:%M:%S") if entry_dt else ""),
+            "entry_trade_date": (entry_dt.strftime("%Y-%m-%d") if entry_dt else ""),
+        }
+
+    def _check_close_buy_next_day_exit(self, symbol: str, price: int, avg_price: float, qty: int, tick=None):
+        strategy_name = self._strategy_name_for_symbol(symbol)
+        if strategy_name != "close_buy":
+            return None
+        if not self._strategy_cfg_bool(strategy_name, "next_day_exit_enabled", True):
+            return None
+
+        ctx = self.position_entry_context.get(symbol, {})
+        entry_trade_date = str(ctx.get("entry_trade_date", "") or "").strip()
+        if not entry_trade_date:
+            entry_time = self._parse_dt(ctx.get("entry_time", ""))
+            if entry_time:
+                entry_trade_date = entry_time.strftime("%Y-%m-%d")
+        if not entry_trade_date:
+            return None
+
+        ts = getattr(tick, "ts", None)
+        current_dt = ts if isinstance(ts, datetime) else datetime.now()
+        current_trade_date = current_dt.strftime("%Y-%m-%d")
+        if current_trade_date <= entry_trade_date:
+            return None
+
+        current_hhmm = current_dt.strftime("%H:%M")
+        start_hhmm = str(self._strategy_cfg_value(strategy_name, "next_day_exit_start_hhmm", "09:05") or "09:05")
+        force_hhmm = str(self._strategy_cfg_value(strategy_name, "next_day_exit_force_hhmm", "09:30") or "09:30")
+        if current_hhmm < start_hhmm:
+            return None
+
+        pnl_pct = (price - avg_price) / avg_price
+        take_profit_pct = self._strategy_cfg_float(strategy_name, "next_day_take_profit_pct", 0.012)
+        stop_loss_pct = self._strategy_cfg_float(strategy_name, "next_day_stop_loss_pct", -0.015)
+
+        if pnl_pct >= take_profit_pct:
+            return f"close_buy_next_day_take {pnl_pct:.2%}"
+        if pnl_pct <= stop_loss_pct:
+            return f"close_buy_next_day_stop {pnl_pct:.2%}"
+        if current_hhmm >= force_hhmm:
+            return f"close_buy_next_day_force {current_hhmm}"
+        return None
+
+    def _trend_hold_enabled(self) -> bool:
+        return bool(self._cfg("ENABLE_TREND_HOLD_AFTER_SCALP", False))
+
+    def _should_activate_trend_hold(self, symbol: str, tick, pnl_pct: float) -> bool:
+        if not self._trend_hold_enabled() or tick is None:
+            return False
+
+        ctx = self.position_entry_context.get(symbol, {})
+        entry_strength = self._safe_float(ctx.get("entry_signal_strength", 0.0), 0.0)
+        entry_chg = self._safe_float(ctx.get("entry_signal_price_change_pct", 0.0), 0.0)
+        entry_vr = self._safe_float(ctx.get("entry_signal_volume_ratio", 0.0), 0.0)
+
+        current_strength = self._safe_float(getattr(tick, "trade_strength", 0.0), 0.0)
+        current_chg = self._safe_float(getattr(tick, "price_change_pct", 0.0), 0.0)
+        current_vr = self._safe_float(getattr(tick, "volume_ratio", 0.0), 0.0)
+
+        min_pnl_pct = self._safe_float(self._cfg("TREND_HOLD_MIN_PNL_PCT", 0.012), 0.012)
+        if pnl_pct < min_pnl_pct:
+            return False
+
+        entry_ok = (
+            entry_strength >= self._safe_float(self._cfg("TREND_HOLD_ENTRY_STRENGTH", 140.0), 140.0)
+            and entry_chg >= self._safe_float(self._cfg("TREND_HOLD_ENTRY_PRICE_CHANGE_PCT", 0.8), 0.8)
+            and entry_vr >= self._safe_float(self._cfg("TREND_HOLD_ENTRY_VOLUME_RATIO", 1.1), 1.1)
+        )
+        current_ok = (
+            current_chg >= self._safe_float(self._cfg("TREND_HOLD_CURRENT_PRICE_CHANGE_PCT", 0.8), 0.8)
+            and current_vr >= self._safe_float(self._cfg("TREND_HOLD_CURRENT_VOLUME_RATIO", 1.0), 1.0)
+            and (current_strength <= 0.0 or current_strength >= self._safe_float(self._cfg("TREND_HOLD_CURRENT_STRENGTH", 110.0), 110.0))
+        )
+
+        return entry_ok or current_ok
+
+    def _update_trend_hold_state(self, symbol: str, tick, pnl_pct: float) -> bool:
+        active = self._should_activate_trend_hold(symbol, tick, pnl_pct)
+        if active and symbol not in self.trend_hold_active:
+            self.trend_hold_active.add(symbol)
+            self.logger.info(
+                f"[TREND_HOLD_ON] {symbol} pnl={pnl_pct:.2%} "
+                f"chg={getattr(tick, 'price_change_pct', 0.0)} "
+                f"strength={getattr(tick, 'trade_strength', 0.0)} "
+                f"vr={getattr(tick, 'volume_ratio', 0.0)}"
+            )
+        return symbol in self.trend_hold_active
+
+    def _effective_partial_take_profit_pct(self, symbol: str) -> float:
+        strategy_name = self._strategy_name_for_symbol(symbol)
+        if symbol in self.trend_hold_active:
+            return self._safe_float(
+                self._cfg("TREND_HOLD_PARTIAL_TAKE_PROFIT_PCT", self._cfg("PARTIAL_TAKE_PROFIT_PCT", 0.02)),
+                self._cfg("PARTIAL_TAKE_PROFIT_PCT", 0.02),
+            )
+        return self._strategy_cfg_float(
+            strategy_name,
+            "partial_take_profit_pct",
+            self._cfg("PARTIAL_TAKE_PROFIT_PCT", 0.02),
+        )
+
+    def _effective_partial_take_ratio(self, symbol: str) -> float:
+        strategy_name = self._strategy_name_for_symbol(symbol)
+        if symbol in self.trend_hold_active:
+            return self._safe_float(
+                self._cfg("TREND_HOLD_PARTIAL_TAKE_RATIO", self._cfg("PARTIAL_TAKE_RATIO", 0.5)),
+                self._cfg("PARTIAL_TAKE_RATIO", 0.5),
+            )
+        return self._strategy_cfg_float(
+            strategy_name,
+            "partial_take_ratio",
+            self._cfg("PARTIAL_TAKE_RATIO", 0.5),
+        )
+
+    def _effective_take_profit_pct(self, symbol: str) -> float:
+        strategy_name = self._strategy_name_for_symbol(symbol)
+        if symbol in self.trend_hold_active:
+            return self._safe_float(
+                self._cfg("TREND_HOLD_FULL_TAKE_PROFIT_PCT", 0.04),
+                0.04,
+            )
+        return self._strategy_cfg_float(
+            strategy_name,
+            "take_profit_pct",
+            self._cfg("TAKE_PROFIT_PCT", 0.03),
+        )
+
+    def _effective_trailing_start_pct(self, symbol: str) -> float:
+        strategy_name = self._strategy_name_for_symbol(symbol)
+        if symbol in self.trend_hold_active:
+            return self._safe_float(
+                self._cfg("TREND_HOLD_TRAILING_START_PCT", 0.03),
+                0.03,
+            )
+        strategy_start = self._strategy_cfg_float(
+            strategy_name,
+            "trailing_start_pct",
+            self._cfg("PARTIAL_TAKE_PROFIT_PCT", 0.02) + 0.003,
+        )
+        return max(
+            strategy_start,
+            self._effective_take_profit_pct(symbol) * 0.7,
+        )
+
+    def _effective_trailing_stop_pct(self, symbol: str) -> float:
+        strategy_name = self._strategy_name_for_symbol(symbol)
+        if symbol in self.trend_hold_active:
+            return self._safe_float(
+                self._cfg("TREND_HOLD_TRAILING_STOP_PCT", self._cfg("TRAILING_STOP_PCT", 0.01)),
+                self._cfg("TRAILING_STOP_PCT", 0.01),
+            )
+        return self._strategy_cfg_float(
+            strategy_name,
+            "trailing_stop_pct",
+            self._cfg("TRAILING_STOP_PCT", 0.01),
+        )
+
+    def _effective_breakeven_floor(self, symbol: str) -> float:
+        if symbol in self.trend_hold_active:
+            return self._safe_float(self._cfg("TREND_HOLD_BREAKEVEN_FLOOR_PCT", -0.001), -0.001)
+        return 0.001
 
     def _load_runtime_config(self):
         self.order_cooldown_sec = max(
@@ -185,6 +464,20 @@ class TradingEngine:
         except Exception:
             return 0
 
+    def _current_open_symbols_for_strategy(self, strategy_name: str) -> int:
+        strategy_name = str(strategy_name or "").strip()
+        if not strategy_name:
+            return self._current_open_symbols()
+        try:
+            return sum(
+                1
+                for symbol, pos in getattr(self.portfolio, "positions", {}).items()
+                if int(getattr(pos, "qty", 0)) > 0
+                and self._strategy_name_for_symbol(symbol) == strategy_name
+            )
+        except Exception:
+            return 0
+
     def _estimate_order_amount(self, qty: int, price: float) -> int:
         try:
             return int(max(0, qty) * max(0, float(price)))
@@ -232,6 +525,96 @@ class TradingEngine:
             )
         except Exception as e:
             self.logger.warning(f"일일 요약 텔레그램 실패 | {e}")
+            return False
+
+    def _send_strategy_daily_summary(self, reason: str = "manual") -> bool:
+        try:
+            if not self.telegram or not self._cfg("ENABLE_TELEGRAM_LOG", False):
+                return False
+            if not self._notify_enabled("TELEGRAM_NOTIFY_DAILY_SUMMARY", True):
+                return False
+            if not self.sqlite_store:
+                return False
+
+            trade_date = datetime.now().strftime("%Y-%m-%d")
+            rows = self.sqlite_store.fetch_strategy_day_rollup(
+                trade_date=trade_date,
+                test_name=self.test_name,
+            )
+            if not rows:
+                return False
+
+            lines = [
+                "📈 전략별 일일 요약",
+                f"테스트: {self.test_name}",
+                f"사유: {reason}",
+                f"날짜: {trade_date}",
+            ]
+            for row in rows:
+                strategy_name = str(row["strategy_name"] or "").strip() or "(미지정)"
+                lines.append(
+                    f"{strategy_name} | "
+                    f"U={int(row['universe_count'] or 0)} "
+                    f"S={int(row['signal_count'] or 0)} "
+                    f"A={int(row['allowed_signal_count'] or 0)} "
+                    f"O={int(row['order_count'] or 0)} "
+                    f"T={int(row['trade_count'] or 0)} "
+                    f"W={int(row['wins'] or 0)} "
+                    f"PnL={float(row['net_pnl'] or 0):,.0f} "
+                    f"Avg={float(row['avg_pnl_pct'] or 0):.2f}%"
+                )
+            return self.telegram.send("\n".join(lines))
+        except Exception as e:
+            self.logger.warning(f"전략별 일일 요약 텔레그램 실패 | {e}")
+            return False
+
+    def _send_strategy_detail_summary(self, reason: str = "manual") -> bool:
+        try:
+            if not self.telegram or not self._cfg("ENABLE_TELEGRAM_LOG", False):
+                return False
+            if not self._notify_enabled("TELEGRAM_NOTIFY_DAILY_SUMMARY", True):
+                return False
+            if not self.sqlite_store:
+                return False
+
+            trade_date = datetime.now().strftime("%Y-%m-%d")
+            rows = self.sqlite_store.fetch_strategy_day_detail(
+                trade_date=trade_date,
+                test_name=self.test_name,
+            )
+            if not rows:
+                return False
+
+            lines = [
+                "📋 전략별 상세 리포트",
+                f"테스트: {self.test_name}",
+                f"사유: {reason}",
+                f"날짜: {trade_date}",
+            ]
+            for row in rows:
+                strategy_name = str(row["strategy_name"] or "").strip() or "(미지정)"
+                reason_parts = []
+                top_exit_reason = str(row["top_exit_reason"] or "").strip()
+                second_exit_reason = str(row["second_exit_reason"] or "").strip()
+                if top_exit_reason:
+                    reason_parts.append(f"{top_exit_reason}({int(row['top_exit_count'] or 0)})")
+                if second_exit_reason and second_exit_reason != top_exit_reason:
+                    reason_parts.append(f"{second_exit_reason}({int(row['second_exit_count'] or 0)})")
+                reason_text = ", ".join(reason_parts) if reason_parts else "(청산 없음)"
+                lines.append(
+                    f"{strategy_name} | "
+                    f"U={int(row['universe_count'] or 0)} "
+                    f"S={int(row['signal_count'] or 0)} "
+                    f"O={int(row['order_count'] or 0)} "
+                    f"T={int(row['trade_count'] or 0)} "
+                    f"W={int(row['wins'] or 0)} "
+                    f"PnL={float(row['net_pnl'] or 0):,.0f} "
+                    f"Avg={float(row['avg_pnl_pct'] or 0):.2f}% "
+                    f"Exit={reason_text}"
+                )
+            return self.telegram.send("\n".join(lines))
+        except Exception as e:
+            self.logger.warning(f"전략별 상세 리포트 텔레그램 실패 | {e}")
             return False
 
     def _send_risk_status(self, reason: str = "startup") -> bool:
@@ -284,9 +667,12 @@ class TradingEngine:
         if not self.sqlite_store:
             return
         try:
+            route = self._get_signal_route_context(signal)
             self.sqlite_store.record_signal(
                 test_name=self.test_name,
-                strategy_name=self.strategy.__class__.__name__,
+                strategy_name=route["strategy_name"],
+                selector_name=route["selector_name"],
+                universe_name=route["universe_name"],
                 signal=signal,
                 tick=tick,
                 allowed=allowed,
@@ -299,10 +685,14 @@ class TradingEngine:
         if not self.sqlite_store:
             return
         try:
+            route = self._get_order_route_context(order)
             self.sqlite_store.record_order(
                 test_name=self.test_name,
                 order=order,
                 request_price=request_price,
+                strategy_name=route["strategy_name"],
+                selector_name=route["selector_name"],
+                universe_name=route["universe_name"],
             )
         except Exception as e:
             self.logger.warning(f"SQLite order 저장 실패 | order_id={getattr(order, 'order_id', '')} err={e}")
@@ -311,6 +701,7 @@ class TradingEngine:
         if not self.sqlite_store:
             return
         try:
+            route = self._resolve_fill_route_context(fill, local_order_id)
             self.sqlite_store.record_fill(
                 test_name=self.test_name,
                 fill=fill,
@@ -319,6 +710,9 @@ class TradingEngine:
                 realized_delta=realized_delta,
                 cash_after=float(getattr(self.portfolio, "cash", 0.0) or 0.0),
                 realized_pnl_after=float(getattr(self.portfolio, "realized_pnl", 0.0) or 0.0),
+                strategy_name=route["strategy_name"],
+                selector_name=route["selector_name"],
+                universe_name=route["universe_name"],
             )
         except Exception as e:
             self.logger.warning(f"SQLite fill 저장 실패 | order_id={getattr(fill, 'order_id', '')} err={e}")
@@ -337,9 +731,128 @@ class TradingEngine:
                 max_daily_orders=self.max_daily_orders,
                 engine_protected=bool(self.engine_protected),
             )
+            self._store_strategy_daily_summary_snapshots()
         except Exception as e:
-            self.logger.warning(f"SQLite 일일요약 저장 실패 | {e}")
+            self.logger.warning(f"SQLite ???? ?? ?? | {e}")
 
+    def _empty_route_context(self):
+        return {
+            "strategy_name": "",
+            "selector_name": "",
+            "universe_name": "",
+        }
+
+    def _normalize_route_context(self, route):
+        base = self._empty_route_context()
+        if isinstance(route, dict):
+            for key in base:
+                base[key] = str(route.get(key, "") or "").strip()
+        if not base["strategy_name"]:
+            base["strategy_name"] = self.strategy.__class__.__name__
+        return base
+
+    def _get_strategy_route_context(self):
+        if hasattr(self.strategy, "get_active_route_context"):
+            try:
+                return self._normalize_route_context(self.strategy.get_active_route_context())
+            except Exception:
+                pass
+        return self._normalize_route_context({})
+
+    def _get_signal_route_context(self, signal):
+        route = {
+            "strategy_name": getattr(signal, "strategy_name", ""),
+            "selector_name": getattr(signal, "selector_name", ""),
+            "universe_name": getattr(signal, "universe_name", ""),
+        }
+        if not any(route.values()):
+            route = self._get_strategy_route_context()
+        return self._normalize_route_context(route)
+
+    def _attach_order_route_context(self, order, route):
+        route = self._normalize_route_context(route)
+        setattr(order, "strategy_name", route["strategy_name"])
+        setattr(order, "selector_name", route["selector_name"])
+        setattr(order, "universe_name", route["universe_name"])
+        order_id = getattr(order, "order_id", "")
+        if order_id:
+            self.order_route_context[order_id] = dict(route)
+
+    def _get_order_route_context(self, order):
+        route = {
+            "strategy_name": getattr(order, "strategy_name", ""),
+            "selector_name": getattr(order, "selector_name", ""),
+            "universe_name": getattr(order, "universe_name", ""),
+        }
+        if not any(route.values()):
+            route = self.order_route_context.get(getattr(order, "order_id", ""), {})
+        return self._normalize_route_context(route)
+
+    def _resolve_fill_route_context(self, fill, local_order_id):
+        order = self.order_manager.get_order(local_order_id) if local_order_id else None
+        if order is not None:
+            return self._get_order_route_context(order)
+        broker_order_id = getattr(fill, "order_id", "")
+        return self._normalize_route_context(self.order_route_context.get(broker_order_id, {}))
+
+    def _get_symbol_route_context(self, symbol: str):
+        ctx = self.position_entry_context.get(symbol, {})
+        route = {
+            "strategy_name": ctx.get("strategy_name", ""),
+            "selector_name": ctx.get("selector_name", ""),
+            "universe_name": ctx.get("universe_name", ""),
+        }
+        return self._normalize_route_context(route)
+
+    def _store_strategy_daily_summary_snapshots(self):
+        if not self.sqlite_store:
+            return
+        summaries = {}
+        for trade_item in self.trade_log:
+            key = (
+                str(trade_item.get("strategy_name", "") or "").strip(),
+                str(trade_item.get("selector_name", "") or "").strip(),
+                str(trade_item.get("universe_name", "") or "").strip(),
+            )
+            if not key[0]:
+                continue
+            bucket = summaries.setdefault(
+                key,
+                {
+                    "total_trades": 0,
+                    "wins": 0,
+                    "losses": 0,
+                    "net_pnl": 0.0,
+                    "pnl_pcts": [],
+                },
+            )
+            bucket["total_trades"] += 1
+            result = str(trade_item.get("result", "") or "")
+            if result == "WIN":
+                bucket["wins"] += 1
+            elif result == "LOSS":
+                bucket["losses"] += 1
+            bucket["net_pnl"] += float(trade_item.get("pnl", 0.0) or 0.0)
+            bucket["pnl_pcts"].append(float(trade_item.get("pnl_pct", 0.0) or 0.0))
+
+        for (strategy_name, selector_name, universe_name), bucket in summaries.items():
+            total = int(bucket["total_trades"] or 0)
+            pnl_pcts = list(bucket["pnl_pcts"])
+            summary = {
+                "total_trades": total,
+                "wins": int(bucket["wins"]),
+                "losses": int(bucket["losses"]),
+                "win_rate": round((bucket["wins"] / total * 100.0), 4) if total else 0.0,
+                "net_pnl": round(float(bucket["net_pnl"]), 2),
+                "avg_pnl_pct": round(sum(pnl_pcts) / len(pnl_pcts), 4) if pnl_pcts else 0.0,
+            }
+            self.sqlite_store.upsert_strategy_daily_summary(
+                test_name=self.test_name,
+                strategy_name=strategy_name,
+                selector_name=selector_name,
+                universe_name=universe_name,
+                summary=summary,
+            )
     def _notify_order_event(
         self,
         *,
@@ -508,23 +1021,30 @@ class TradingEngine:
     def _start_trade_cycle_if_needed(self, symbol: str, qty_before: int, qty_after: int, avg_price_after: float):
         try:
             if qty_before <= 0 and qty_after > 0:
+                signal_ctx = self.last_entry_signal_context.get(symbol, {})
                 self.trade_open_info[symbol] = {
                     "entry_time": datetime.now(),
                     "entry_price": float(avg_price_after),
                     "entry_qty": int(qty_after),
+                    "strategy_name": str(signal_ctx.get("strategy_name", "") or ""),
+                    "selector_name": str(signal_ctx.get("selector_name", "") or ""),
+                    "universe_name": str(signal_ctx.get("universe_name", "") or ""),
                 }
                 self.trade_cycle_realized_pnl[symbol] = 0.0
 
                 # 엔진 직접 약손절용 진입 컨텍스트 생성
-                signal_ctx = self.last_entry_signal_context.get(symbol, {})
                 self.position_entry_context[symbol] = {
                     "entry_tick_no": int(self.tick_seq.get(symbol, 0)),
                     "entry_signal_price": float(signal_ctx.get("price", avg_price_after)),
                     "entry_signal_strength": float(signal_ctx.get("trade_strength", 0.0)),
                     "entry_signal_price_change_pct": float(signal_ctx.get("price_change_pct", 0.0)),
                     "entry_signal_volume_ratio": float(signal_ctx.get("volume_ratio", 0.0)),
+                    "strategy_name": str(signal_ctx.get("strategy_name", "") or ""),
+                    "selector_name": str(signal_ctx.get("selector_name", "") or ""),
+                    "universe_name": str(signal_ctx.get("universe_name", "") or ""),
                     "peak_price_after_entry": float(avg_price_after),
                 }
+                self.trend_hold_active.discard(symbol)
 
                 self.logger.info(
                     f"[TRADE_OPEN] symbol={symbol} entry_price={avg_price_after:.2f} qty={qty_after}"
@@ -548,6 +1068,7 @@ class TradingEngine:
             open_info = self.trade_open_info.pop(symbol, None)
             total_realized_pnl = float(self.trade_cycle_realized_pnl.pop(symbol, 0.0))
             self.position_entry_context.pop(symbol, None)
+            self.trend_hold_active.discard(symbol)
 
             if not open_info:
                 self.logger.warning(
@@ -577,6 +1098,9 @@ class TradingEngine:
                 "pnl_pct": round(pnl_pct, 4),
                 "result": result,
                 "exit_reason": exit_reason or self.last_exit_reason.get(symbol, ""),
+                "strategy_name": str(open_info.get("strategy_name", "") or ""),
+                "selector_name": str(open_info.get("selector_name", "") or ""),
+                "universe_name": str(open_info.get("universe_name", "") or ""),
             }
 
             self.trade_log.append(trade_item)
@@ -706,6 +1230,7 @@ class TradingEngine:
         if today != self.current_trading_date:
             self.current_trading_date = today
             self.daily_order_count = 0
+            self.daily_order_count_by_strategy = {}
             self.last_order_time = {}
             self.daily_realized_pnl_base = float(getattr(self.portfolio, "realized_pnl", 0.0) or 0.0)
             if self.daily_loss_protection_active:
@@ -729,6 +1254,8 @@ class TradingEngine:
             self.logger.info("이미 종료 상태")
             self.log_trade_summary(prefix="종료 전 성과 요약")
             self._send_daily_summary(reason="already_stopped")
+            self._send_strategy_daily_summary(reason="already_stopped")
+            self._send_strategy_detail_summary(reason="already_stopped")
             try:
                 self.broker.shutdown()
             except Exception as e:
@@ -738,6 +1265,8 @@ class TradingEngine:
         self.logger.info("엔진 종료 시작")
         self.log_trade_summary(prefix="종료 전 성과 요약")
         self._send_daily_summary(reason="engine_stop")
+        self._send_strategy_daily_summary(reason="engine_stop")
+        self._send_strategy_detail_summary(reason="engine_stop")
         try:
             self.broker.shutdown()
         except Exception as e:
@@ -786,6 +1315,7 @@ class TradingEngine:
                 self.logger.info(
                     f"포지션 반영 | symbol={symbol} qty={qty} avg_price={avg_price}"
                 )
+                self._restore_position_route_context(symbol, qty, avg_price)
 
             self._send_risk_status(reason="sync_account")
             return {"deposit": deposit, "positions": positions}
@@ -1042,6 +1572,7 @@ class TradingEngine:
             pos = self.portfolio.get_position(symbol)
             qty = int(getattr(pos, "qty", 0))
             avg_price = float(getattr(pos, "avg_price", 0))
+            strategy_name = self._strategy_name_for_symbol(symbol)
 
             if qty <= 0 or avg_price <= 0:
                 return
@@ -1057,8 +1588,29 @@ class TradingEngine:
                 return
 
             pnl_pct = (price - avg_price) / avg_price
+            trend_hold_now = self._update_trend_hold_state(symbol, tick, pnl_pct) if tick is not None else (symbol in self.trend_hold_active)
+            partial_take_profit_pct = self._effective_partial_take_profit_pct(symbol)
+            partial_take_ratio = self._effective_partial_take_ratio(symbol)
+            take_profit_pct = self._effective_take_profit_pct(symbol)
+            trailing_start_pct = self._effective_trailing_start_pct(symbol)
+            trailing_stop_pct = self._effective_trailing_stop_pct(symbol)
+            breakeven_floor = self._effective_breakeven_floor(symbol)
+            stop_loss_pct = self._strategy_cfg_float(
+                strategy_name,
+                "stop_loss_pct",
+                self._cfg("STOP_LOSS_PCT", -0.02),
+            )
+            breakeven_enabled = self._strategy_cfg_bool(
+                strategy_name,
+                "breakeven_enabled",
+                self._cfg("BREAKEVEN_ENABLED", False),
+            )
+            trailing_stop_enabled = self._strategy_cfg_bool(
+                strategy_name,
+                "trailing_stop_enabled",
+                self._cfg("TRAILING_STOP_ENABLED", False),
+            )
 
-            # 0) 엔진 직접 약손절 / 초기 되밀림
             if tick is not None:
                 early_stop = self._check_engine_early_stop(symbol, price, avg_price, qty, tick)
                 if early_stop:
@@ -1066,47 +1618,61 @@ class TradingEngine:
                     self.last_exit_reason[symbol] = reason
                     self._log_exit_event(symbol, price, avg_price, qty, early_stop["event"])
                     self.logger.info(
-                        f"엔진 직접 약손절 발동 | symbol={symbol} price={price} avg_price={avg_price} "
+                        f"?? ?? ?? ?? | symbol={symbol} price={price} avg_price={avg_price} "
                         f"qty={qty} pnl_pct={pnl_pct:.2%} reason={reason}"
                     )
                     self._submit_auto_sell(symbol=symbol, qty=qty, reason=reason)
                     return
 
-            # 1) 손절 먼저
-            if pnl_pct <= self._cfg("STOP_LOSS_PCT", -0.02):
-                exit_reason = f"손절 {pnl_pct:.2%}"
+            close_buy_next_day_reason = self._check_close_buy_next_day_exit(
+                symbol=symbol,
+                price=price,
+                avg_price=avg_price,
+                qty=qty,
+                tick=tick,
+            )
+            if close_buy_next_day_reason:
+                self.last_exit_reason[symbol] = close_buy_next_day_reason
+                self._log_exit_event(symbol, price, avg_price, qty, "CLOSE_BUY_NEXT_DAY_EXIT")
+                self.logger.info(
+                    f"종가매수 익일 청산 | symbol={symbol} price={price} avg_price={avg_price} "
+                    f"qty={qty} reason={close_buy_next_day_reason}"
+                )
+                self._submit_auto_sell(symbol=symbol, qty=qty, reason=close_buy_next_day_reason)
+                return
+
+            if pnl_pct <= stop_loss_pct:
+                exit_reason = f"stop_loss {pnl_pct:.2%}"
                 self.last_exit_reason[symbol] = exit_reason
                 self._log_exit_event(symbol, price, avg_price, qty, "STOP_LOSS")
                 self.logger.info(
-                    f"자동매도 조건 충족 | symbol={symbol} price={price} "
-                    f"avg_price={avg_price} qty={qty} pnl_pct={pnl_pct:.2%} reason={exit_reason}"
+                    f"???? ?? ?? | symbol={symbol} price={price} avg_price={avg_price} "
+                    f"qty={qty} pnl_pct={pnl_pct:.2%}"
                 )
                 self._submit_auto_sell(symbol=symbol, qty=qty, reason=exit_reason)
                 return
 
-            # 2) 부분익절
-            if symbol not in self.partial_exit_done and pnl_pct >= self._cfg("PARTIAL_TAKE_PROFIT_PCT", 0.02):
-                sell_qty = max(int(qty * self._cfg("PARTIAL_TAKE_RATIO", 0.5)), 1)
+            if symbol not in self.partial_exit_done and pnl_pct >= partial_take_profit_pct:
+                sell_qty = max(int(qty * partial_take_ratio), 1)
                 sell_qty = min(sell_qty, qty)
 
-                self.last_exit_reason[symbol] = "부분익절"
+                self.last_exit_reason[symbol] = "partial_take"
                 self._log_exit_event(symbol, price, avg_price, sell_qty, "PARTIAL_TAKE")
                 self.logger.info(
-                    f"부분익절 발생 | symbol={symbol} qty={sell_qty} pnl={pnl_pct:.2%}"
+                    f"???? ?? | symbol={symbol} qty={sell_qty} pnl={pnl_pct:.2%} "
+                    f"threshold={partial_take_profit_pct:.2%} trend_hold={trend_hold_now}"
                 )
 
                 self.partial_exit_done.add(symbol)
-
-                if self._cfg("BREAKEVEN_ENABLED", False):
+                if breakeven_enabled:
                     self.breakeven_active.add(symbol)
-                if self._cfg("TRAILING_STOP_ENABLED", False):
+                if trailing_stop_enabled:
                     self.trailing_high_price[symbol] = price
 
-                self._submit_auto_sell(symbol, sell_qty, "부분익절")
+                self._submit_auto_sell(symbol, sell_qty, "partial_take")
                 return
 
-            # 3) 부분익절 이후 최고가 갱신
-            if symbol in self.partial_exit_done and self._cfg("TRAILING_STOP_ENABLED", False):
+            if symbol in self.partial_exit_done and trailing_stop_enabled:
                 prev_high = self.trailing_high_price.get(symbol, 0)
                 if price > prev_high:
                     self.trailing_high_price[symbol] = price
@@ -1114,66 +1680,55 @@ class TradingEngine:
                         f"[TRAIL_HIGH] {symbol} high_price_update prev={prev_high} new={price}"
                     )
 
-            # 4) trailing arm 활성화
-            trailing_start_pct = max(
-                self._cfg("PARTIAL_TAKE_PROFIT_PCT", 0.02) + 0.003,
-                self._cfg("TAKE_PROFIT_PCT", 0.03) * 0.7
-            )
-            if symbol in self.partial_exit_done and self._cfg("TRAILING_STOP_ENABLED", False) and pnl_pct >= trailing_start_pct:
+            if symbol in self.partial_exit_done and trailing_stop_enabled and pnl_pct >= trailing_start_pct:
                 if symbol not in self.trailing_armed:
                     self.trailing_armed.add(symbol)
                     self.logger.info(
-                        f"[TRAIL_ARM] {symbol} pnl={pnl_pct:.2%} start_pct={trailing_start_pct:.2%}"
+                        f"[TRAIL_ARM] {symbol} pnl={pnl_pct:.2%} start_pct={trailing_start_pct:.2%} trend_hold={trend_hold_now}"
                     )
 
-            # 5) 본절 보호
             if symbol in self.breakeven_active:
-                if pnl_pct <= 0.001:
-                    self.last_exit_reason[symbol] = "본절청산"
+                if pnl_pct <= breakeven_floor:
+                    self.last_exit_reason[symbol] = "breakeven_exit"
                     self._log_exit_event(symbol, price, avg_price, qty, "BREAKEVEN_EXIT")
                     self.logger.info(
-                        f"본절 청산 | symbol={symbol} price={price} avg_price={avg_price} pnl={pnl_pct:.2%}"
+                        f"?? ?? | symbol={symbol} price={price} avg_price={avg_price} "
+                        f"pnl={pnl_pct:.2%} floor={breakeven_floor:.2%}"
                     )
-                    self._submit_auto_sell(symbol, qty, "본절청산")
+                    self._submit_auto_sell(symbol, qty, "breakeven_exit")
                     return
 
-            # 6) 트레일링 스탑
-            if symbol in self.partial_exit_done and symbol in self.trailing_armed and self._cfg("TRAILING_STOP_ENABLED", False):
+            if symbol in self.partial_exit_done and symbol in self.trailing_armed and trailing_stop_enabled:
                 high_price = self.trailing_high_price.get(symbol, 0)
                 if high_price > 0:
-                    trailing_stop_price = high_price * (1 - self._cfg("TRAILING_STOP_PCT", 0.01))
+                    trailing_stop_price = high_price * (1 - trailing_stop_pct)
                     self.logger.info(
-                        f"[TRAIL_CHECK] {symbol} price={price} high={high_price} stop={trailing_stop_price:.2f}"
+                        f"[TRAIL_CHECK] {symbol} price={price} high={high_price} stop={trailing_stop_price:.2f} trend_hold={trend_hold_now}"
                     )
                     if price <= trailing_stop_price:
-                        reason = f"트레일링청산 high={high_price}"
+                        reason = f"trailing_stop high={high_price}"
                         self.last_exit_reason[symbol] = reason
                         self._log_exit_event(symbol, price, avg_price, qty, "TRAILING_STOP")
                         self.logger.info(
-                            f"트레일링 스탑 청산 | symbol={symbol} price={price} "
-                            f"high={high_price} stop={trailing_stop_price:.2f}"
+                            f"???? ?? ?? | symbol={symbol} price={price} high={high_price} stop={trailing_stop_price:.2f}"
                         )
                         self._submit_auto_sell(symbol, qty, reason)
                         return
 
-            # 7) 부분익절 안 한 상태에서 최종 익절
-            if symbol not in self.partial_exit_done and pnl_pct >= self._cfg("TAKE_PROFIT_PCT", 0.03):
-                exit_reason = f"익절 {pnl_pct:.2%}"
+            if symbol not in self.partial_exit_done and pnl_pct >= take_profit_pct:
+                exit_reason = f"take_profit {pnl_pct:.2%}"
                 self.last_exit_reason[symbol] = exit_reason
                 self._log_exit_event(symbol, price, avg_price, qty, "TAKE_PROFIT")
                 self.logger.info(
-                    f"자동익절 조건 충족 | symbol={symbol} price={price} "
-                    f"avg_price={avg_price} qty={qty} pnl_pct={pnl_pct:.2%}"
+                    f"???? ?? ?? | symbol={symbol} price={price} avg_price={avg_price} qty={qty} "
+                    f"pnl_pct={pnl_pct:.2%} target={take_profit_pct:.2%} trend_hold={trend_hold_now}"
                 )
                 self._submit_auto_sell(symbol=symbol, qty=qty, reason=exit_reason)
                 return
 
         except Exception as e:
-            self.logger.exception(f"자동매도 검사 실패 | symbol={symbol} price={price} err={e}")
+            self.logger.exception(f"???? ?? ?? | symbol={symbol} price={price} err={e}")
 
-    # -------------------------
-    # 자동 매도 주문
-    # -------------------------
     def _submit_auto_sell(self, symbol: str, qty: int, reason: str):
         try:
             if qty <= 0:
@@ -1190,10 +1745,11 @@ class TradingEngine:
             )
 
             order = self.broker.place_order(signal)
+            self._attach_order_route_context(order, self._get_symbol_route_context(symbol))
             self.order_manager.register(order)
             self._record_order_snapshot(order, request_price=float(self.last_price_map.get(symbol, 0) or 0.0))
 
-            if self._cfg("DRY_RUN", False):
+            if self._cfg("PAPER_TRADING", self._cfg("DRY_RUN", False)):
                 class StubFill:
                     pass
                 fill = StubFill()
@@ -1208,6 +1764,7 @@ class TradingEngine:
             if order.status == OrderStatus.SUBMITTED:
                 self.last_order_time[symbol] = time.time()
                 self.daily_order_count += 1
+                self._increment_strategy_daily_order_count(self._strategy_name_for_symbol(symbol))
 
                 if "손절" in reason or "stop" in reason:
                     self.consecutive_loss_count += 1
@@ -1400,6 +1957,7 @@ class TradingEngine:
             )
 
             order = self.broker.place_order(signal)
+            self._attach_order_route_context(order, self._get_symbol_route_context(symbol))
             self.order_manager.register(order)
             self._record_order_snapshot(order, request_price=float(self.last_price_map.get(symbol, 0) or 0.0))
 
@@ -1407,6 +1965,7 @@ class TradingEngine:
                 self.resell_retry_count[symbol] = retry_count + 1
                 self.last_order_time[symbol] = time.time()
                 self.daily_order_count += 1
+                self._increment_strategy_daily_order_count(self._strategy_name_for_symbol(symbol))
 
                 self.logger.warning(
                     f"취소 후 재매도 주문 등록 | symbol={symbol} qty={sell_qty} "
@@ -1474,7 +2033,7 @@ class TradingEngine:
             return False, "엔진 비실행 상태"
 
         if not self.is_market_open():
-            if not self._cfg("DRY_RUN", False):
+            if not self._cfg("PAPER_TRADING", self._cfg("DRY_RUN", False)):
                 return False, "장외 시간"
 
         if self.engine_protected:
@@ -1488,16 +2047,41 @@ class TradingEngine:
             return False, "일일 주문 한도 초과"
 
         symbol = signal.symbol
+        strategy_name = self._strategy_name_for_signal(signal)
         side_value = self._side_value(signal.side)
         qty = max(0, self._safe_int(getattr(signal, "qty", 0), 0))
         price = max(0, self._safe_float(getattr(tick, "price", 0), 0.0))
         estimated_amount = self._estimate_order_amount(qty, price)
+        order_amount_limit = self._effective_order_amount_limit(signal=signal)
+        strategy_max_positions = max(
+            1,
+            self._safe_int(
+                self._strategy_cfg_value(strategy_name, "max_positions", self.max_positions),
+                self.max_positions,
+            ),
+        )
+        strategy_max_symbol_position = max(
+            1,
+            self._safe_int(
+                self._strategy_cfg_value(strategy_name, "max_symbol_position", self.max_symbol_position),
+                self.max_symbol_position,
+            ),
+        )
         cash = float(getattr(self.portfolio, "cash", 0.0))
 
         if qty <= 0:
             return False, "주문수량 오류"
 
         if side_value == "BUY":
+            if strategy_name and not self._strategy_enabled(strategy_name):
+                return False, f"전략 비활성화({strategy_name})"
+            if strategy_name and self._strategy_daily_order_count(strategy_name) >= self._strategy_daily_order_limit(strategy_name):
+                return False, (
+                    f"전략 일일 주문 한도 초과("
+                    f"{self._strategy_daily_order_count(strategy_name)}>="
+                    f"{self._strategy_daily_order_limit(strategy_name)})"
+                )
+
             ok, reason = self._can_reenter_buy(symbol)
             if not ok:
                 return False, reason
@@ -1510,18 +2094,21 @@ class TradingEngine:
 
             pos = self.portfolio.get_position(symbol)
             hold_qty = int(getattr(pos, "qty", 0))
-            if hold_qty >= self.max_symbol_position:
-                return False, "종목 최대 보유수 초과"
+            if hold_qty >= strategy_max_symbol_position:
+                return False, f"전략 종목 최대 보유수 초과({hold_qty}>={strategy_max_symbol_position})"
 
             open_symbols = self._current_open_symbols()
+            strategy_open_symbols = self._current_open_symbols_for_strategy(strategy_name)
             if hold_qty <= 0 and open_symbols >= self.max_positions:
                 return False, "동시 보유 종목 수 초과"
+            if hold_qty <= 0 and strategy_open_symbols >= strategy_max_positions:
+                return False, f"전략 동시 보유 종목 수 초과({strategy_open_symbols}>={strategy_max_positions})"
 
             if getattr(tick, "volume", 0) < self.min_tick_volume:
                 return False, "틱 거래량 부족"
 
-            if self.order_amount_per_trade > 0 and estimated_amount > self.order_amount_per_trade:
-                return False, f"주문금액 한도 초과({estimated_amount}>{self.order_amount_per_trade})"
+            if order_amount_limit > 0 and estimated_amount > order_amount_limit:
+                return False, f"주문금액 한도 초과({estimated_amount}>{order_amount_limit})"
 
             if estimated_amount > cash:
                 return False, f"예수금 부족({estimated_amount}>{int(cash)})"
@@ -1547,6 +2134,7 @@ class TradingEngine:
                 if reject_reason:
                     self.logger.info(f"[SIGNAL_SKIP] {symbol} | {reject_reason}")
                 return
+            strategy_name = self._strategy_name_for_signal(signal)
 
             entry_score = self._extract_score_from_reason(getattr(signal, "reason", ""))
             ok, reason = self.can_send_order(signal, tick)
@@ -1568,25 +2156,31 @@ class TradingEngine:
 
             # BUY 신호 직전 컨텍스트 저장
             if self._side_value(signal.side) == "BUY":
+                route = self._get_signal_route_context(signal)
                 self.last_entry_signal_context[signal.symbol] = {
                     "price": float(tick.price),
                     "trade_strength": float(getattr(tick, "trade_strength", 0.0)),
                     "price_change_pct": float(getattr(tick, "price_change_pct", 0.0)),
                     "volume_ratio": float(getattr(tick, "volume_ratio", 0.0)),
+                    "strategy_name": route["strategy_name"],
+                    "selector_name": route["selector_name"],
+                    "universe_name": route["universe_name"],
                 }
 
             order = self.broker.place_order(signal)
+            self._attach_order_route_context(order, self._get_signal_route_context(signal))
             self.order_manager.register(order)
             self._record_order_snapshot(order, request_price=float(getattr(tick, "price", 0.0) or 0.0))
 
             if order.status == OrderStatus.SUBMITTED:
                 self.last_order_time[signal.symbol] = time.time()
                 self.daily_order_count += 1
+                self._increment_strategy_daily_order_count(strategy_name)
 
                 if self._side_value(signal.side) == "BUY" and hasattr(self.strategy, "mark_entry"):
                     self.strategy.mark_entry(signal.symbol, tick.ts)
 
-            if self._cfg("DRY_RUN", False) and self._side_value(signal.side) == "BUY":
+            if self._cfg("PAPER_TRADING", self._cfg("DRY_RUN", False)) and self._side_value(signal.side) == "BUY":
                 class StubFill:
                     pass
 

@@ -2,7 +2,6 @@
 # main_live.py
 from __future__ import annotations
 
-import json
 import os
 import signal
 import sys
@@ -20,12 +19,15 @@ from engine import TradingEngine
 from infra.sqlite_store import SQLiteStore
 from infra.telegram_notifier import TelegramNotifier
 from strategy.momentum_intraday import MomentumIntradayStrategy
+from universe_manager import UniverseManager
 from utils.logger import setup_logger
 from config_live import (
     ACCOUNT_NO,
     ACCOUNT_PASSWORD,
     SQLITE_DB_PATH,
+    STRATEGY_RUNTIME_CONFIG,
     STRATEGY_CONFIG,
+    STRATEGY_UNIVERSE_CONFIG,
     TELEGRAM_CHAT_ID,
     TELEGRAM_TOKEN,
 )
@@ -49,36 +51,6 @@ MAX_TELEGRAM_SYMBOLS = 20
 SNAPSHOT_FILE = "condition_snapshot.json"
 
 
-class CodeUniverse:
-    def __init__(self):
-        self.active_codes: set[str] = set()
-
-    def replace(self, codes: Iterable[str]) -> list[str]:
-        clean = sorted({str(x).strip() for x in codes if str(x).strip()})
-        self.active_codes.clear()
-        self.active_codes.update(clean)
-        return clean
-
-    def add(self, code: str) -> None:
-        symbol = str(code).strip()
-        if symbol:
-            self.active_codes.add(symbol)
-
-    def discard(self, code: str) -> None:
-        symbol = str(code).strip()
-        if symbol:
-            self.active_codes.discard(symbol)
-
-    def contains(self, code: str) -> bool:
-        return str(code).strip() in self.active_codes
-
-    def count(self) -> int:
-        return len(self.active_codes)
-
-    def snapshot(self) -> list[str]:
-        return sorted(self.active_codes)
-
-
 class MainLiveApp:
     def __init__(self):
         self.app = QApplication(sys.argv)
@@ -89,10 +61,11 @@ class MainLiveApp:
             logger=self.logger,
         )
         self.broker = KiwoomBroker(logger=self.logger, account_no=(ACCOUNT_NO or None))
-        self.strategy = MomentumIntradayStrategy(config=STRATEGY_CONFIG)
+        strategy_config = dict(STRATEGY_CONFIG)
+        strategy_config["strategy_runtime_config"] = STRATEGY_RUNTIME_CONFIG
         self.engine = TradingEngine(
             self.broker,
-            self.strategy,
+            None,
             self.logger,
             telegram=self.telegram,
             sqlite_store=self.sqlite_store,
@@ -102,15 +75,21 @@ class MainLiveApp:
         self.shutting_down = False
         self.condition_started = False
 
-        self.snapshot_universe = CodeUniverse()
-        self.condition_universe = CodeUniverse()
+        self.universe = UniverseManager(
+            snapshot_path=Path(__file__).resolve().parent / SNAPSHOT_FILE,
+            fallback_condition_name=CONDITION_NAME,
+            strategy_universe_config=STRATEGY_UNIVERSE_CONFIG,
+        )
+        strategy_config["universe_provider"] = self.universe.matches_strategy_universe
+        self.strategy = MomentumIntradayStrategy(config=strategy_config)
+        self.engine.strategy = self.strategy
 
         self.heartbeat = QTimer()
         self.shutdown_timer = QTimer()
         self.order_manage_timer = QTimer()
         self.condition_timer = QTimer()
 
-        self.snapshot_path = Path(__file__).resolve().parent / SNAPSHOT_FILE
+        self.snapshot_path = self.universe.snapshot_path
         self._last_wait_log_hhmm = ""
 
     def _build_telegram(self):
@@ -154,6 +133,35 @@ class MainLiveApp:
     def _parse_hhmm(hhmm: str):
         return datetime.strptime(hhmm, "%H:%M").time()
 
+    def _market_phase(self) -> str:
+        now = datetime.now().time()
+        start_at = self._parse_hhmm(CONDITION_SEARCH_START_HHMM)
+        shutdown_at = self._parse_hhmm(AUTO_SHUTDOWN_HHMM)
+        if now < start_at:
+            return "pre_open_wait"
+        if now >= shutdown_at:
+            return "after_close"
+        return "market_session"
+
+    def _log_market_phase(self):
+        phase = self._market_phase()
+        now_hhmm = self._now_hhmm()
+        if phase == "pre_open_wait":
+            self.logger.info(
+                f"장 시작 전 대기 모드 | now={now_hhmm} "
+                f"condition_start={CONDITION_SEARCH_START_HHMM} shutdown_at={AUTO_SHUTDOWN_HHMM}"
+            )
+        elif phase == "after_close":
+            self.logger.info(
+                f"장 종료 후 실행 감지 | now={now_hhmm} "
+                f"shutdown_at={AUTO_SHUTDOWN_HHMM} | 즉시 종료 대상"
+            )
+        else:
+            self.logger.info(
+                f"정규장 세션 모드 | now={now_hhmm} "
+                f"condition_start={CONDITION_SEARCH_START_HHMM} shutdown_at={AUTO_SHUTDOWN_HHMM}"
+            )
+
     def _safe_has_position(self, symbol: str) -> bool:
         try:
             pos = self.engine.portfolio.get_position(symbol)
@@ -180,8 +188,7 @@ class MainLiveApp:
             return False
 
     def _all_watch_codes(self) -> list[str]:
-        merged = set(self.snapshot_universe.snapshot()) | set(self.condition_universe.snapshot())
-        return sorted(merged)
+        return self.universe.all_watch_codes()
 
     def _format_display_list(self, codes: Iterable[str], limit: int = MAX_TELEGRAM_SYMBOLS) -> list[str]:
         display = []
@@ -192,22 +199,52 @@ class MainLiveApp:
 
     def _refresh_real_registration(self):
         watch_codes = self._all_watch_codes()
+        counts = self.universe.strategy_counts()
         self.broker.register_real(watch_codes)
         self.logger.info(
             f"실시간 구독 동기화 | total={len(watch_codes)} "
-            f"codes={', '.join(self._format_display_list(watch_codes)) if watch_codes else '(empty)'}"
+            f"codes={', '.join(self._format_display_list(watch_codes)) if watch_codes else '(empty)'} | "
+            f"universes={counts}"
         )
 
+    def _log_strategy_universe_summary(self, prefix: str):
+        counts = self.universe.strategy_counts()
+        self.logger.info(
+            f"{prefix} | strategy_universes={counts} "
+            f"snapshot_count={len(self.universe.snapshot_codes())} "
+            f"condition_count={len(self.universe.condition_codes())}"
+        )
+
+    def _store_strategy_universe_snapshot(self):
+        if not self.sqlite_store:
+            return
+
+        trade_date = datetime.now().strftime("%Y-%m-%d")
+        for strategy_name in STRATEGY_UNIVERSE_CONFIG.keys():
+            universe_name = f"{strategy_name}_universe"
+            for source_type in ("snapshot", "condition"):
+                rows = [
+                    {
+                        "symbol": symbol,
+                        "name": self.broker.get_code_name(symbol),
+                    }
+                    for symbol in self.universe.strategy_source_codes(strategy_name, source_type)
+                ]
+                self.sqlite_store.replace_strategy_universe_snapshot(
+                    test_name=CONDITION_NAME,
+                    strategy_name=strategy_name,
+                    universe_name=universe_name,
+                    source_type=source_type,
+                    rows=rows,
+                    trade_date=trade_date,
+                )
+
     def _should_route_tick(self, symbol: str) -> bool:
-        if self.snapshot_universe.contains(symbol):
-            return True
-        if self.condition_universe.contains(symbol):
-            return True
-        if self._safe_has_position(symbol):
-            return True
-        if self._safe_has_open_order(symbol):
-            return True
-        return False
+        return self.universe.should_route(
+            symbol,
+            has_position=self._safe_has_position(symbol),
+            has_open_order=self._safe_has_open_order(symbol),
+        )
 
     def load_snapshot_and_subscribe(self):
         if not self.snapshot_path.exists():
@@ -215,33 +252,19 @@ class MainLiveApp:
             return
 
         try:
-            payload = json.loads(self.snapshot_path.read_text(encoding='utf-8'))
+            payload, snapshot_rows, clean_codes = self.universe.load_snapshot()
         except Exception as e:
-            self.logger.exception(f"snapshot 읽기 실패 | path={self.snapshot_path} err={e}")
+            self.logger.exception(f"snapshot 로드 실패 | path={self.snapshot_path} err={e}")
             return
 
-        codes = []
-        snapshot_rows = []
-        for item in payload.get("codes", []):
-            if isinstance(item, dict):
-                symbol = str(item.get("symbol", "")).strip()
-                name = str(item.get("name", "")).strip()
-            else:
-                symbol = str(item).strip()
-                name = ""
-            if symbol:
-                codes.append(symbol)
-                snapshot_rows.append({"symbol": symbol, "name": name})
-
-        clean_codes = self.snapshot_universe.replace(codes)
         if not clean_codes:
             self.logger.warning(f"snapshot 종목 없음 | path={self.snapshot_path}")
             return
 
         self._refresh_real_registration()
 
-        generated_at = payload.get("generated_at", "")
-        source_condition = payload.get("condition_name", CONDITION_NAME)
+        generated_at = self.universe.resolve_snapshot_generated_at(payload)
+        source_condition = self.universe.resolve_snapshot_condition_name(payload)
         display_text = ", ".join(self._format_display_list(clean_codes))
 
         self.sqlite_store.replace_condition_snapshot(
@@ -255,16 +278,23 @@ class MainLiveApp:
             f"condition_name={source_condition} count={len(clean_codes)} "
             f"codes={display_text if display_text else '(empty)'}"
         )
+        self._store_strategy_universe_snapshot()
+        self._log_strategy_universe_summary("snapshot 반영 후 유니버스")
 
         self._send_telegram(
             f"🌙 전일 snapshot 로드\n"
             f"조건식: {source_condition}\n"
             f"생성시각: {generated_at}\n"
             f"종목수: {len(clean_codes)}\n"
-            f"종목: {display_text if display_text else '(없음)'}"
+            f"종목: {display_text if display_text else '(없음)'}\n"
+            f"전략유니버스: {self.universe.strategy_counts()}"
         )
 
     def on_filtered_real_tick(self, raw_tick: dict):
+        self.auto_shutdown()
+        if self.shutting_down:
+            return
+
         symbol = str(raw_tick.get("symbol", "")).strip()
         if not symbol:
             return
@@ -278,7 +308,7 @@ class MainLiveApp:
             self.logger.exception(f"조건필터 틱 처리 실패 | symbol={symbol} err={e}")
 
     def subscribe_initial_condition(self, condition_name: str, codes: list[str]):
-        clean_codes = self.condition_universe.replace(codes)
+        clean_codes = self.universe.replace_condition(codes)
         self._refresh_real_registration()
         condition_rows = [
             {
@@ -299,12 +329,15 @@ class MainLiveApp:
             f"조건검색 초기 편입 반영 | name={condition_name} count={len(clean_codes)} "
             f"codes={display_text if display_text else '(empty)'}"
         )
+        self._store_strategy_universe_snapshot()
+        self._log_strategy_universe_summary("조건검색 초기 반영 후 유니버스")
 
         self._send_telegram(
             f"🎯 조건검색 초기 편입\n"
             f"조건식: {condition_name}\n"
             f"종목수: {len(clean_codes)}\n"
-            f"종목: {display_text if display_text else '(없음)'}"
+            f"종목: {display_text if display_text else '(없음)'}\n"
+            f"전략유니버스: {self.universe.strategy_counts()}"
         )
 
     def on_condition_realtime(self, code: str, event_type: str, condition_name: str, condition_index: int):
@@ -317,8 +350,7 @@ class MainLiveApp:
         name = self.broker.get_code_name(symbol)
 
         if event == "I":
-            already_active = self.condition_universe.contains(symbol)
-            self.condition_universe.add(symbol)
+            already_active = not self.universe.add_condition(symbol)
             self.sqlite_store.record_condition_event(
                 condition_name=condition_name,
                 symbol=symbol,
@@ -332,15 +364,18 @@ class MainLiveApp:
 
             self.logger.info(
                 f"조건검색 편입 | name={condition_name} index={condition_index} "
-                f"symbol={symbol}({name}) active_count={self.condition_universe.count()}"
+                f"symbol={symbol}({name}) active_count={len(self.universe.condition_codes())}"
             )
+            self._store_strategy_universe_snapshot()
+            self._log_strategy_universe_summary("조건검색 편입 후 유니버스")
             self._send_telegram(
-                f"✅ 조건 편입\n조건식: {condition_name}\n종목: {symbol}({name})"
+                f"✅ 조건 편입\n조건식: {condition_name}\n종목: {symbol}({name})\n"
+                f"전략유니버스: {self.universe.strategy_counts()}"
             )
             return
 
         if event == "D":
-            self.condition_universe.discard(symbol)
+            self.universe.remove_condition(symbol)
             self.sqlite_store.record_condition_event(
                 condition_name=condition_name,
                 symbol=symbol,
@@ -352,18 +387,21 @@ class MainLiveApp:
 
             self.logger.info(
                 f"조건검색 이탈 | name={condition_name} index={condition_index} "
-                f"symbol={symbol}({name}) active_count={self.condition_universe.count()}"
+                f"symbol={symbol}({name}) active_count={len(self.universe.condition_codes())}"
             )
+            self._store_strategy_universe_snapshot()
+            self._log_strategy_universe_summary("조건검색 이탈 후 유니버스")
 
             if (
-                not self.snapshot_universe.contains(symbol)
+                not self.universe.has_snapshot(symbol)
                 and not self._safe_has_position(symbol)
                 and not self._safe_has_open_order(symbol)
             ):
                 self._refresh_real_registration()
 
             self._send_telegram(
-                f"⚪ 조건 이탈\n조건식: {condition_name}\n종목: {symbol}({name})"
+                f"⚪ 조건 이탈\n조건식: {condition_name}\n종목: {symbol}({name})\n"
+                f"전략유니버스: {self.universe.strategy_counts()}"
             )
 
     def log_run_mode(self):
@@ -374,15 +412,18 @@ class MainLiveApp:
             f"snapshot_file={self.snapshot_path.name}"
         )
         self.logger.info(
-            f"실행 모드 | DRY_RUN={config.DRY_RUN} LIVE_MODE={config.LIVE_MODE}"
+            f"실행 모드 | RUN_MODE={getattr(config, 'RUN_MODE', 'paper')} "
+            f"PAPER_TRADING={getattr(config, 'PAPER_TRADING', config.DRY_RUN)} "
+            f"ALLOW_LIVE_ORDERS={getattr(config, 'ALLOW_LIVE_ORDERS', config.LIVE_MODE)}"
         )
 
-        if config.DRY_RUN:
-            self.logger.warning("현재 DRY_RUN 모드입니다. 실제 주문은 전송되지 않습니다.")
-        elif not config.LIVE_MODE:
-            self.logger.warning("LIVE_MODE=False 상태입니다. 실제 주문은 차단됩니다.")
+        if getattr(config, "PAPER_TRADING", config.DRY_RUN):
+            self.logger.warning("모의투자 모드입니다. 실제 주문은 전송되지 않습니다.")
+        elif not getattr(config, "ALLOW_LIVE_ORDERS", config.LIVE_MODE):
+            self.logger.warning("실주문 차단 상태입니다. 주문은 모의 처리됩니다.")
         else:
             self.logger.warning("실주문 모드입니다. 실제 주문이 전송됩니다.")
+        self._log_market_phase()
 
     def start_condition_search(self):
         if self.shutting_down:
@@ -409,6 +450,7 @@ class MainLiveApp:
             )
 
     def maybe_start_condition_search(self):
+        self.auto_shutdown()
         if self.shutting_down:
             return
 
@@ -419,7 +461,8 @@ class MainLiveApp:
         if now < start_at:
             if current_hhmm != self._last_wait_log_hhmm:
                 self.logger.info(
-                    f"조건검색 시작 대기 | now={current_hhmm} start_at={CONDITION_SEARCH_START_HHMM}"
+                    f"장 시작 전 대기 모드 | now={current_hhmm} "
+                    f"condition_start={CONDITION_SEARCH_START_HHMM} | 조건검색/실매매 대기"
                 )
                 self._last_wait_log_hhmm = current_hhmm
             return
@@ -428,7 +471,7 @@ class MainLiveApp:
             self.start_condition_search()
             return
 
-        if self.condition_universe.count() == 0:
+        if len(self.universe.condition_codes()) == 0:
             self.logger.info("조건검색 재조회 | active_count=0")
             self.start_condition_search()
 
@@ -475,21 +518,31 @@ class MainLiveApp:
         if self.shutting_down:
             return
 
-        if config.DRY_RUN:
-            return
-
         if not getattr(config, "AUTO_SHUTDOWN_ENABLED", False):
             return
 
         now = datetime.now().time()
+        now_hhmm = self._now_hhmm()
         shutdown_time = self._parse_hhmm(AUTO_SHUTDOWN_HHMM)
 
         if now >= shutdown_time:
-            self.logger.info(f"🛑 장 종료 시간 도달 → 자동 종료 | shutdown_at={AUTO_SHUTDOWN_HHMM}")
+            self.logger.info(
+                f"🛑 장 종료 시간 도달 → 자동 종료 | now={now_hhmm} "
+                f"shutdown_at={AUTO_SHUTDOWN_HHMM}"
+            )
             self.shutdown()
+
+    def on_heartbeat(self):
+        self.auto_shutdown()
+        if self.shutting_down:
+            return
 
     def boot(self):
         self.log_run_mode()
+
+        self.auto_shutdown()
+        if self.shutting_down:
+            return
 
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
@@ -497,8 +550,8 @@ class MainLiveApp:
         self.broker.set_condition_initial_callback(self.subscribe_initial_condition)
         self.broker.set_condition_realtime_callback(self.on_condition_realtime)
 
+        self.heartbeat.timeout.connect(self.on_heartbeat)
         self.heartbeat.start(200)
-        self.heartbeat.timeout.connect(lambda: None)
 
         self.shutdown_timer.start(60_000)
         self.shutdown_timer.timeout.connect(self.auto_shutdown)
