@@ -49,6 +49,9 @@ AUTO_SHUTDOWN_HHMM = "15:20"
 CONDITION_RETRY_MS = 60_000
 MAX_TELEGRAM_SYMBOLS = 20
 SNAPSHOT_FILE = "condition_snapshot.json"
+RECONNECT_COOLDOWN_SEC = 60
+STALE_REALDATA_SEC = 180
+STALE_REALDATA_CHECK_HHMM = "09:05"
 
 
 class MainLiveApp:
@@ -91,6 +94,10 @@ class MainLiveApp:
 
         self.snapshot_path = self.universe.snapshot_path
         self._last_wait_log_hhmm = ""
+        self.last_real_tick_received_ts = 0.0
+        self.condition_failure_count = 0
+        self.last_reconnect_attempt_ts = 0.0
+        self.reconnect_in_progress = False
 
     def _build_telegram(self):
         telegram = None
@@ -303,9 +310,52 @@ class MainLiveApp:
             return
 
         try:
+            self.last_real_tick_received_ts = time.time()
             self.engine.on_real_tick(raw_tick)
         except Exception as e:
             self.logger.exception(f"조건필터 틱 처리 실패 | symbol={symbol} err={e}")
+
+    def _recover_broker_session(self, reason: str):
+        if self.shutting_down or self.reconnect_in_progress:
+            return
+
+        now_ts = time.time()
+        if now_ts - self.last_reconnect_attempt_ts < RECONNECT_COOLDOWN_SEC:
+            return
+
+        self.reconnect_in_progress = True
+        self.last_reconnect_attempt_ts = now_ts
+        self.logger.warning(f"브로커 세션 복구 시도 | reason={reason}")
+        self._send_telegram(f"⚠️ 브로커 세션 복구 시도\n사유: {reason}")
+
+        try:
+            try:
+                self.broker.remove_real("ALL")
+            except Exception:
+                pass
+
+            self.broker.connect()
+            time.sleep(1.0)
+            self.engine.sync_account(password=ACCOUNT_PASSWORD)
+            time.sleep(0.5)
+            self.engine.sync_pending_orders(password=ACCOUNT_PASSWORD)
+            self.engine.health_check()
+            self._refresh_real_registration()
+
+            self.condition_started = False
+            self.condition_failure_count = 0
+            self.last_real_tick_received_ts = time.time()
+
+            if self._market_phase() == "market_session":
+                self.start_condition_search()
+
+            self.logger.info(f"브로커 세션 복구 완료 | reason={reason}")
+            self._send_telegram(f"✅ 브로커 세션 복구 완료\n사유: {reason}")
+        except Exception as e:
+            self.logger.exception(f"브로커 세션 복구 실패 | reason={reason} err={e}")
+            self._send_telegram(f"🚨 브로커 세션 복구 실패\n사유: {reason}\n에러: {e}")
+        finally:
+            self.reconnect_in_progress = False
 
     def subscribe_initial_condition(self, condition_name: str, codes: list[str]):
         clean_codes = self.universe.replace_condition(codes)
@@ -434,6 +484,7 @@ class MainLiveApp:
             self.broker.load_condition_list()
             codes = self.broker.send_condition_by_name(CONDITION_NAME, search=1)
             self.condition_started = True
+            self.condition_failure_count = 0
 
             if codes:
                 self.logger.info(
@@ -536,6 +587,33 @@ class MainLiveApp:
         self.auto_shutdown()
         if self.shutting_down:
             return
+
+        if self._market_phase() != "market_session":
+            return
+
+        now_hhmm = self._now_hhmm()
+
+        if now_hhmm >= CONDITION_SEARCH_START_HHMM and not self.condition_started:
+            self._recover_broker_session("condition_search_inactive")
+            return
+
+        if not getattr(self.broker, "connected", False):
+            self._recover_broker_session("broker_disconnected")
+            return
+
+        if now_hhmm < STALE_REALDATA_CHECK_HHMM:
+            return
+
+        watch_codes = self._all_watch_codes()
+        if not watch_codes or self.last_real_tick_received_ts <= 0:
+            return
+
+        idle_sec = time.time() - self.last_real_tick_received_ts
+        if idle_sec >= STALE_REALDATA_SEC:
+            self.logger.warning(
+                f"장중 실시간 틱 무수신 감지 | idle_sec={idle_sec:.1f} watch_count={len(watch_codes)}"
+            )
+            self._recover_broker_session(f"stale_realdata:{int(idle_sec)}s")
 
     def boot(self):
         self.log_run_mode()
