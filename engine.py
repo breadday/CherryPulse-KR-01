@@ -2,6 +2,7 @@
 
 import csv
 import time
+from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
@@ -79,6 +80,10 @@ class TradingEngine:
         self.loss_count = 0
         self.trade_open_info = {}
         self.trade_cycle_realized_pnl = {}
+        self.strategy_reject_reason_counts = defaultdict(Counter)
+        self.strategy_signal_counts = Counter()
+        self.strategy_order_block_counts = defaultdict(Counter)
+        self.strategy_order_ready_counts = Counter()
 
         # -------------------------
         # 엔진 직접 약손절 / 초기 되밀림 관리
@@ -188,10 +193,71 @@ class TradingEngine:
             return
         self.daily_order_count_by_strategy[strategy_name] = self._strategy_daily_order_count(strategy_name) + 1
 
+    def _record_strategy_reject_details(self, reject_details: dict):
+        if not isinstance(reject_details, dict):
+            return
+        for strategy_name, reason in reject_details.items():
+            strategy_name = str(strategy_name or "").strip()
+            reason = str(reason or "").strip()
+            if strategy_name and reason:
+                self.strategy_reject_reason_counts[strategy_name][reason] += 1
+
+    def _record_strategy_signal(self, strategy_name: str):
+        strategy_name = str(strategy_name or "").strip()
+        if strategy_name:
+            self.strategy_signal_counts[strategy_name] += 1
+
+    def _record_strategy_order_block(self, strategy_name: str, reason: str):
+        strategy_name = str(strategy_name or "").strip()
+        reason = str(reason or "").strip()
+        if strategy_name and reason:
+            self.strategy_order_block_counts[strategy_name][reason] += 1
+
+    def _record_strategy_order_ready(self, strategy_name: str):
+        strategy_name = str(strategy_name or "").strip()
+        if strategy_name:
+            self.strategy_order_ready_counts[strategy_name] += 1
+
+    def _format_strategy_diagnostics_lines(self) -> list[str]:
+        strategy_names = sorted(
+            set(self.strategy_reject_reason_counts.keys())
+            | set(self.strategy_signal_counts.keys())
+            | set(self.strategy_order_block_counts.keys())
+            | set(self.strategy_order_ready_counts.keys())
+        )
+        lines = []
+        for strategy_name in strategy_names:
+            reject_counter = self.strategy_reject_reason_counts.get(strategy_name, Counter())
+            block_counter = self.strategy_order_block_counts.get(strategy_name, Counter())
+            top_rejects = ", ".join(
+                f"{reason}({count})" for reason, count in reject_counter.most_common(3)
+            ) or "-"
+            top_blocks = ", ".join(
+                f"{reason}({count})" for reason, count in block_counter.most_common(3)
+            ) or "-"
+            lines.append(
+                f"{strategy_name} | signals={self.strategy_signal_counts.get(strategy_name, 0)} "
+                f"ready={self.strategy_order_ready_counts.get(strategy_name, 0)} "
+                f"top_rejects={top_rejects} top_blocks={top_blocks}"
+            )
+        return lines
+
+    def _send_strategy_diagnostics_summary(self):
+        if not self.telegram:
+            return
+        lines = self._format_strategy_diagnostics_lines()
+        if not lines:
+            return
+        try:
+            self.telegram.send("[전략별 실패 원인 요약]\n" + "\n".join(f"- {line}" for line in lines[:10]))
+        except Exception as e:
+            self.logger.warning(f"전략별 실패 원인 요약 전송 실패 | {e}")
+
     def _effective_order_amount_limit(self, signal=None, symbol: str = "") -> int:
         strategy_name = ""
         if signal is not None:
             strategy_name = self._strategy_name_for_signal(signal)
+            self._record_strategy_signal(strategy_name)
         elif symbol:
             strategy_name = self._strategy_name_for_symbol(symbol)
         return max(
@@ -632,6 +698,20 @@ class TradingEngine:
             return self.telegram.send("\n".join(lines))
         except Exception as e:
             self.logger.warning(f"전략별 상세 리포트 텔레그램 실패 | {e}")
+            return False
+
+    def _send_strategy_diagnostics_summary(self, reason: str = "manual") -> bool:
+        try:
+            if not self.telegram or not self._cfg("ENABLE_TELEGRAM_LOG", False):
+                return False
+            lines = self._format_strategy_diagnostics_lines()
+            if not lines:
+                return False
+            message = ["🧭 전략별 실패 원인 요약", f"테스트: {self.test_name}", f"사유: {reason}"]
+            message.extend(f"- {line}" for line in lines[:10])
+            return self.telegram.send("\n".join(message))
+        except Exception as e:
+            self.logger.warning(f"전략별 실패 원인 요약 전송 실패 | {e}")
             return False
 
     def _send_risk_status(self, reason: str = "startup") -> bool:
@@ -1249,6 +1329,10 @@ class TradingEngine:
             self.daily_order_count = 0
             self.daily_order_count_by_strategy = {}
             self.last_order_time = {}
+            self.strategy_reject_reason_counts = defaultdict(Counter)
+            self.strategy_signal_counts = Counter()
+            self.strategy_order_block_counts = defaultdict(Counter)
+            self.strategy_order_ready_counts = Counter()
             self.daily_realized_pnl_base = float(getattr(self.portfolio, "realized_pnl", 0.0) or 0.0)
             if self.daily_loss_protection_active:
                 self.daily_loss_protection_active = False
@@ -1273,6 +1357,7 @@ class TradingEngine:
             self._send_daily_summary(reason="already_stopped")
             self._send_strategy_daily_summary(reason="already_stopped")
             self._send_strategy_detail_summary(reason="already_stopped")
+            self._send_strategy_diagnostics_summary(reason="already_stopped")
             try:
                 self.broker.shutdown()
             except Exception as e:
@@ -1284,6 +1369,7 @@ class TradingEngine:
         self._send_daily_summary(reason="engine_stop")
         self._send_strategy_daily_summary(reason="engine_stop")
         self._send_strategy_detail_summary(reason="engine_stop")
+        self._send_strategy_diagnostics_summary(reason="engine_stop")
         try:
             self.broker.shutdown()
         except Exception as e:
@@ -2147,6 +2233,7 @@ class TradingEngine:
 
             signal = self.strategy.generate_signal(tick, self.portfolio)
             if signal is None:
+                self._record_strategy_reject_details(getattr(self.strategy, "last_reject_details", {}))
                 reject_reason = getattr(self.strategy, "last_reject_reason", "")
                 if reject_reason:
                     self.logger.info(f"[SIGNAL_SKIP] {symbol} | {reject_reason}")
@@ -2158,6 +2245,7 @@ class TradingEngine:
             entry_score = self._extract_score_from_reason(getattr(signal, "reason", ""))
             ok, reason = self.can_send_order(signal, tick)
             if not ok:
+                self._record_strategy_order_block(strategy_name, reason)
                 self._record_signal_snapshot(signal, tick, allowed=False, block_reason=reason)
                 self.logger.info(
                     f"[{signal.symbol}] 주문 차단 | {reason} | "
@@ -2168,6 +2256,7 @@ class TradingEngine:
                 return
 
             self._record_signal_snapshot(signal, tick, allowed=True)
+            self._record_strategy_order_ready(strategy_name)
             self.logger.info(
                 f"[ORDER_READY] {signal.symbol} side={signal.side} qty={signal.qty} "
                 f"score={entry_score} reason={signal.reason}"

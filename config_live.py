@@ -181,7 +181,7 @@ STRATEGY_RUNTIME_CONFIG = {
 
 STRATEGY_UNIVERSE_CONFIG = {
     "momentum": {
-        "use_snapshot": False,
+        "use_snapshot": True,
         "use_condition": True,
     },
     "leader_pullback": {
@@ -189,7 +189,7 @@ STRATEGY_UNIVERSE_CONFIG = {
         "use_condition": True,
     },
     "close_buy": {
-        "use_snapshot": False,
+        "use_snapshot": True,
         "use_condition": True,
     },
 }
