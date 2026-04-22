@@ -21,7 +21,7 @@ PAPER_TRADING = RUN_MODE == "paper"
 ALLOW_LIVE_ORDERS = RUN_MODE == "live"
 
 LIVE_MODE = ALLOW_LIVE_ORDERS
-DRY_RUN = PAPER_TRADING          # True : ???? / False : ???
+DRY_RUN = PAPER_TRADING          # True : 모의 / False : 실주문
 ACCOUNT_NO = os.getenv("ACCOUNT_NO", "").strip()
 ACCOUNT_PASSWORD = os.getenv("ACCOUNT_PASSWORD", "0000")
 SQLITE_DB_PATH = os.getenv(
