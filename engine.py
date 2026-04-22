@@ -1,4 +1,4 @@
-# engine.py
+﻿# engine.py
 
 import csv
 import time
@@ -830,7 +830,7 @@ class TradingEngine:
             )
             self._store_strategy_daily_summary_snapshots()
         except Exception as e:
-            self.logger.warning(f"SQLite ???? ?? ?? | {e}")
+            self.logger.warning(f"SQLite 요약 저장 실패 | {e}")
 
     def _empty_route_context(self):
         return {
@@ -1721,7 +1721,7 @@ class TradingEngine:
                     self.last_exit_reason[symbol] = reason
                     self._log_exit_event(symbol, price, avg_price, qty, early_stop["event"])
                     self.logger.info(
-                        f"?? ?? ?? ?? | symbol={symbol} price={price} avg_price={avg_price} "
+                        f"익일 청산 실행 | symbol={symbol} price={price} avg_price={avg_price} "
                         f"qty={qty} pnl_pct={pnl_pct:.2%} reason={reason}"
                     )
                     self._submit_auto_sell(symbol=symbol, qty=qty, reason=reason)
@@ -1749,7 +1749,7 @@ class TradingEngine:
                 self.last_exit_reason[symbol] = exit_reason
                 self._log_exit_event(symbol, price, avg_price, qty, "STOP_LOSS")
                 self.logger.info(
-                    f"???? ?? ?? | symbol={symbol} price={price} avg_price={avg_price} "
+                    f"손절 조건 충족 | symbol={symbol} price={price} avg_price={avg_price} "
                     f"qty={qty} pnl_pct={pnl_pct:.2%}"
                 )
                 self._submit_auto_sell(symbol=symbol, qty=qty, reason=exit_reason)
@@ -1762,7 +1762,7 @@ class TradingEngine:
                 self.last_exit_reason[symbol] = "partial_take"
                 self._log_exit_event(symbol, price, avg_price, sell_qty, "PARTIAL_TAKE")
                 self.logger.info(
-                    f"???? ?? | symbol={symbol} qty={sell_qty} pnl={pnl_pct:.2%} "
+                    f"부분익절 실행 | symbol={symbol} qty={sell_qty} pnl={pnl_pct:.2%} "
                     f"threshold={partial_take_profit_pct:.2%} trend_hold={trend_hold_now}"
                 )
 
@@ -1795,7 +1795,7 @@ class TradingEngine:
                     self.last_exit_reason[symbol] = "breakeven_exit"
                     self._log_exit_event(symbol, price, avg_price, qty, "BREAKEVEN_EXIT")
                     self.logger.info(
-                        f"?? ?? | symbol={symbol} price={price} avg_price={avg_price} "
+                        f"본절 청산 실행 | symbol={symbol} price={price} avg_price={avg_price} "
                         f"pnl={pnl_pct:.2%} floor={breakeven_floor:.2%}"
                     )
                     self._submit_auto_sell(symbol, qty, "breakeven_exit")
@@ -1813,7 +1813,7 @@ class TradingEngine:
                         self.last_exit_reason[symbol] = reason
                         self._log_exit_event(symbol, price, avg_price, qty, "TRAILING_STOP")
                         self.logger.info(
-                            f"???? ?? ?? | symbol={symbol} price={price} high={high_price} stop={trailing_stop_price:.2f}"
+                            f"트레일링 스탑 실행 | symbol={symbol} price={price} high={high_price} stop={trailing_stop_price:.2f}"
                         )
                         self._submit_auto_sell(symbol, qty, reason)
                         return
@@ -1823,14 +1823,14 @@ class TradingEngine:
                 self.last_exit_reason[symbol] = exit_reason
                 self._log_exit_event(symbol, price, avg_price, qty, "TAKE_PROFIT")
                 self.logger.info(
-                    f"???? ?? ?? | symbol={symbol} price={price} avg_price={avg_price} qty={qty} "
+                    f"목표가 청산 실행 | symbol={symbol} price={price} avg_price={avg_price} qty={qty} "
                     f"pnl_pct={pnl_pct:.2%} target={take_profit_pct:.2%} trend_hold={trend_hold_now}"
                 )
                 self._submit_auto_sell(symbol=symbol, qty=qty, reason=exit_reason)
                 return
 
         except Exception as e:
-            self.logger.exception(f"???? ?? ?? | symbol={symbol} price={price} err={e}")
+            self.logger.exception(f"자동 청산 검사 실패 | symbol={symbol} price={price} err={e}")
 
     def _submit_auto_sell(self, symbol: str, qty: int, reason: str):
         try:
@@ -2474,7 +2474,7 @@ class TradingEngine:
                 self.engine_protected = True
                 self.daily_loss_protection_active = True
                 self.logger.warning(
-                    f"?붿쭊 蹂댄샇紐⑤뱶 吏꾩엯 | realized_pnl={realized_pnl:.0f} "
+                    f"일일 손실 한도 도달 | realized_pnl={realized_pnl:.0f} "
                     f"daily_loss_limit={daily_loss_limit:.0f}"
                 )
 

@@ -18,3 +18,91 @@
 2026-04-22 22:05:48,336 | INFO | 브로커 종료 시작
 2026-04-22 22:05:48,336 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
 2026-04-22 22:05:48,337 | INFO | 브로커 종료 완료
+2026-04-22 22:46:59,011 | INFO | snapshot 저장 시작 | condition_name=주도주_스나이퍼
+2026-04-22 22:46:59,011 | INFO | 키움 로그인 시도
+2026-04-22 22:46:59,108 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-22 22:46:59,109 | INFO | 로그인 이벤트 대기 시작
+2026-04-22 22:47:02,844 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-22 22:47:02,844 | INFO | 로그인 성공
+2026-04-22 22:47:02,845 | INFO | 로그인 이벤트 대기 종료
+2026-04-22 22:47:02,845 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-22 22:47:02,845 | INFO | 조건검색 목록 로드 시작
+2026-04-22 22:47:02,847 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-22 22:47:03,023 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-22 22:47:03,043 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-22 22:47:03,045 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=0 ret=1
+2026-04-22 22:47:03,069 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=10 next=0
+2026-04-22 22:47:03,070 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=10
+2026-04-22 22:47:03,072 | INFO | snapshot 저장 완료 | path=E:\codexAi\_review_extract\CherryPulse-KR-01\condition_snapshot.json count=10 codes=005290(동진쎄미켐), 006110(삼아알미늄), 007660(이수페타시스), 009540(HD한국조선해양), 011070(LG이노텍), 027360(아주IB투자), 034220(LG디스플레이), 066570(LG전자), 079550(LIG디펜스앤에어로스페이스), 417200(LS머트리얼즈)
+2026-04-22 22:47:03,072 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-22 22:47:03,073 | INFO | 브로커 종료 시작
+2026-04-22 22:47:03,073 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-22 22:47:03,074 | INFO | 브로커 종료 완료
+2026-04-22 22:47:09,958 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-22 22:47:10,960 | INFO | 텔레그램 연결 테스트 성공
+2026-04-22 22:47:11,031 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
+2026-04-22 22:47:11,032 | INFO | 프로그램 시작
+2026-04-22 22:47:11,032 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
+2026-04-22 22:47:11,032 | INFO | 실행 모드 | RUN_MODE=live PAPER_TRADING=False ALLOW_LIVE_ORDERS=True
+2026-04-22 22:47:11,032 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-22 22:47:11,034 | INFO | 장 종료 후 실행 감지 | now=22:47 shutdown_at=15:20 | 즉시 종료 대상
+2026-04-22 22:47:11,035 | INFO | 장 종료 시간 도달 → 자동 종료 | now=22:47 shutdown_at=15:20
+2026-04-22 22:47:11,035 | INFO | 종료 신호 수신
+2026-04-22 22:47:11,035 | INFO | 실시간 구독 해제 완료
+2026-04-22 22:47:11,035 | INFO | 이미 종료 상태
+2026-04-22 22:47:11,035 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-22 22:47:12,397 | INFO | 브로커 종료 시작
+2026-04-22 22:47:12,397 | INFO | 브로커 종료 완료
+2026-04-22 22:47:12,397 | INFO | 프로그램 종료
+2026-04-22 22:47:26,554 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-22 22:47:27,535 | INFO | 텔레그램 연결 테스트 성공
+2026-04-22 22:47:27,622 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
+2026-04-22 22:47:27,624 | INFO | 프로그램 시작
+2026-04-22 22:47:27,625 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
+2026-04-22 22:47:27,625 | INFO | 실행 모드 | RUN_MODE=live PAPER_TRADING=False ALLOW_LIVE_ORDERS=True
+2026-04-22 22:47:27,625 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-22 22:47:27,627 | INFO | 장 종료 후 실행 감지 | now=22:47 shutdown_at=15:20 | 즉시 종료 대상
+2026-04-22 22:47:27,627 | INFO | 장 종료 시간 도달 → 자동 종료 | now=22:47 shutdown_at=15:20
+2026-04-22 22:47:27,627 | INFO | 종료 신호 수신
+2026-04-22 22:47:27,628 | INFO | 실시간 구독 해제 완료
+2026-04-22 22:47:27,628 | INFO | 이미 종료 상태
+2026-04-22 22:47:27,628 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-22 22:47:28,994 | INFO | 브로커 종료 시작
+2026-04-22 22:47:28,995 | INFO | 브로커 종료 완료
+2026-04-22 22:47:28,996 | INFO | 프로그램 종료
+2026-04-22 22:48:48,312 | INFO | snapshot 저장 시작 | condition_name=주도주_스나이퍼
+2026-04-22 22:48:48,312 | INFO | 키움 로그인 시도
+2026-04-22 22:48:48,409 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-22 22:48:48,409 | INFO | 로그인 이벤트 대기 시작
+2026-04-22 22:48:51,905 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-22 22:48:51,905 | INFO | 로그인 성공
+2026-04-22 22:48:51,905 | INFO | 로그인 이벤트 대기 종료
+2026-04-22 22:48:51,906 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-22 22:48:51,906 | INFO | 조건검색 목록 로드 시작
+2026-04-22 22:48:51,910 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-22 22:48:52,073 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-22 22:48:52,093 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-22 22:48:52,094 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=0 ret=1
+2026-04-22 22:48:52,120 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=10 next=0
+2026-04-22 22:48:52,121 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=10
+2026-04-22 22:48:52,124 | INFO | snapshot 저장 완료 | path=E:\codexAi\_review_extract\CherryPulse-KR-01\condition_snapshot.json count=10 codes=005290(동진쎄미켐), 006110(삼아알미늄), 007660(이수페타시스), 009540(HD한국조선해양), 011070(LG이노텍), 027360(아주IB투자), 034220(LG디스플레이), 066570(LG전자), 079550(LIG디펜스앤에어로스페이스), 417200(LS머트리얼즈)
+2026-04-22 22:48:52,124 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-22 22:48:52,124 | INFO | 브로커 종료 시작
+2026-04-22 22:48:52,124 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-22 22:48:52,125 | INFO | 브로커 종료 완료
+2026-04-22 22:48:57,438 | INFO | 텔레그램 설정 | enabled=True token=82680689*** chat_id='6059391589'
+2026-04-22 22:48:58,436 | INFO | 텔레그램 연결 테스트 성공
+2026-04-22 22:48:58,508 | INFO | 리스크 설정 로드 | cooldown=300s max_daily_orders=20 min_tick_volume=1 max_symbol_position=3 max_positions=3 order_amount_per_trade=1000000
+2026-04-22 22:48:58,508 | INFO | 프로그램 시작
+2026-04-22 22:48:58,509 | INFO | snapshot + 조건검색 실행 | condition_name=주도주_스나이퍼 | condition_search_start=08:50 | snapshot_file=condition_snapshot.json
+2026-04-22 22:48:58,509 | INFO | 실행 모드 | RUN_MODE=live PAPER_TRADING=False ALLOW_LIVE_ORDERS=True
+2026-04-22 22:48:58,509 | WARNING | 실주문 모드입니다. 실제 주문이 전송됩니다.
+2026-04-22 22:48:58,512 | INFO | 장 종료 후 실행 감지 | now=22:48 shutdown_at=15:20 | 즉시 종료 대상
+2026-04-22 22:48:58,512 | INFO | 장 종료 시간 도달 → 자동 종료 | now=22:48 shutdown_at=15:20
+2026-04-22 22:48:58,512 | INFO | 종료 신호 수신
+2026-04-22 22:48:58,512 | INFO | 실시간 구독 해제 완료
+2026-04-22 22:48:58,512 | INFO | 이미 종료 상태
+2026-04-22 22:48:58,513 | INFO | 종료 전 성과 요약 | trades=0 wins=0 losses=0 win_rate=0.00% avg_profit=0.0000% avg_loss=0.0000% net_pnl=0.00
+2026-04-22 22:49:00,039 | INFO | 브로커 종료 시작
+2026-04-22 22:49:00,039 | INFO | 브로커 종료 완료
+2026-04-22 22:49:00,039 | INFO | 프로그램 종료

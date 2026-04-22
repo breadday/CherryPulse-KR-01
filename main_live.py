@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 # main_live.py
 from __future__ import annotations
 
@@ -15,22 +15,22 @@ from PyQt5.QtWidgets import QApplication
 
 import config_live as config
 from broker.kiwoom_broker import KiwoomBroker
+from config_live import (
+    ACCOUNT_NO,
+    ACCOUNT_PASSWORD,
+    SQLITE_DB_PATH,
+    STRATEGY_CONFIG,
+    STRATEGY_RUNTIME_CONFIG,
+    STRATEGY_UNIVERSE_CONFIG,
+    TELEGRAM_CHAT_ID,
+    TELEGRAM_TOKEN,
+)
 from engine import TradingEngine
 from infra.sqlite_store import SQLiteStore
 from infra.telegram_notifier import TelegramNotifier
 from strategy.momentum_intraday import MomentumIntradayStrategy
 from universe_manager import UniverseManager
 from utils.logger import setup_logger
-from config_live import (
-    ACCOUNT_NO,
-    ACCOUNT_PASSWORD,
-    SQLITE_DB_PATH,
-    STRATEGY_RUNTIME_CONFIG,
-    STRATEGY_CONFIG,
-    STRATEGY_UNIVERSE_CONFIG,
-    TELEGRAM_CHAT_ID,
-    TELEGRAM_TOKEN,
-)
 
 try:
     from _test_force_exit_helper import force_close_all_positions
@@ -38,7 +38,7 @@ except ImportError:
     def force_close_all_positions(engine, logger=None, reason="TEST_FORCE_EXIT"):
         if logger:
             logger.warning(
-                "test_force_exit_helper 없음 | 강제청산 더미 함수 사용 | closed_count=0"
+                "test_force_exit_helper 없음 | 강제청산 대체 함수 사용 | closed_count=0"
             )
         return 0
 
@@ -121,7 +121,9 @@ class MainLiveApp:
                 if ok:
                     self.logger.info("텔레그램 연결 테스트 성공")
                 else:
-                    self.logger.warning("텔레그램 연결 테스트 실패 | token/chat_id 또는 네트워크 확인 필요")
+                    self.logger.warning(
+                        "텔레그램 연결 테스트 실패 | token/chat_id 또는 네트워크 확인 필요"
+                    )
             except Exception as e:
                 self.logger.warning(f"텔레그램 시작 테스트 실패 | {e}")
         else:
@@ -136,12 +138,17 @@ class MainLiveApp:
         except Exception as e:
             self.logger.warning(f"텔레그램 전송 실패 | {e}")
 
-    def _send_telegram_throttled(self, key: str, text: str, cooldown_sec: int = TELEGRAM_ALERT_COOLDOWN_SEC):
+    def _send_telegram_throttled(
+        self,
+        key: str,
+        text: str,
+        cooldown_sec: int = TELEGRAM_ALERT_COOLDOWN_SEC,
+    ):
         now_ts = time.time()
         last_sent_ts = self.telegram_alert_last_sent_ts.get(key, 0.0)
         if now_ts - last_sent_ts < cooldown_sec:
             self.logger.info(
-                f"?붾젅洹몃옩 以묐났 ?뚮┝ ?묒젣 | key={key} cooldown={cooldown_sec}s"
+                f"텔레그램 중복 알림 억제 | key={key} cooldown={cooldown_sec}s"
             )
             return
 
@@ -213,7 +220,11 @@ class MainLiveApp:
     def _all_watch_codes(self) -> list[str]:
         return self.universe.all_watch_codes()
 
-    def _format_display_list(self, codes: Iterable[str], limit: int = MAX_TELEGRAM_SYMBOLS) -> list[str]:
+    def _format_display_list(
+        self,
+        codes: Iterable[str],
+        limit: int = MAX_TELEGRAM_SYMBOLS,
+    ) -> list[str]:
         display = []
         for code in list(codes)[:limit]:
             name = self.broker.get_code_name(code)
@@ -305,8 +316,8 @@ class MainLiveApp:
         self._log_strategy_universe_summary("snapshot 반영 후 유니버스")
 
         self._send_telegram(
-            f"🌙 전일 snapshot 로드\n"
-            f"조건식: {source_condition}\n"
+            f"전일 snapshot 로드\n"
+            f"조건명: {source_condition}\n"
             f"생성시각: {generated_at}\n"
             f"종목수: {len(clean_codes)}\n"
             f"종목: {display_text if display_text else '(없음)'}\n"
@@ -329,13 +340,16 @@ class MainLiveApp:
             self.last_real_tick_received_ts = time.time()
             self.engine.on_real_tick(raw_tick)
         except Exception as e:
-            self.logger.exception(f"조건필터 틱 처리 실패 | symbol={symbol} err={e}")
+            self.logger.exception(f"실시간 틱 처리 실패 | symbol={symbol} err={e}")
 
     def _recover_broker_session(self, reason: str):
         if self.shutting_down or self.reconnect_in_progress:
             return
 
         now_ts = time.time()
+        if now_ts < self.reconnect_blocked_until_ts:
+            return
+
         if now_ts - self.last_reconnect_attempt_ts < RECONNECT_COOLDOWN_SEC:
             return
 
@@ -363,33 +377,37 @@ class MainLiveApp:
 
             if self._market_phase() == "market_session":
                 self.start_condition_search()
-            self.logger.info("??? ?? ?? ?? | reason=%s" % reason)
+
+            self.logger.info(f"브로커 세션 복구 완료 | reason={reason}")
             self._send_telegram_throttled(
                 f"recover_success:{reason}",
-                f"??? ?? ?? ??\n??: {reason}"
+                f"브로커 세션 복구 완료\n사유: {reason}",
             )
         except Exception as e:
-            self.condition_failure_count += 1
-            self.logger.exception(f"??? ?? ?? ?? | reason={reason} err={e}")
+            self.logger.exception(f"브로커 세션 복구 실패 | reason={reason} err={e}")
             error_text = str(e)
-            if "???" in error_text or "CommConnect" in error_text or "-101" in error_text:
+            if "로그인" in error_text or "CommConnect" in error_text or "-101" in error_text:
                 self.reconnect_blocked_until_ts = time.time() + LOGIN_FAILURE_BACKOFF_SEC
                 self.logger.warning(
-                    f"??? ?? ?? | ?? ?? ?? ?? | backoff={LOGIN_FAILURE_BACKOFF_SEC}s"
+                    f"로그인 실패 발생 | 자동 복구 일시 중지 | backoff={LOGIN_FAILURE_BACKOFF_SEC}s"
                 )
                 self._send_telegram_throttled(
                     "recover_login_failed",
-                    f"??? ?? ?? ??\n??: {reason}\n??: {e}\n{LOGIN_FAILURE_BACKOFF_SEC}? ?? ?? ??? ????.",
+                    (
+                        f"브로커 세션 복구 실패\n"
+                        f"사유: {reason}\n"
+                        f"에러: {e}\n"
+                        f"{LOGIN_FAILURE_BACKOFF_SEC}초 동안 자동 복구를 멈춥니다."
+                    ),
                     cooldown_sec=LOGIN_FAILURE_BACKOFF_SEC,
                 )
             else:
                 self._send_telegram_throttled(
                     f"recover_failed:{reason}",
-                    f"??? ?? ?? ??\n??: {reason}\n??: {e}",
+                    f"브로커 세션 복구 실패\n사유: {reason}\n에러: {e}",
                 )
         finally:
             self.reconnect_in_progress = False
-
 
     def subscribe_initial_condition(self, condition_name: str, codes: list[str]):
         clean_codes = self.universe.replace_condition(codes)
@@ -417,14 +435,20 @@ class MainLiveApp:
         self._log_strategy_universe_summary("조건검색 초기 반영 후 유니버스")
 
         self._send_telegram(
-            f"🎯 조건검색 초기 편입\n"
-            f"조건식: {condition_name}\n"
+            f"조건검색 초기 편입\n"
+            f"조건명: {condition_name}\n"
             f"종목수: {len(clean_codes)}\n"
             f"종목: {display_text if display_text else '(없음)'}\n"
             f"전략유니버스: {self.universe.strategy_counts()}"
         )
 
-    def on_condition_realtime(self, code: str, event_type: str, condition_name: str, condition_index: int):
+    def on_condition_realtime(
+        self,
+        code: str,
+        event_type: str,
+        condition_name: str,
+        condition_index: int,
+    ):
         symbol = str(code).strip()
         event = str(event_type).strip().upper()
 
@@ -452,8 +476,8 @@ class MainLiveApp:
             )
             self._store_strategy_universe_snapshot()
             self._log_strategy_universe_summary("조건검색 편입 후 유니버스")
-            self._send_telegram_throttled(
-                f"✅ 조건 편입\n조건식: {condition_name}\n종목: {symbol}({name})\n"
+            self._send_telegram(
+                f"조건 편입\n조건명: {condition_name}\n종목: {symbol}({name})\n"
                 f"전략유니버스: {self.universe.strategy_counts()}"
             )
             return
@@ -484,13 +508,14 @@ class MainLiveApp:
                 self._refresh_real_registration()
 
             self._send_telegram(
-                f"⚪ 조건 이탈\n조건식: {condition_name}\n종목: {symbol}({name})\n"
+                f"조건 이탈\n조건명: {condition_name}\n종목: {symbol}({name})\n"
                 f"전략유니버스: {self.universe.strategy_counts()}"
             )
+
     def log_run_mode(self):
-        self.logger.info("???? ??")
+        self.logger.info("프로그램 시작")
         self.logger.info(
-            f"snapshot + ???? ?? | condition_name={CONDITION_NAME} | "
+            f"snapshot + 조건검색 실행 | condition_name={CONDITION_NAME} | "
             f"condition_search_start={CONDITION_SEARCH_START_HHMM} | "
             f"snapshot_file={self.snapshot_path.name}"
         )
@@ -501,11 +526,11 @@ class MainLiveApp:
         )
 
         if getattr(config, "PAPER_TRADING", config.DRY_RUN):
-            self.logger.warning("???? ?????. ?? ??? ???? ????.")
+            self.logger.warning("모의투자 모드입니다. 실제 주문은 전송되지 않습니다.")
         elif not getattr(config, "ALLOW_LIVE_ORDERS", config.LIVE_MODE):
-            self.logger.warning("??? ?? ?????. ??? ?? ?????.")
+            self.logger.warning("실주문 차단 상태입니다. 주문은 모의 처리됩니다.")
         else:
-            self.logger.warning("??? ?????. ?? ??? ?????.")
+            self.logger.warning("실주문 모드입니다. 실제 주문이 전송됩니다.")
         self._log_market_phase()
 
     def start_condition_search(self):
@@ -513,7 +538,7 @@ class MainLiveApp:
             return
 
         try:
-            self.logger.info("???? ?? ??")
+            self.logger.info("조건검색 시작 시도")
             self.broker.load_condition_list()
             codes = self.broker.send_condition_by_name(CONDITION_NAME, search=1)
             self.condition_started = True
@@ -521,18 +546,18 @@ class MainLiveApp:
 
             if codes:
                 self.logger.info(
-                    f"???? ?? ?? | name={CONDITION_NAME} initial_count={len(codes)}"
+                    f"조건검색 시작 완료 | name={CONDITION_NAME} initial_count={len(codes)}"
                 )
             else:
                 self.logger.warning(
-                    f"???? ?? ?? ?? ?? | name={CONDITION_NAME} | ??? ??"
+                    f"조건검색 초기 결과 비어 있음 | name={CONDITION_NAME} | 재시도 예정"
                 )
         except Exception as e:
             self.condition_failure_count += 1
-            self.logger.exception(f"???? ?? ?? | condition_name={CONDITION_NAME} err={e}")
+            self.logger.exception(f"조건검색 시작 실패 | condition_name={CONDITION_NAME} err={e}")
             self._send_telegram_throttled(
                 "condition_search_start_failed",
-                f"???? ?? ??\n???: {CONDITION_NAME}\n??: {e}"
+                f"조건검색 시작 실패\n조건명: {CONDITION_NAME}\n에러: {e}",
             )
 
     def maybe_start_condition_search(self):
@@ -550,8 +575,8 @@ class MainLiveApp:
         if now < start_at:
             if current_hhmm != self._last_wait_log_hhmm:
                 self.logger.info(
-                    f"? ?? ? ?? ?? | now={current_hhmm} "
-                    f"condition_start={CONDITION_SEARCH_START_HHMM} | ????/??? ??"
+                    f"장 시작 전 대기 모드 | now={current_hhmm} "
+                    f"condition_start={CONDITION_SEARCH_START_HHMM} | 조건검색/실매매 대기"
                 )
                 self._last_wait_log_hhmm = current_hhmm
             return
@@ -561,7 +586,7 @@ class MainLiveApp:
             return
 
         if len(self.universe.condition_codes()) == 0:
-            self.logger.info("???? ?? ?? | active_count=0")
+            self.logger.info("조건검색 결과 부족 | active_count=0")
             self.start_condition_search()
 
     def shutdown(self, *_args):
@@ -600,7 +625,7 @@ class MainLiveApp:
             self.logger.warning(f"엔진 종료 실패 | {e}")
 
         self.logger.info("프로그램 종료")
-        self._send_telegram("🛑 자동매매 종료")
+        self._send_telegram("자동매매 종료")
         os._exit(0)
 
     def auto_shutdown(self):
@@ -616,7 +641,7 @@ class MainLiveApp:
 
         if now >= shutdown_time:
             self.logger.info(
-                f"🛑 장 종료 시간 도달 → 자동 종료 | now={now_hhmm} "
+                f"장 종료 시간 도달 → 자동 종료 | now={now_hhmm} "
                 f"shutdown_at={AUTO_SHUTDOWN_HHMM}"
             )
             self.shutdown()
@@ -685,7 +710,7 @@ class MainLiveApp:
         self.broker.set_real_tick_callback(self.on_filtered_real_tick)
 
         self.broker.show_account_window()
-        self.logger.info("계좌비밀번호 창에서 저장 후 사용하세요.")
+        self.logger.info("계좌비밀번호 창에서 비밀번호를 입력해주세요")
         self.logger.info("계좌 동기화 시작")
 
         time.sleep(1.5)
