@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Dict, Optional
+import time
 import requests
 
 
@@ -25,6 +26,10 @@ class TelegramNotifier:
         self.chat_id = str(chat_id).strip() if chat_id else ""
         self.logger = logger
         self.base_url = f"https://api.telegram.org/bot{self.token}"
+        self.session = requests.Session()
+        self.session.trust_env = False
+        self._last_error_log_ts = 0.0
+        self._error_log_cooldown_sec = 300
         self.stock_name_map = dict(self.DEFAULT_STOCK_NAME_MAP)
         if stock_name_map:
             self.stock_name_map.update(stock_name_map)
@@ -67,7 +72,7 @@ class TelegramNotifier:
             return False
 
         try:
-            resp = requests.post(
+            resp = self.session.post(
                 f"{self.base_url}/sendMessage",
                 data={"chat_id": self.chat_id, "text": str(message)},
                 timeout=10,

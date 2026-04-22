@@ -1,0 +1,20 @@
+2026-04-22 22:05:37,316 | INFO | snapshot 저장 시작 | condition_name=주도주_스나이퍼
+2026-04-22 22:05:37,319 | INFO | 키움 로그인 시도
+2026-04-22 22:05:37,496 | INFO | CommConnect 호출 완료 | ret=0
+2026-04-22 22:05:37,496 | INFO | 로그인 이벤트 대기 시작
+2026-04-22 22:05:48,099 | INFO | OnEventConnect 호출 | err_code=0
+2026-04-22 22:05:48,099 | INFO | 로그인 성공
+2026-04-22 22:05:48,100 | INFO | 로그인 이벤트 대기 종료
+2026-04-22 22:05:48,100 | INFO | 키움 연결 완료 | 계좌=8122731511
+2026-04-22 22:05:48,100 | INFO | 조건검색 목록 로드 시작
+2026-04-22 22:05:48,102 | INFO | GetConditionLoad 호출 | ret=1
+2026-04-22 22:05:48,301 | INFO | OnReceiveConditionVer | ret=1 msg=[OK] 사용자 조건검색식 읽기
+2026-04-22 22:05:48,321 | INFO | 조건검색 목록 로드 완료 | count=32
+2026-04-22 22:05:48,322 | INFO | SendCondition 호출 | screen=7500 name=주도주_스나이퍼 index=4 search=0 ret=1
+2026-04-22 22:05:48,333 | INFO | OnReceiveTrCondition | screen=7500 name=주도주_스나이퍼 index=4 count=10 next=0
+2026-04-22 22:05:48,334 | INFO | 조건검색 초기 결과 수신 완료 | name=주도주_스나이퍼 count=10
+2026-04-22 22:05:48,335 | INFO | snapshot 저장 완료 | path=E:\codexAi\_review_extract\CherryPulse-KR-01\condition_snapshot.json count=10 codes=005290(동진쎄미켐), 006110(삼아알미늄), 007660(이수페타시스), 009540(HD한국조선해양), 011070(LG이노텍), 027360(아주IB투자), 034220(LG디스플레이), 066570(LG전자), 079550(LIG디펜스앤에어로스페이스), 417200(LS머트리얼즈)
+2026-04-22 22:05:48,336 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-22 22:05:48,336 | INFO | 브로커 종료 시작
+2026-04-22 22:05:48,336 | INFO | SendConditionStop 호출 | screen=7500 name=주도주_스나이퍼 index=4
+2026-04-22 22:05:48,337 | INFO | 브로커 종료 완료
