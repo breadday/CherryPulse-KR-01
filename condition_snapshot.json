@@ -1,47 +1,27 @@
 {
-  "generated_at": "2026-04-22 22:48:52",
+  "generated_at": "2026-04-23 20:45:59",
   "condition_name": "주도주_스나이퍼",
-  "count": 10,
+  "count": 5,
   "codes": [
     {
-      "symbol": "005290",
-      "name": "동진쎄미켐"
+      "symbol": "005930",
+      "name": "삼성전자"
     },
     {
-      "symbol": "006110",
-      "name": "삼아알미늄"
+      "symbol": "010120",
+      "name": "LS ELECTRIC"
     },
     {
-      "symbol": "007660",
-      "name": "이수페타시스"
+      "symbol": "034020",
+      "name": "두산에너빌리티"
     },
     {
-      "symbol": "009540",
-      "name": "HD한국조선해양"
+      "symbol": "298040",
+      "name": "효성중공업"
     },
     {
-      "symbol": "011070",
-      "name": "LG이노텍"
-    },
-    {
-      "symbol": "027360",
-      "name": "아주IB투자"
-    },
-    {
-      "symbol": "034220",
-      "name": "LG디스플레이"
-    },
-    {
-      "symbol": "066570",
-      "name": "LG전자"
-    },
-    {
-      "symbol": "079550",
-      "name": "LIG디펜스앤에어로스페이스"
-    },
-    {
-      "symbol": "417200",
-      "name": "LS머트리얼즈"
+      "symbol": "403870",
+      "name": "HPSP"
     }
   ]
 }

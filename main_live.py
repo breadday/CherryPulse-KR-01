@@ -46,6 +46,8 @@ except ImportError:
 CONDITION_NAME = "주도주_스나이퍼"
 CONDITION_SEARCH_START_HHMM = "08:50"
 AUTO_SHUTDOWN_HHMM = "15:20"
+KIWOOM_SERVER_RESTART_HHMM = "07:00"
+KIWOOM_RELOGIN_RESUME_HHMM = "07:05"
 CONDITION_RETRY_MS = 60_000
 MAX_TELEGRAM_SYMBOLS = 20
 SNAPSHOT_FILE = "condition_snapshot.json"
@@ -191,6 +193,36 @@ class MainLiveApp:
                 f"정규장 세션 모드 | now={now_hhmm} "
                 f"condition_start={CONDITION_SEARCH_START_HHMM} shutdown_at={AUTO_SHUTDOWN_HHMM}"
             )
+
+    def _in_kiwoom_restart_window(self) -> bool:
+        now = datetime.now().time()
+        resume_at = self._parse_hhmm(KIWOOM_RELOGIN_RESUME_HHMM)
+        return now < resume_at
+
+    def _warn_kiwoom_restart_window(self):
+        if not self._in_kiwoom_restart_window():
+            return
+
+        now_hhmm = self._now_hhmm()
+        self.logger.warning(
+            f"키움 서버 재시작 주의 | now={now_hhmm} "
+            f"server_restart={KIWOOM_SERVER_RESTART_HHMM} "
+            f"relogin_resume={KIWOOM_RELOGIN_RESUME_HHMM} | "
+            f"07:00 이전 실행 시 서버 재시작으로 로그아웃될 수 있고, "
+            f"자동 재로그인은 비밀번호 입력 문제로 실패할 수 있습니다."
+        )
+        self._send_telegram_throttled(
+            "kiwoom_restart_window",
+            (
+                f"키움 서버 재시작 주의\n"
+                f"현재시각: {now_hhmm}\n"
+                f"서버 재시작: {KIWOOM_SERVER_RESTART_HHMM}\n"
+                f"재로그인 재개 권장: {KIWOOM_RELOGIN_RESUME_HHMM}\n"
+                f"07:00 이전 실행 시 서버 재시작으로 로그아웃될 수 있으며,\n"
+                f"자동 재로그인은 비밀번호 입력 문제로 실패할 수 있습니다."
+            ),
+            cooldown_sec=30 * 60,
+        )
 
     def _safe_has_position(self, symbol: str) -> bool:
         try:
@@ -344,6 +376,23 @@ class MainLiveApp:
 
     def _recover_broker_session(self, reason: str):
         if self.shutting_down or self.reconnect_in_progress:
+            return
+
+        if self._in_kiwoom_restart_window():
+            self.logger.warning(
+                f"브로커 세션 복구 보류 | reason={reason} "
+                f"relogin_resume={KIWOOM_RELOGIN_RESUME_HHMM}"
+            )
+            self._send_telegram_throttled(
+                "recover_blocked_restart_window",
+                (
+                    f"브로커 자동 복구 보류\n"
+                    f"사유: {reason}\n"
+                    f"키움 서버 재시작 구간에는 자동 재로그인을 시도하지 않습니다.\n"
+                    f"{KIWOOM_RELOGIN_RESUME_HHMM} 이후 다시 확인해주세요."
+                ),
+                cooldown_sec=15 * 60,
+            )
             return
 
         now_ts = time.time()
@@ -532,6 +581,7 @@ class MainLiveApp:
         else:
             self.logger.warning("실주문 모드입니다. 실제 주문이 전송됩니다.")
         self._log_market_phase()
+        self._warn_kiwoom_restart_window()
 
     def start_condition_search(self):
         if self.shutting_down:
