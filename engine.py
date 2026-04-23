@@ -2347,6 +2347,26 @@ class TradingEngine:
     # -------------------------
     # 체결 반영
     # -------------------------
+    def _normalize_fill_qty(self, order, fill) -> int:
+        try:
+            reported_fill_qty = int(getattr(fill, "fill_qty", 0) or 0)
+            if order is None:
+                return max(reported_fill_qty, 0)
+
+            prev_filled = int(getattr(order, "filled_qty", 0) or 0)
+            total_qty = int(getattr(order, "qty", 0) or 0)
+            raw_unfilled = getattr(fill, "unfilled_qty", None)
+
+            if raw_unfilled is not None and total_qty > 0:
+                unfilled_qty = max(int(raw_unfilled or 0), 0)
+                cumulative_filled = max(total_qty - unfilled_qty, 0)
+                normalized_fill_qty = cumulative_filled - prev_filled
+                return max(normalized_fill_qty, 0)
+
+            return max(reported_fill_qty, 0)
+        except Exception:
+            return max(int(getattr(fill, "fill_qty", 0) or 0), 0)
+
     def on_fill(self, fill):
         try:
             symbol = fill.symbol
@@ -2360,6 +2380,19 @@ class TradingEngine:
                 broker_order_id=fill.order_id
             )
             resolved_order_id = local_order_id or self.order_manager.resolve_order_id(fill.order_id)
+            tracked_order = self.order_manager.get_order(resolved_order_id) if resolved_order_id else None
+            normalized_fill_qty = self._normalize_fill_qty(tracked_order, fill)
+
+            if normalized_fill_qty <= 0:
+                self.logger.info(
+                    f"중복/누적 체결 무시 | broker_id={fill.order_id} local_id={resolved_order_id} "
+                    f"symbol={fill.symbol} raw_fill_qty={getattr(fill, 'fill_qty', 0)} "
+                    f"unfilled={getattr(fill, 'unfilled_qty', None)}"
+                )
+                return
+
+            original_fill_qty = int(getattr(fill, "fill_qty", 0) or 0)
+            fill.fill_qty = normalized_fill_qty
 
             self.portfolio.update_fill(fill)
 
@@ -2391,7 +2424,8 @@ class TradingEngine:
                 self.logger.info(
                     f"체결 반영 | broker_id={fill.order_id} local_id={resolved_order_id} "
                     f"symbol={fill.symbol} side={fill.side} qty={fill.fill_qty} "
-                    f"price={fill.fill_price} unfilled={getattr(fill, 'unfilled_qty', 0)} "
+                    f"raw_qty={original_fill_qty} price={fill.fill_price} "
+                    f"unfilled={getattr(fill, 'unfilled_qty', 0)} "
                     f"status={order.status}"
                 )
 
