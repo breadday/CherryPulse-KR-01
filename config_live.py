@@ -123,7 +123,7 @@ TREND_HOLD_BREAKEVEN_FLOOR_PCT = -0.001
 STRATEGY_RUNTIME_CONFIG = {
     "momentum": {
         "enabled": True,
-        "start_hhmm": "09:00",
+        "start_hhmm": "09:30",
         "end_hhmm": "14:50",
         "max_daily_orders": 4,
         "max_positions": 2,
@@ -137,10 +137,12 @@ STRATEGY_RUNTIME_CONFIG = {
         "trailing_stop_enabled": True,
         "trailing_start_pct": 0.018,
         "trailing_stop_pct": 0.010,
+        "stop_loss_grace_seconds": 30,
+        "stop_loss_grace_ticks": 20,
     },
     "leader_pullback": {
         "enabled": True,
-        "start_hhmm": "09:00",
+        "start_hhmm": "09:30",
         "end_hhmm": "14:30",
         "max_daily_orders": 4,
         "max_positions": 2,
@@ -154,6 +156,8 @@ STRATEGY_RUNTIME_CONFIG = {
         "trailing_stop_enabled": True,
         "trailing_start_pct": 0.022,
         "trailing_stop_pct": 0.012,
+        "stop_loss_grace_seconds": 45,
+        "stop_loss_grace_ticks": 30,
     },
     "close_buy": {
         "enabled": True,
@@ -171,6 +175,8 @@ STRATEGY_RUNTIME_CONFIG = {
         "trailing_stop_enabled": True,
         "trailing_start_pct": 0.028,
         "trailing_stop_pct": 0.015,
+        "stop_loss_grace_seconds": 0,
+        "stop_loss_grace_ticks": 0,
         "next_day_exit_enabled": True,
         "next_day_exit_start_hhmm": "09:05",
         "next_day_exit_force_hhmm": "09:30",

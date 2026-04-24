@@ -1117,6 +1117,12 @@ class TradingEngine:
     # -------------------------
     def _start_trade_cycle_if_needed(self, symbol: str, qty_before: int, qty_after: int, avg_price_after: float):
         try:
+            if qty_after <= 0:
+                return
+
+            signal_ctx = self.last_entry_signal_context.get(symbol, {})
+            open_info = self.trade_open_info.get(symbol)
+
             if qty_before <= 0 and qty_after > 0:
                 signal_ctx = self.last_entry_signal_context.get(symbol, {})
                 self.trade_open_info[symbol] = {
@@ -1140,11 +1146,33 @@ class TradingEngine:
                     "selector_name": str(signal_ctx.get("selector_name", "") or ""),
                     "universe_name": str(signal_ctx.get("universe_name", "") or ""),
                     "peak_price_after_entry": float(avg_price_after),
+                    "entry_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "entry_trade_date": datetime.now().strftime("%Y-%m-%d"),
                 }
                 self.trend_hold_active.discard(symbol)
 
                 self.logger.info(
                     f"[TRADE_OPEN] symbol={symbol} entry_price={avg_price_after:.2f} qty={qty_after}"
+                )
+                return
+
+            if open_info and qty_after >= qty_before:
+                open_info["entry_price"] = float(avg_price_after)
+                open_info["entry_qty"] = int(qty_after)
+                if signal_ctx:
+                    open_info["strategy_name"] = str(signal_ctx.get("strategy_name", open_info.get("strategy_name", "")) or "")
+                    open_info["selector_name"] = str(signal_ctx.get("selector_name", open_info.get("selector_name", "")) or "")
+                    open_info["universe_name"] = str(signal_ctx.get("universe_name", open_info.get("universe_name", "")) or "")
+
+                ctx = self.position_entry_context.get(symbol)
+                if ctx is not None:
+                    ctx["peak_price_after_entry"] = max(
+                        float(ctx.get("peak_price_after_entry", 0.0) or 0.0),
+                        float(avg_price_after),
+                    )
+
+                self.logger.info(
+                    f"[TRADE_OPEN_UPDATE] symbol={symbol} entry_price={avg_price_after:.2f} qty={qty_after}"
                 )
         except Exception as e:
             self.logger.exception(f"거래 사이클 시작 기록 실패 | symbol={symbol} err={e}")
@@ -1667,6 +1695,42 @@ class TradingEngine:
 
         return None
 
+    def _in_stop_loss_grace_window(self, symbol: str, tick=None) -> bool:
+        ctx = self.position_entry_context.get(symbol, {})
+        if not ctx:
+            return False
+
+        strategy_name = self._strategy_name_for_symbol(symbol)
+        grace_seconds = max(
+            int(self._strategy_cfg_value(strategy_name, "stop_loss_grace_seconds", 0) or 0),
+            0,
+        )
+        grace_ticks = max(
+            int(self._strategy_cfg_value(strategy_name, "stop_loss_grace_ticks", 0) or 0),
+            0,
+        )
+        if grace_seconds <= 0 and grace_ticks <= 0:
+            return False
+
+        tick_ok = False
+        if grace_ticks > 0:
+            current_tick_no = int(self.tick_seq.get(symbol, 0))
+            entry_tick_no = int(ctx.get("entry_tick_no", current_tick_no))
+            ticks_from_entry = max(current_tick_no - entry_tick_no, 0)
+            tick_ok = ticks_from_entry < grace_ticks
+
+        second_ok = False
+        if grace_seconds > 0:
+            entry_dt = self._parse_dt(ctx.get("entry_time", ""))
+            current_dt = getattr(tick, "ts", None)
+            if not isinstance(current_dt, datetime):
+                current_dt = datetime.now()
+            if entry_dt is not None:
+                elapsed_sec = max((current_dt - entry_dt).total_seconds(), 0.0)
+                second_ok = elapsed_sec < grace_seconds
+
+        return tick_ok or second_ok
+
     # -------------------------
     # 자동 매도 검사
     # -------------------------
@@ -1703,6 +1767,7 @@ class TradingEngine:
                 "stop_loss_pct",
                 self._cfg("STOP_LOSS_PCT", -0.02),
             )
+            stop_loss_grace_active = self._in_stop_loss_grace_window(symbol, tick=tick)
             breakeven_enabled = self._strategy_cfg_bool(
                 strategy_name,
                 "breakeven_enabled",
@@ -1715,7 +1780,7 @@ class TradingEngine:
             )
 
             if tick is not None:
-                early_stop = self._check_engine_early_stop(symbol, price, avg_price, qty, tick)
+                early_stop = None if stop_loss_grace_active else self._check_engine_early_stop(symbol, price, avg_price, qty, tick)
                 if early_stop:
                     reason = early_stop["reason"]
                     self.last_exit_reason[symbol] = reason
@@ -1744,7 +1809,7 @@ class TradingEngine:
                 self._submit_auto_sell(symbol=symbol, qty=qty, reason=close_buy_next_day_reason)
                 return
 
-            if pnl_pct <= stop_loss_pct:
+            if pnl_pct <= stop_loss_pct and not stop_loss_grace_active:
                 exit_reason = f"stop_loss {pnl_pct:.2%}"
                 self.last_exit_reason[symbol] = exit_reason
                 self._log_exit_event(symbol, price, avg_price, qty, "STOP_LOSS")
