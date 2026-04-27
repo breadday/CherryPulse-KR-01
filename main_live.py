@@ -54,6 +54,7 @@ SNAPSHOT_FILE = "condition_snapshot.json"
 RECONNECT_COOLDOWN_SEC = 60
 STALE_REALDATA_SEC = 180
 STALE_REALDATA_CHECK_HHMM = "09:05"
+RECONNECT_DISABLE_AFTER_HHMM = "14:40"
 TELEGRAM_ALERT_COOLDOWN_SEC = 300
 LOGIN_FAILURE_BACKOFF_SEC = 600
 
@@ -376,6 +377,25 @@ class MainLiveApp:
 
     def _recover_broker_session(self, reason: str):
         if self.shutting_down or self.reconnect_in_progress:
+            return
+
+        now_hhmm = self._now_hhmm()
+        if now_hhmm >= RECONNECT_DISABLE_AFTER_HHMM:
+            self.logger.warning(
+                f"브로커 세션 복구 보류 | reason={reason} "
+                f"now={now_hhmm} disable_after={RECONNECT_DISABLE_AFTER_HHMM}"
+            )
+            self._send_telegram_throttled(
+                "recover_blocked_late_session",
+                (
+                    f"브로커 자동 복구 보류\n"
+                    f"사유: {reason}\n"
+                    f"현재시각: {now_hhmm}\n"
+                    f"{RECONNECT_DISABLE_AFTER_HHMM} 이후에는 장마감 지연을 막기 위해 "
+                    f"자동 재로그인을 시도하지 않습니다."
+                ),
+                cooldown_sec=15 * 60,
+            )
             return
 
         if self._in_kiwoom_restart_window():

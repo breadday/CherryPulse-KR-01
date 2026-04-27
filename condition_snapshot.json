@@ -1,27 +1,47 @@
 {
-  "generated_at": "2026-04-23 20:45:59",
+  "generated_at": "2026-04-24 21:48:50",
   "condition_name": "주도주_스나이퍼",
-  "count": 5,
+  "count": 10,
   "codes": [
     {
-      "symbol": "005930",
-      "name": "삼성전자"
+      "symbol": "008770",
+      "name": "호텔신라"
     },
     {
-      "symbol": "010120",
-      "name": "LS ELECTRIC"
+      "symbol": "010060",
+      "name": "OCI홀딩스"
     },
     {
-      "symbol": "034020",
-      "name": "두산에너빌리티"
+      "symbol": "036540",
+      "name": "SFA반도체"
     },
     {
-      "symbol": "298040",
-      "name": "효성중공업"
+      "symbol": "071970",
+      "name": "HD현대마린엔진"
     },
     {
-      "symbol": "403870",
-      "name": "HPSP"
+      "symbol": "078600",
+      "name": "대주전자재료"
+    },
+    {
+      "symbol": "080220",
+      "name": "제주반도체"
+    },
+    {
+      "symbol": "089030",
+      "name": "테크윙"
+    },
+    {
+      "symbol": "098460",
+      "name": "고영"
+    },
+    {
+      "symbol": "353200",
+      "name": "대덕전자"
+    },
+    {
+      "symbol": "490470",
+      "name": "세미파이브"
     }
   ]
 }

@@ -123,7 +123,7 @@ TREND_HOLD_BREAKEVEN_FLOOR_PCT = -0.001
 STRATEGY_RUNTIME_CONFIG = {
     "momentum": {
         "enabled": True,
-        "start_hhmm": "09:30",
+        "start_hhmm": "09:35",
         "end_hhmm": "14:50",
         "max_daily_orders": 4,
         "max_positions": 2,
@@ -137,12 +137,12 @@ STRATEGY_RUNTIME_CONFIG = {
         "trailing_stop_enabled": True,
         "trailing_start_pct": 0.018,
         "trailing_stop_pct": 0.010,
-        "stop_loss_grace_seconds": 30,
-        "stop_loss_grace_ticks": 20,
+        "stop_loss_grace_seconds": 90,
+        "stop_loss_grace_ticks": 0,
     },
     "leader_pullback": {
         "enabled": True,
-        "start_hhmm": "09:30",
+        "start_hhmm": "09:35",
         "end_hhmm": "14:30",
         "max_daily_orders": 4,
         "max_positions": 2,
@@ -156,8 +156,8 @@ STRATEGY_RUNTIME_CONFIG = {
         "trailing_stop_enabled": True,
         "trailing_start_pct": 0.022,
         "trailing_stop_pct": 0.012,
-        "stop_loss_grace_seconds": 45,
-        "stop_loss_grace_ticks": 30,
+        "stop_loss_grace_seconds": 120,
+        "stop_loss_grace_ticks": 0,
     },
     "close_buy": {
         "enabled": True,
