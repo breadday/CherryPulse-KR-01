@@ -104,6 +104,7 @@ class MainLiveApp:
         self.last_reconnect_attempt_ts = 0.0
         self.reconnect_in_progress = False
         self.reconnect_blocked_until_ts = 0.0
+        self.reconnect_block_log_last_sent_ts: dict[str, float] = {}
         self.telegram_alert_last_sent_ts: dict[str, float] = {}
 
     def _build_telegram(self):
@@ -150,13 +151,22 @@ class MainLiveApp:
         now_ts = time.time()
         last_sent_ts = self.telegram_alert_last_sent_ts.get(key, 0.0)
         if now_ts - last_sent_ts < cooldown_sec:
-            self.logger.info(
-                f"텔레그램 중복 알림 억제 | key={key} cooldown={cooldown_sec}s"
-            )
             return
 
         self.telegram_alert_last_sent_ts[key] = now_ts
         self._send_telegram(text)
+
+    def _msec_until_today_hhmm(self, hhmm: str) -> int:
+        now = datetime.now()
+        target_time = self._parse_hhmm(hhmm)
+        target = now.replace(
+            hour=target_time.hour,
+            minute=target_time.minute,
+            second=0,
+            microsecond=0,
+        )
+        delta_sec = (target - now).total_seconds()
+        return max(0, int(delta_sec * 1000))
 
     @staticmethod
     def _now_hhmm() -> str:
@@ -381,10 +391,14 @@ class MainLiveApp:
 
         now_hhmm = self._now_hhmm()
         if now_hhmm >= RECONNECT_DISABLE_AFTER_HHMM:
-            self.logger.warning(
-                f"브로커 세션 복구 보류 | reason={reason} "
-                f"now={now_hhmm} disable_after={RECONNECT_DISABLE_AFTER_HHMM}"
-            )
+            log_key = f"late_session:{reason}"
+            now_ts = time.time()
+            if now_ts - self.reconnect_block_log_last_sent_ts.get(log_key, 0.0) >= 60:
+                self.reconnect_block_log_last_sent_ts[log_key] = now_ts
+                self.logger.warning(
+                    f"브로커 세션 복구 보류 | reason={reason} "
+                    f"now={now_hhmm} disable_after={RECONNECT_DISABLE_AFTER_HHMM}"
+                )
             self._send_telegram_throttled(
                 "recover_blocked_late_session",
                 (
@@ -395,6 +409,12 @@ class MainLiveApp:
                     f"자동 재로그인을 시도하지 않습니다."
                 ),
                 cooldown_sec=15 * 60,
+            )
+            # 장후반에는 재로그인보다 정상 종료가 우선입니다.
+            # 반복 복구 루프를 잠시 멈춰 종료 타이머가 조용히 동작하게 합니다.
+            self.reconnect_blocked_until_ts = max(
+                self.reconnect_blocked_until_ts,
+                now_ts + 60,
             )
             return
 
@@ -767,14 +787,21 @@ class MainLiveApp:
         self.heartbeat.timeout.connect(self.on_heartbeat)
         self.heartbeat.start(200)
 
-        self.shutdown_timer.start(60_000)
         self.shutdown_timer.timeout.connect(self.auto_shutdown)
+        self.shutdown_timer.start(10_000)
+        shutdown_delay_ms = self._msec_until_today_hhmm(AUTO_SHUTDOWN_HHMM)
+        if shutdown_delay_ms > 0:
+            QTimer.singleShot(shutdown_delay_ms, self.auto_shutdown)
+            self.logger.info(
+                f"자동 종료 단발 타이머 등록 | shutdown_at={AUTO_SHUTDOWN_HHMM} "
+                f"delay_ms={shutdown_delay_ms}"
+            )
 
-        self.order_manage_timer.start(1_000)
         self.order_manage_timer.timeout.connect(self.engine.manage_pending_orders)
+        self.order_manage_timer.start(1_000)
 
-        self.condition_timer.start(CONDITION_RETRY_MS)
         self.condition_timer.timeout.connect(self.maybe_start_condition_search)
+        self.condition_timer.start(CONDITION_RETRY_MS)
 
         self.engine.start()
         self.broker.set_real_tick_callback(self.on_filtered_real_tick)

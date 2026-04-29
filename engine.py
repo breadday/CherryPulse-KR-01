@@ -34,6 +34,7 @@ class TradingEngine:
 
         # 주문 방어 설정
         self.last_order_time = {}
+        self.last_order_time_by_strategy = {}
         self.order_cooldown_sec = 10
         self.daily_order_count = 0
         self.daily_order_count_by_strategy = {}
@@ -1357,6 +1358,7 @@ class TradingEngine:
             self.daily_order_count = 0
             self.daily_order_count_by_strategy = {}
             self.last_order_time = {}
+            self.last_order_time_by_strategy = {}
             self.strategy_reject_reason_counts = defaultdict(Counter)
             self.strategy_signal_counts = Counter()
             self.strategy_order_block_counts = defaultdict(Counter)
@@ -2260,6 +2262,18 @@ class TradingEngine:
                 remain = max(1, int(self.order_cooldown_sec - (now_ts - last_ts)))
                 return False, f"주문 쿨다운 중({remain}초 남음)"
 
+            strategy_interval_sec = max(
+                self._safe_int(
+                    self._strategy_cfg_value(strategy_name, "order_interval_seconds", 0),
+                    0,
+                ),
+                0,
+            )
+            strategy_last_ts = float(self.last_order_time_by_strategy.get(strategy_name, 0.0))
+            if strategy_interval_sec > 0 and strategy_last_ts > 0 and now_ts - strategy_last_ts < strategy_interval_sec:
+                remain = max(1, int(strategy_interval_sec - (now_ts - strategy_last_ts)))
+                return False, f"전략 주문 간격 대기({strategy_name}, {remain}초 남음)"
+
             pos = self.portfolio.get_position(symbol)
             hold_qty = int(getattr(pos, "qty", 0))
             if hold_qty >= strategy_max_symbol_position:
@@ -2347,6 +2361,7 @@ class TradingEngine:
 
             if order.status == OrderStatus.SUBMITTED:
                 self.last_order_time[signal.symbol] = time.time()
+                self.last_order_time_by_strategy[strategy_name] = time.time()
                 self.daily_order_count += 1
                 self._increment_strategy_daily_order_count(strategy_name)
 
