@@ -85,7 +85,10 @@ class TelegramNotifier:
             return ok
         except Exception as e:
             if self.logger:
-                self.logger.exception(f"텔레그램 전송 예외 | {e}")
+                now_ts = time.time()
+                if now_ts - self._last_error_log_ts >= self._error_log_cooldown_sec:
+                    self._last_error_log_ts = now_ts
+                    self.logger.warning(f"텔레그램 전송 예외 | {type(e).__name__}: {e}")
             return False
 
     def send_startup_test(self) -> bool:
@@ -245,5 +248,3 @@ class TelegramNotifier:
         if net_pnl is not None:
             lines.append(f"순손익: {self._safe_num(net_pnl, 0)}")
         return self.send("\n".join(lines))
-
-    
