@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import signal
 import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -45,7 +46,7 @@ except ImportError:
 
 CONDITION_NAME = "주도주_스나이퍼"
 CONDITION_SEARCH_START_HHMM = "08:50"
-AUTO_SHUTDOWN_HHMM = "15:20"
+AUTO_SHUTDOWN_HHMM = "15:35"
 KIWOOM_SERVER_RESTART_HHMM = "07:00"
 KIWOOM_RELOGIN_RESUME_HHMM = "07:05"
 CONDITION_RETRY_MS = 60_000
@@ -57,6 +58,7 @@ STALE_REALDATA_CHECK_HHMM = "09:05"
 RECONNECT_DISABLE_AFTER_HHMM = "14:40"
 TELEGRAM_ALERT_COOLDOWN_SEC = 300
 LOGIN_FAILURE_BACKOFF_SEC = 600
+SHUTDOWN_WATCHDOG_GRACE_SEC = 30
 
 
 class MainLiveApp:
@@ -106,6 +108,7 @@ class MainLiveApp:
         self.reconnect_blocked_until_ts = 0.0
         self.reconnect_block_log_last_sent_ts: dict[str, float] = {}
         self.telegram_alert_last_sent_ts: dict[str, float] = {}
+        self.shutdown_watchdog_thread = None
 
     def _build_telegram(self):
         telegram = None
@@ -167,6 +170,52 @@ class MainLiveApp:
         )
         delta_sec = (target - now).total_seconds()
         return max(0, int(delta_sec * 1000))
+
+    def _start_shutdown_watchdog(self):
+        if self.shutdown_watchdog_thread and self.shutdown_watchdog_thread.is_alive():
+            return
+
+        self.shutdown_watchdog_thread = threading.Thread(
+            target=self._shutdown_watchdog_loop,
+            name="shutdown-watchdog",
+            daemon=True,
+        )
+        self.shutdown_watchdog_thread.start()
+        self.logger.info(
+            f"자동 종료 watchdog 시작 | shutdown_at={AUTO_SHUTDOWN_HHMM} "
+            f"grace_sec={SHUTDOWN_WATCHDOG_GRACE_SEC}"
+        )
+
+    def _shutdown_watchdog_loop(self):
+        while not self.shutting_down:
+            delay_ms = self._msec_until_today_hhmm(AUTO_SHUTDOWN_HHMM)
+            if delay_ms <= 0:
+                break
+            time.sleep(min(5.0, delay_ms / 1000.0))
+
+        if self.shutting_down:
+            return
+
+        now_hhmm = self._now_hhmm()
+        self.logger.warning(
+            f"자동 종료 watchdog 작동 | now={now_hhmm} shutdown_at={AUTO_SHUTDOWN_HHMM}"
+        )
+
+        try:
+            QTimer.singleShot(0, self.auto_shutdown)
+        except Exception as e:
+            self.logger.warning(f"자동 종료 watchdog 요청 실패 | {e}")
+
+        deadline = time.time() + SHUTDOWN_WATCHDOG_GRACE_SEC
+        while time.time() < deadline:
+            if self.shutting_down:
+                return
+            time.sleep(0.5)
+
+        self.logger.error(
+            f"자동 종료 watchdog 강제 종료 | grace_sec={SHUTDOWN_WATCHDOG_GRACE_SEC}"
+        )
+        os._exit(0)
 
     @staticmethod
     def _now_hhmm() -> str:
@@ -685,6 +734,7 @@ class MainLiveApp:
         self.shutting_down = True
 
         self.logger.info("종료 신호 수신")
+        self._log_open_positions_before_shutdown()
 
         try:
             self.broker.stop_condition(CONDITION_NAME)
@@ -771,6 +821,31 @@ class MainLiveApp:
             )
             self._recover_broker_session(f"stale_realdata:{int(idle_sec)}s")
 
+    def _log_open_positions_before_shutdown(self):
+        try:
+            positions = getattr(self.engine.portfolio, "positions", {})
+            open_items = []
+            for symbol, pos in positions.items():
+                qty = int(getattr(pos, "qty", 0) or 0)
+                if qty <= 0:
+                    continue
+                avg_price = float(getattr(pos, "avg_price", 0.0) or 0.0)
+                strategy_name = self.engine._strategy_name_for_symbol(symbol)
+                open_items.append((symbol, qty, avg_price, strategy_name))
+
+            if not open_items:
+                self.logger.info("종료 전 보유 포지션 없음")
+                return
+
+            self.logger.warning(f"종료 전 보유 포지션 존재 | count={len(open_items)}")
+            for symbol, qty, avg_price, strategy_name in open_items:
+                self.logger.warning(
+                    f"종료 전 보유 | symbol={symbol} qty={qty} "
+                    f"avg_price={avg_price:.0f} strategy={strategy_name or '-'}"
+                )
+        except Exception as e:
+            self.logger.warning(f"종료 전 보유 포지션 확인 실패 | {e}")
+
     def boot(self):
         self.log_run_mode()
 
@@ -796,6 +871,7 @@ class MainLiveApp:
                 f"자동 종료 단발 타이머 등록 | shutdown_at={AUTO_SHUTDOWN_HHMM} "
                 f"delay_ms={shutdown_delay_ms}"
             )
+        self._start_shutdown_watchdog()
 
         self.order_manage_timer.timeout.connect(self.engine.manage_pending_orders)
         self.order_manage_timer.start(1_000)

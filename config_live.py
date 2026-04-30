@@ -164,13 +164,13 @@ STRATEGY_RUNTIME_CONFIG = {
     },
     "close_buy": {
         "enabled": True,
-        "start_hhmm": "15:20",
-        "end_hhmm": "15:29",
+        "start_hhmm": "15:15",
+        "end_hhmm": "15:25",
         "max_daily_orders": 1,
         "max_positions": 1,
         "max_symbol_position": 1,
         "order_interval_seconds": 0,
-        "order_amount_per_trade": 500_000,
+        "order_amount_per_trade": 300_000,
         "stop_loss_pct": -0.020,
         "partial_take_profit_pct": 0.025,
         "partial_take_ratio": 0.50,
@@ -266,20 +266,26 @@ STRATEGY_CONFIG = {
     "leader_rally_by_volume_ratio": 0.7,
 
     # 종가매수 selector
-    "close_buy_start_hhmm": "15:20",
-    "close_buy_end_hhmm": "15:29",
+    "close_buy_start_hhmm": "15:15",
+    "close_buy_end_hhmm": "15:25",
     "close_buy_min_price": 1000,
-    "close_buy_min_price_change_pct": 1.0,
-    "close_buy_min_volume_ratio": 1.0,
+    "close_buy_min_price_change_pct": 0.3,
+    "close_buy_min_volume_ratio": 0.8,
     "close_buy_min_trade_strength": 0.0,
-    "close_buy_max_price_change_pct": 8.0,
+    "close_buy_max_price_change_pct": 6.0,
 
-    # 종가매수 signal
-    "close_buy_signal_min_price_change_pct": 1.5,
-    "close_buy_signal_min_volume_ratio": 1.1,
+    # 종가매수 signal: 상승추세 종목의 장후반 눌림/회복을 소액 검증합니다.
+    "close_buy_signal_min_price_change_pct": 0.3,
+    "close_buy_signal_min_volume_ratio": 0.8,
     "close_buy_signal_min_trade_strength": 0.0,
-    "close_buy_signal_max_price_change_pct": 7.0,
+    "close_buy_signal_max_price_change_pct": 6.0,
     "close_buy_signal_min_total_score": 0.0,
+    "close_buy_use_rsi2": True,
+    "close_buy_signal_max_rsi2": 30.0,
+    "close_buy_rsi_sample_seconds": 60,
+    "close_buy_rsi_max_samples": 30,
+    "close_buy_min_recovery_from_low_pct": 0.3,
+    "close_buy_max_pullback_from_high_pct": 4.5,
 }
 
 # =========================
