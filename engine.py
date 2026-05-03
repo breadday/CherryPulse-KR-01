@@ -68,13 +68,16 @@ class TradingEngine:
         self.cancel_in_progress = set()
         self.pending_resell = {}
         self.resell_retry_count = {}
-        self.abandon_resell_symbols = set()
+        self.resell_escalated_symbols = set()
         self.last_cancel_request_time = {}
 
         self.consecutive_loss_count = 0
         self.error_count = 0
         self.engine_protected = False
+        self.protected_tick_log_last_ts = {}
         self.daily_loss_protection_active = False
+        self.stale_force_exit_sent = set()
+        self.stale_notify_sent = set()
 
         self.trade_log = []
         self.win_count = 0
@@ -172,6 +175,13 @@ class TradingEngine:
             except Exception:
                 continue
         return None
+
+    def _parse_hhmm(self, value: str, default: str):
+        text = str(value or default).strip() or default
+        try:
+            return datetime.strptime(text, "%H:%M").time()
+        except Exception:
+            return datetime.strptime(default, "%H:%M").time()
 
     def _strategy_enabled(self, strategy_name: str) -> bool:
         return self._strategy_cfg_bool(strategy_name, "enabled", True)
@@ -1517,10 +1527,117 @@ class TradingEngine:
     # -------------------------
     # 주기적 미체결 관리
     # -------------------------
+    def _stale_position_policy(self, strategy_name: str) -> dict:
+        policies = self._cfg("STALE_POSITION_POLICY", {})
+        if not isinstance(policies, dict):
+            return {}
+        strategy_key = str(strategy_name or "").strip() or "unknown"
+        policy = policies.get(strategy_key)
+        if not isinstance(policy, dict):
+            policy = policies.get("unknown", {})
+        return policy if isinstance(policy, dict) else {}
+
+    def _check_stale_position_force_exit(self):
+        if not self._cfg("FORCE_EXIT_STALE_POSITIONS", False):
+            return
+
+        now = datetime.now()
+        now_time = now.time()
+        allowlist = {str(x).strip() for x in self._cfg("STALE_POSITION_ALLOWLIST", []) if str(x).strip()}
+        blocklist = {str(x).strip() for x in self._cfg("STALE_POSITION_BLOCKLIST", []) if str(x).strip()}
+
+        positions = getattr(self.portfolio, "positions", {})
+        for symbol, pos in list(positions.items()):
+            symbol = str(symbol or "").strip()
+            if not symbol:
+                continue
+
+            qty = int(getattr(pos, "qty", 0) or 0)
+            avg_price = float(getattr(pos, "avg_price", 0.0) or 0.0)
+            if qty <= 0 or avg_price <= 0:
+                continue
+            if allowlist and symbol not in allowlist:
+                continue
+            if symbol in blocklist:
+                continue
+            if symbol in self.sell_in_progress or symbol in self.cancel_in_progress:
+                continue
+            if symbol in self.pending_resell:
+                continue
+            if self.order_manager.exists_open_order(symbol):
+                continue
+
+            strategy_name = self._strategy_name_for_symbol(symbol) or "unknown"
+            policy = self._stale_position_policy(strategy_name)
+            notify_only = bool(policy.get("notify_only", False))
+            if not bool(policy.get("enabled", False)):
+                if notify_only and symbol not in self.stale_notify_sent:
+                    self.stale_notify_sent.add(symbol)
+                    self.logger.warning(
+                        f"잔존 포지션 수동확인 필요 | symbol={symbol} qty={qty} "
+                        f"avg_price={avg_price:.0f} strategy={strategy_name}"
+                    )
+                continue
+
+            ctx = self.position_entry_context.get(symbol, {})
+            entry_dt = self._parse_dt(ctx.get("entry_time", ""))
+            if entry_dt is None and self.sqlite_store:
+                route = self.sqlite_store.get_latest_buy_route(
+                    test_name=self.test_name,
+                    symbol=symbol,
+                )
+                entry_dt = self._parse_dt(route.get("created_at", ""))
+
+            if entry_dt is None:
+                if symbol not in self.stale_notify_sent:
+                    self.stale_notify_sent.add(symbol)
+                    self.logger.warning(
+                        f"잔존 포지션 진입일 확인 실패 | symbol={symbol} qty={qty} "
+                        f"avg_price={avg_price:.0f} strategy={strategy_name}"
+                    )
+                continue
+
+            age_days = max((now.date() - entry_dt.date()).days, 0)
+            stale_after_days = max(0, self._safe_int(policy.get("stale_after_days", 1), 1))
+            if age_days < stale_after_days:
+                continue
+
+            start_time = self._parse_hhmm(policy.get("exit_start_hhmm", "09:03"), "09:03")
+            end_time = self._parse_hhmm(policy.get("exit_end_hhmm", "10:00"), "10:00")
+            if not (start_time <= now_time <= end_time):
+                continue
+
+            dedupe_key = (symbol, now.strftime("%Y-%m-%d"))
+            if dedupe_key in self.stale_force_exit_sent:
+                continue
+
+            self.stale_force_exit_sent.add(dedupe_key)
+            reason = (
+                f"stale_force_exit strategy={strategy_name} "
+                f"age_days={age_days} entry={entry_dt.strftime('%Y-%m-%d')}"
+            )
+            self.logger.warning(
+                f"잔존 포지션 강제청산 | symbol={symbol} qty={qty} "
+                f"avg_price={avg_price:.0f} reason={reason}"
+            )
+            if self.telegram:
+                self.telegram.send(
+                    f"🚨 잔존 포지션 강제청산\n"
+                    f"종목: {symbol}\n"
+                    f"전략: {strategy_name}\n"
+                    f"수량: {qty}\n"
+                    f"평단: {avg_price:.0f}\n"
+                    f"보유일수: {age_days}\n"
+                    f"사유: {reason}"
+                )
+            self._submit_auto_sell(symbol=symbol, qty=qty, reason=reason)
+
     def manage_pending_orders(self):
         try:
             if not self.is_running:
                 return
+
+            self._check_stale_position_force_exit()
 
             symbols = set()
             for order in self.order_manager.orders.values():
@@ -1541,9 +1658,6 @@ class TradingEngine:
     # 실시간 틱 수신
     # -------------------------
     def on_real_tick(self, raw_tick: dict):
-        if self.engine_protected:
-            return
-
         try:
             symbol = str(raw_tick["symbol"])
             price = self._safe_int(raw_tick.get("price", 0), 0)
@@ -1604,6 +1718,16 @@ class TradingEngine:
             self._check_auto_exit(symbol, price, tick=tick)
             self._check_stale_sell_order(symbol)
             self._retry_sell_after_cancel(symbol)
+
+            if self.engine_protected:
+                now_ts = time.time()
+                if now_ts - self.protected_tick_log_last_ts.get(symbol, 0.0) >= 60:
+                    self.protected_tick_log_last_ts[symbol] = now_ts
+                    self.logger.info(
+                        f"보호모드 신규진입 차단 | symbol={symbol} price={price}"
+                    )
+                return
+
             self.on_tick(tick)
 
         except Exception as e:
@@ -1744,8 +1868,6 @@ class TradingEngine:
             strategy_name = self._strategy_name_for_symbol(symbol)
 
             if qty <= 0 or avg_price <= 0:
-                return
-            if symbol in self.abandon_resell_symbols:
                 return
             if symbol in self.pending_resell:
                 return
@@ -2105,12 +2227,21 @@ class TradingEngine:
 
             if retry_count >= self._cfg("RETRY_SELL_MAX_COUNT", 3):
                 self.logger.warning(
-                    f"재매도 최대 횟수 초과 | symbol={symbol} retry_count={retry_count}"
+                    f"재매도 최대 횟수 초과 | symbol={symbol} retry_count={retry_count} "
+                    f"| 자동청산 감시는 유지"
                 )
                 self.pending_resell.pop(symbol, None)
                 self.cancel_in_progress.discard(symbol)
                 self.sell_in_progress.discard(symbol)
-                self.abandon_resell_symbols.add(symbol)
+                self.resell_escalated_symbols.add(symbol)
+                if self.telegram:
+                    self.telegram.send(
+                        f"🚨 재매도 실패 고위험\n"
+                        f"종목: {symbol}\n"
+                        f"재시도횟수: {retry_count}\n"
+                        f"상태: 자동청산 감시는 계속 유지됩니다.\n"
+                        f"계좌와 미체결 상태를 직접 확인해주세요."
+                    )
                 return
 
             if self.order_manager.exists_open_order(symbol):
