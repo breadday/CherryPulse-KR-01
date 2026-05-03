@@ -83,6 +83,9 @@ RETRY_SELL_MAX_COUNT = 2
 # 자동 종료 / 오버나이트 보유
 # =========================
 AUTO_SHUTDOWN_ENABLED = True
+# 토/일은 자동으로 휴장일로 판단합니다.
+# 평일 휴장일은 아래 목록에 "YYYY-MM-DD" 형식으로 추가하세요.
+MARKET_HOLIDAYS = []
 
 # =========================
 # 재진입 제한
@@ -96,6 +99,37 @@ REENTRY_BLOCK_SEC_AFTER_SELL = 120
 MAX_CONSECUTIVE_LOSS = 3
 MAX_DAILY_LOSS = -150000
 MAX_ERROR_COUNT = 5
+
+# =========================
+# 잔존 포지션 강제청산
+# =========================
+FORCE_EXIT_STALE_POSITIONS = True
+STALE_POSITION_POLICY = {
+    "momentum": {
+        "enabled": True,
+        "stale_after_days": 1,
+        "exit_start_hhmm": "09:03",
+        "exit_end_hhmm": "09:20",
+    },
+    "leader_pullback": {
+        "enabled": True,
+        "stale_after_days": 1,
+        "exit_start_hhmm": "09:20",
+        "exit_end_hhmm": "10:00",
+    },
+    "close_buy": {
+        "enabled": True,
+        "stale_after_days": 1,
+        "exit_start_hhmm": "09:30",
+        "exit_end_hhmm": "10:00",
+    },
+    "unknown": {
+        "enabled": False,
+        "notify_only": True,
+    },
+}
+STALE_POSITION_ALLOWLIST = []
+STALE_POSITION_BLOCKLIST = []
 
 # =========================
 # 로그 / 디버그

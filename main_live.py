@@ -225,8 +225,24 @@ class MainLiveApp:
     def _parse_hhmm(hhmm: str):
         return datetime.strptime(hhmm, "%H:%M").time()
 
-    def _market_phase(self) -> str:
-        now = datetime.now().time()
+    def _is_trading_day(self, now_dt: datetime | None = None) -> bool:
+        now_dt = now_dt or datetime.now()
+        if now_dt.weekday() >= 5:
+            return False
+
+        holidays = {
+            str(day).strip()
+            for day in getattr(config, "MARKET_HOLIDAYS", [])
+            if str(day).strip()
+        }
+        return now_dt.strftime("%Y-%m-%d") not in holidays
+
+    def _market_phase(self, now_dt: datetime | None = None) -> str:
+        now_dt = now_dt or datetime.now()
+        if not self._is_trading_day(now_dt):
+            return "non_trading_day"
+
+        now = now_dt.time()
         start_at = self._parse_hhmm(CONDITION_SEARCH_START_HHMM)
         shutdown_at = self._parse_hhmm(AUTO_SHUTDOWN_HHMM)
         if now < start_at:
@@ -238,7 +254,14 @@ class MainLiveApp:
     def _log_market_phase(self):
         phase = self._market_phase()
         now_hhmm = self._now_hhmm()
-        if phase == "pre_open_wait":
+        today = datetime.now().strftime("%Y-%m-%d")
+        weekday = datetime.now().weekday()
+        if phase == "non_trading_day":
+            self.logger.info(
+                f"휴장일 실행 감지 | date={today} weekday={weekday} "
+                f"now={now_hhmm} | 즉시 종료 대상"
+            )
+        elif phase == "pre_open_wait":
             self.logger.info(
                 f"장 시작 전 대기 모드 | now={now_hhmm} "
                 f"condition_start={CONDITION_SEARCH_START_HHMM} shutdown_at={AUTO_SHUTDOWN_HHMM}"
@@ -309,8 +332,48 @@ class MainLiveApp:
         except Exception:
             return False
 
+    def _open_position_codes(self) -> list[str]:
+        try:
+            positions = getattr(self.engine.portfolio, "positions", {})
+            codes = []
+            for symbol, pos in positions.items():
+                qty = float(getattr(pos, "qty", 0) or 0)
+                if qty > 0:
+                    codes.append(str(symbol).strip())
+            return sorted({code for code in codes if code})
+        except Exception as e:
+            self.logger.warning(f"보유 종목 감시 목록 생성 실패 | {e}")
+            return []
+
+    def _open_order_codes(self) -> list[str]:
+        try:
+            orders = getattr(self.engine.order_manager, "orders", {})
+            codes = []
+            for order in orders.values():
+                symbol = str(getattr(order, "symbol", "") or "").strip()
+                if not symbol:
+                    continue
+
+                remain = getattr(order, "unfilled_qty", None)
+                qty = float(getattr(order, "qty", 0) or 0)
+                filled_qty = float(getattr(order, "filled_qty", 0) or 0)
+                if remain is not None:
+                    has_open_qty = float(remain or 0) > 0
+                else:
+                    has_open_qty = qty > filled_qty
+
+                if has_open_qty:
+                    codes.append(symbol)
+            return sorted({code for code in codes if code})
+        except Exception as e:
+            self.logger.warning(f"미체결 종목 감시 목록 생성 실패 | {e}")
+            return []
+
     def _all_watch_codes(self) -> list[str]:
-        return self.universe.all_watch_codes()
+        watch_codes = set(self.universe.all_watch_codes())
+        watch_codes.update(self._open_position_codes())
+        watch_codes.update(self._open_order_codes())
+        return sorted({str(code).strip() for code in watch_codes if str(code).strip()})
 
     def _format_display_list(
         self,
@@ -326,11 +389,13 @@ class MainLiveApp:
     def _refresh_real_registration(self):
         watch_codes = self._all_watch_codes()
         counts = self.universe.strategy_counts()
+        position_codes = self._open_position_codes()
+        open_order_codes = self._open_order_codes()
         self.broker.register_real(watch_codes)
         self.logger.info(
             f"실시간 구독 동기화 | total={len(watch_codes)} "
             f"codes={', '.join(self._format_display_list(watch_codes)) if watch_codes else '(empty)'} | "
-            f"universes={counts}"
+            f"universes={counts} positions={position_codes} open_orders={open_order_codes}"
         )
 
     def _log_strategy_universe_summary(self, prefix: str):
@@ -775,9 +840,19 @@ class MainLiveApp:
         if not getattr(config, "AUTO_SHUTDOWN_ENABLED", False):
             return
 
-        now = datetime.now().time()
+        now_dt = datetime.now()
+        phase = self._market_phase(now_dt)
+        now = now_dt.time()
         now_hhmm = self._now_hhmm()
         shutdown_time = self._parse_hhmm(AUTO_SHUTDOWN_HHMM)
+
+        if phase == "non_trading_day":
+            self.logger.info(
+                f"휴장일 자동 종료 | date={now_dt:%Y-%m-%d} "
+                f"weekday={now_dt.weekday()} now={now_hhmm}"
+            )
+            self.shutdown()
+            return
 
         if now >= shutdown_time:
             self.logger.info(
@@ -888,9 +963,11 @@ class MainLiveApp:
 
         time.sleep(1.5)
         self.engine.sync_account(password=ACCOUNT_PASSWORD)
+        self._refresh_real_registration()
 
         time.sleep(1.0)
         self.engine.sync_pending_orders(password=ACCOUNT_PASSWORD)
+        self._refresh_real_registration()
 
         self.engine.health_check()
 
