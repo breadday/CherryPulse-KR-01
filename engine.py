@@ -88,6 +88,12 @@ class TradingEngine:
         self.strategy_signal_counts = Counter()
         self.strategy_order_block_counts = defaultdict(Counter)
         self.strategy_order_ready_counts = Counter()
+        self.order_block_log_last_ts = {}
+        self.order_block_log_suppressed = Counter()
+        self.order_block_log_cooldown_sec = max(
+            1,
+            self._safe_int(self._cfg("ORDER_BLOCK_LOG_COOLDOWN_SEC", 30), 30),
+        )
 
         # -------------------------
         # 엔진 직접 약손절 / 초기 되밀림 관리
@@ -228,6 +234,22 @@ class TradingEngine:
         strategy_name = str(strategy_name or "").strip()
         if strategy_name:
             self.strategy_order_ready_counts[strategy_name] += 1
+
+    def _should_emit_order_block(self, symbol: str, strategy_name: str, reason: str):
+        reason_text = str(reason or "").strip()
+        # 괄호 안의 숫자만 바뀌는 반복 사유는 같은 차단으로 묶습니다.
+        reason_key = reason_text.split("(", 1)[0].strip() or reason_text
+
+        key = (str(symbol or "").strip(), str(strategy_name or "").strip(), reason_key)
+        now_ts = time.time()
+        last_ts = float(self.order_block_log_last_ts.get(key, 0.0))
+        if now_ts - last_ts < self.order_block_log_cooldown_sec:
+            self.order_block_log_suppressed[key] += 1
+            return False, 0
+
+        suppressed = int(self.order_block_log_suppressed.pop(key, 0))
+        self.order_block_log_last_ts[key] = now_ts
+        return True, suppressed
 
     def _format_strategy_diagnostics_lines(self) -> list[str]:
         strategy_names = sorted(
@@ -2056,7 +2078,6 @@ class TradingEngine:
             if order.status == OrderStatus.SUBMITTED:
                 self.last_order_time[symbol] = time.time()
                 self.daily_order_count += 1
-                self._increment_strategy_daily_order_count(self._strategy_name_for_symbol(symbol))
 
                 if "손절" in reason or "stop" in reason:
                     self.consecutive_loss_count += 1
@@ -2266,7 +2287,6 @@ class TradingEngine:
                 self.resell_retry_count[symbol] = retry_count + 1
                 self.last_order_time[symbol] = time.time()
                 self.daily_order_count += 1
-                self._increment_strategy_daily_order_count(self._strategy_name_for_symbol(symbol))
 
                 self.logger.warning(
                     f"취소 후 재매도 주문 등록 | symbol={symbol} qty={sell_qty} "
@@ -2371,6 +2391,13 @@ class TradingEngine:
         cash = float(getattr(self.portfolio, "cash", 0.0))
 
         if qty <= 0:
+            if side_value == "BUY" and price > 0:
+                available_amount = min(float(order_amount_limit or 0), max(0.0, cash))
+                if available_amount < price:
+                    return False, (
+                        f"주문가능금액 부족("
+                        f"available={int(available_amount)} price={int(price)})"
+                    )
             return False, "주문수량 오류"
 
         if side_value == "BUY":
@@ -2456,13 +2483,21 @@ class TradingEngine:
             ok, reason = self.can_send_order(signal, tick)
             if not ok:
                 self._record_strategy_order_block(strategy_name, reason)
-                self._record_signal_snapshot(signal, tick, allowed=False, block_reason=reason)
-                self.logger.info(
-                    f"[{signal.symbol}] 주문 차단 | {reason} | "
-                    f"score={entry_score} chg={getattr(tick, 'price_change_pct', 0.0)} "
-                    f"strength={getattr(tick, 'trade_strength', 0.0)} "
-                    f"vr={getattr(tick, 'volume_ratio', 0.0)}"
+                should_log, suppressed = self._should_emit_order_block(
+                    signal.symbol,
+                    strategy_name,
+                    reason,
                 )
+                if should_log:
+                    self._record_signal_snapshot(signal, tick, allowed=False, block_reason=reason)
+                    suppressed_text = f" suppressed={suppressed}" if suppressed else ""
+                    self.logger.info(
+                        f"[{signal.symbol}] 주문 차단 | {reason} | "
+                        f"score={entry_score} chg={getattr(tick, 'price_change_pct', 0.0)} "
+                        f"strength={getattr(tick, 'trade_strength', 0.0)} "
+                        f"vr={getattr(tick, 'volume_ratio', 0.0)}"
+                        f"{suppressed_text}"
+                    )
                 return
 
             self._record_signal_snapshot(signal, tick, allowed=True)
@@ -2494,7 +2529,8 @@ class TradingEngine:
                 self.last_order_time[signal.symbol] = time.time()
                 self.last_order_time_by_strategy[strategy_name] = time.time()
                 self.daily_order_count += 1
-                self._increment_strategy_daily_order_count(strategy_name)
+                if self._side_value(signal.side) == "BUY":
+                    self._increment_strategy_daily_order_count(strategy_name)
 
                 if self._side_value(signal.side) == "BUY" and hasattr(self.strategy, "mark_entry"):
                     self.strategy.mark_entry(signal.symbol, tick.ts)
