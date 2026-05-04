@@ -187,11 +187,19 @@ class MainLiveApp:
         )
 
     def _shutdown_watchdog_loop(self):
+        target_time = self._parse_hhmm(AUTO_SHUTDOWN_HHMM)
+        target_dt = datetime.now().replace(
+            hour=target_time.hour,
+            minute=target_time.minute,
+            second=0,
+            microsecond=0,
+        )
+
         while not self.shutting_down:
-            delay_ms = self._msec_until_today_hhmm(AUTO_SHUTDOWN_HHMM)
-            if delay_ms <= 0:
+            remain_sec = (target_dt - datetime.now()).total_seconds()
+            if remain_sec <= 0:
                 break
-            time.sleep(min(5.0, delay_ms / 1000.0))
+            time.sleep(min(5.0, remain_sec))
 
         if self.shutting_down:
             return
