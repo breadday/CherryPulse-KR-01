@@ -3,3 +3,4 @@ from .close_buy_selector import CloseBuySelector
 from .leader_selector import LeaderSelector
 from .momentum_selector import MomentumSelector
 from .snapshot_selector import SnapshotSelector
+from .vcp_box_selector import VcpBoxSelector

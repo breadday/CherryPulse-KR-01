@@ -124,6 +124,8 @@ class UniverseManager:
 
         if universe_name == "momentum_universe":
             return self.strategy_contains("momentum", symbol)
+        if universe_name == "vcp_box_universe":
+            return self.strategy_contains("vcp_box", symbol)
         if universe_name == "leader_universe":
             return self.strategy_contains("leader_pullback", symbol)
         if universe_name == "close_buy_universe":
