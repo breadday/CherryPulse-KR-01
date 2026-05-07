@@ -72,8 +72,10 @@ class TradingEngine:
         self.last_cancel_request_time = {}
 
         self.consecutive_loss_count = 0
+        self.consecutive_loss_count_by_strategy = Counter()
         self.error_count = 0
         self.engine_protected = False
+        self.strategy_protected = set()
         self.protected_tick_log_last_ts = {}
         self.daily_loss_protection_active = False
         self.stale_force_exit_sent = set()
@@ -234,6 +236,22 @@ class TradingEngine:
         strategy_name = str(strategy_name or "").strip()
         if strategy_name:
             self.strategy_order_ready_counts[strategy_name] += 1
+
+    def _strategy_protection_enabled(self) -> bool:
+        return bool(self._cfg("STRATEGY_PROTECTION_ENABLED", True))
+
+    def _is_strategy_protected(self, strategy_name: str) -> bool:
+        strategy_name = str(strategy_name or "").strip()
+        return bool(strategy_name and strategy_name in self.strategy_protected)
+
+    def _update_strategy_loss_count(self, strategy_name: str, is_loss: bool):
+        strategy_name = str(strategy_name or "").strip()
+        if not strategy_name or not self._strategy_protection_enabled():
+            return
+        if is_loss:
+            self.consecutive_loss_count_by_strategy[strategy_name] += 1
+        else:
+            self.consecutive_loss_count_by_strategy[strategy_name] = 0
 
     def _should_emit_order_block(self, symbol: str, strategy_name: str, reason: str):
         reason_text = str(reason or "").strip()
@@ -1395,15 +1413,14 @@ class TradingEngine:
             self.strategy_signal_counts = Counter()
             self.strategy_order_block_counts = defaultdict(Counter)
             self.strategy_order_ready_counts = Counter()
+            self.consecutive_loss_count = 0
+            self.consecutive_loss_count_by_strategy = Counter()
+            self.strategy_protected = set()
             self.daily_realized_pnl_base = float(getattr(self.portfolio, "realized_pnl", 0.0) or 0.0)
             if self.daily_loss_protection_active:
                 self.daily_loss_protection_active = False
-                max_consecutive_loss = self._cfg("MAX_CONSECUTIVE_LOSS", 3)
                 max_error_count = self._cfg("MAX_ERROR_COUNT", self._cfg("MAX_ENGINE_ERROR_COUNT", 5))
-                if (
-                    self.consecutive_loss_count < max_consecutive_loss
-                    and self.error_count < max_error_count
-                ):
+                if self.error_count < max_error_count:
                     self.engine_protected = False
             self.logger.info("일일 주문 카운터 초기화")
 
@@ -1413,13 +1430,15 @@ class TradingEngine:
         self.logger.info("브로커 연결 완료")
 
     def stop(self):
+        send_notifications = bool(getattr(self, "_send_notifications_on_stop", True))
         if not self.is_running:
             self.logger.info("이미 종료 상태")
             self.log_trade_summary(prefix="종료 전 성과 요약")
-            self._send_daily_summary(reason="already_stopped")
-            self._send_strategy_daily_summary(reason="already_stopped")
-            self._send_strategy_detail_summary(reason="already_stopped")
-            self._send_strategy_diagnostics_summary(reason="already_stopped")
+            if send_notifications:
+                self._send_daily_summary(reason="already_stopped")
+                self._send_strategy_daily_summary(reason="already_stopped")
+                self._send_strategy_detail_summary(reason="already_stopped")
+                self._send_strategy_diagnostics_summary(reason="already_stopped")
             try:
                 self.broker.shutdown()
             except Exception as e:
@@ -1428,10 +1447,11 @@ class TradingEngine:
 
         self.logger.info("엔진 종료 시작")
         self.log_trade_summary(prefix="종료 전 성과 요약")
-        self._send_daily_summary(reason="engine_stop")
-        self._send_strategy_daily_summary(reason="engine_stop")
-        self._send_strategy_detail_summary(reason="engine_stop")
-        self._send_strategy_diagnostics_summary(reason="engine_stop")
+        if send_notifications:
+            self._send_daily_summary(reason="engine_stop")
+            self._send_strategy_daily_summary(reason="engine_stop")
+            self._send_strategy_detail_summary(reason="engine_stop")
+            self._send_strategy_diagnostics_summary(reason="engine_stop")
         try:
             self.broker.shutdown()
         except Exception as e:
@@ -1446,7 +1466,8 @@ class TradingEngine:
             pending_count = len(getattr(self.order_manager, "orders", {}))
             self.logger.info(
                 f"health_check 완료 | positions={len(positions)} pending_orders={pending_count} "
-                f"daily_order_count={self.daily_order_count} protected={self.engine_protected}"
+                f"daily_order_count={self.daily_order_count} protected={self.engine_protected} "
+                f"strategy_protected={sorted(self.strategy_protected)}"
             )
             self._store_daily_summary_snapshot()
         except Exception as e:
@@ -2078,13 +2099,16 @@ class TradingEngine:
             if order.status == OrderStatus.SUBMITTED:
                 self.last_order_time[symbol] = time.time()
                 self.daily_order_count += 1
+                strategy_name = self._strategy_name_for_symbol(symbol)
+                is_loss_exit = "손절" in reason or "stop" in reason
 
-                if "손절" in reason or "stop" in reason:
+                if is_loss_exit:
                     self.consecutive_loss_count += 1
                 else:
                     self.consecutive_loss_count = 0
+                self._update_strategy_loss_count(strategy_name, is_loss_exit)
 
-                self._check_engine_protection()
+                self._check_engine_protection(strategy_name=strategy_name)
 
             self.logger.info(
                 f"자동매도 주문 등록 | symbol={symbol} qty={qty} "
@@ -2357,9 +2381,6 @@ class TradingEngine:
             if not self._cfg("PAPER_TRADING", self._cfg("DRY_RUN", False)):
                 return False, "장외 시간"
 
-        if self.engine_protected:
-            return False, "엔진 보호모드"
-
         daily_loss_hit, realized_pnl, daily_loss_limit = self._daily_loss_limit_reached()
         if daily_loss_hit:
             return False, f"daily loss limit reached ({realized_pnl:.0f}<={daily_loss_limit:.0f})"
@@ -2389,6 +2410,12 @@ class TradingEngine:
             ),
         )
         cash = float(getattr(self.portfolio, "cash", 0.0))
+
+        if self.engine_protected:
+            return False, "엔진 보호모드"
+
+        if side_value == "BUY" and self._is_strategy_protected(strategy_name):
+            return False, f"전략 보호모드({strategy_name})"
 
         if qty <= 0:
             if side_value == "BUY" and price > 0:
@@ -2731,33 +2758,38 @@ class TradingEngine:
     # -------------------------
     # 엔진 보호모드
     # -------------------------
-    def _check_engine_protection(self):
+    def _check_engine_protection(self, strategy_name: str = ""):
         try:
             max_consecutive_loss = self._cfg("MAX_CONSECUTIVE_LOSS", 3)
             max_error_count = self._cfg("MAX_ERROR_COUNT", self._cfg("MAX_ENGINE_ERROR_COUNT", 5))
             daily_loss_hit, realized_pnl, daily_loss_limit = self._daily_loss_limit_reached()
 
-            if self.consecutive_loss_count >= max_consecutive_loss:
-                self.engine_protected = True
-                self.logger.warning(
-                    f"엔진 보호모드 진입 | 연속손실={self.consecutive_loss_count} "
-                    f"기준={max_consecutive_loss}"
-                )
+            strategy_name = str(strategy_name or "").strip()
+            if self._strategy_protection_enabled() and strategy_name:
+                strategy_loss_count = int(self.consecutive_loss_count_by_strategy.get(strategy_name, 0))
+                if strategy_loss_count >= max_consecutive_loss and strategy_name not in self.strategy_protected:
+                    self.strategy_protected.add(strategy_name)
+                    self.logger.warning(
+                        f"전략 보호모드 진입 | strategy={strategy_name} "
+                        f"연속손실={strategy_loss_count} 기준={max_consecutive_loss}"
+                    )
 
             if self.error_count >= max_error_count:
+                if not self.engine_protected:
+                    self.logger.warning(
+                        f"엔진 보호모드 진입 | error_count={self.error_count} "
+                        f"기준={max_error_count}"
+                    )
                 self.engine_protected = True
-                self.logger.warning(
-                    f"엔진 보호모드 진입 | error_count={self.error_count} "
-                    f"기준={max_error_count}"
-                )
 
             if daily_loss_hit:
+                if not self.engine_protected:
+                    self.logger.warning(
+                        f"일일 손실 한도 도달 | realized_pnl={realized_pnl:.0f} "
+                        f"daily_loss_limit={daily_loss_limit:.0f}"
+                    )
                 self.engine_protected = True
                 self.daily_loss_protection_active = True
-                self.logger.warning(
-                    f"일일 손실 한도 도달 | realized_pnl={realized_pnl:.0f} "
-                    f"daily_loss_limit={daily_loss_limit:.0f}"
-                )
 
         except Exception as e:
             self.logger.warning(f"엔진 보호모드 점검 실패 | {e}")

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from selectors import CloseBuySelector, LeaderSelector, MomentumSelector
+from selectors import CloseBuySelector, LeaderSelector, MomentumSelector, VcpBoxSelector
 
 from .base_strategy import BaseStrategy
 from .close_buy_strategy import CloseBuyStrategy
 from .leader_pullback_strategy import LeaderPullbackStrategy
 from .momentum_strategy import MomentumStrategy
+from .vcp_box_strategy import VcpBoxStrategy
 
 
 class CompositeIntradayStrategy(BaseStrategy):
@@ -19,6 +20,8 @@ class CompositeIntradayStrategy(BaseStrategy):
         self.active_selector_name = ""
         self.active_strategy_name = ""
         self.active_universe_name = ""
+        if bool((config or {}).get("enable_vcp_box_entry", False)):
+            self.strategy_pairs.append((VcpBoxSelector(config=config), VcpBoxStrategy(config=config)))
         if bool((config or {}).get("enable_momentum_entry", True)):
             self.strategy_pairs.append((MomentumSelector(config=config), MomentumStrategy(config=config)))
         if bool((config or {}).get("enable_leader_pullback_entry", True)):
@@ -102,12 +105,14 @@ class CompositeIntradayStrategy(BaseStrategy):
             ordered = []
             if "momentum" in self.last_reject_details:
                 ordered.append(f"momentum:{self.last_reject_details['momentum']}")
+            if "vcp_box" in self.last_reject_details:
+                ordered.append(f"vcp_box:{self.last_reject_details['vcp_box']}")
             if "leader_pullback" in self.last_reject_details:
                 ordered.append(f"leader:{self.last_reject_details['leader_pullback']}")
             if "close_buy" in self.last_reject_details:
                 ordered.append(f"close_buy:{self.last_reject_details['close_buy']}")
             for key, value in self.last_reject_details.items():
-                if key not in ("momentum", "leader_pullback", "close_buy"):
+                if key not in ("momentum", "vcp_box", "leader_pullback", "close_buy"):
                     ordered.append(f"{key}:{value}")
             self.last_reject_reason = " | ".join(ordered)
         return None

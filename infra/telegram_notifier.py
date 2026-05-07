@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Dict, Optional
 import time
 import requests
+import config_live as config
 
 
 class TelegramNotifier:
@@ -28,6 +29,7 @@ class TelegramNotifier:
         self.base_url = f"https://api.telegram.org/bot{self.token}"
         self.session = requests.Session()
         self.session.trust_env = False
+        self.timeout_sec = max(1.0, float(getattr(config, "TELEGRAM_SEND_TIMEOUT_SEC", 3.0) or 3.0))
         self._last_error_log_ts = 0.0
         self._error_log_cooldown_sec = 300
         self.stock_name_map = dict(self.DEFAULT_STOCK_NAME_MAP)
@@ -75,7 +77,7 @@ class TelegramNotifier:
             resp = self.session.post(
                 f"{self.base_url}/sendMessage",
                 data={"chat_id": self.chat_id, "text": str(message)},
-                timeout=10,
+                timeout=(self.timeout_sec, self.timeout_sec),
             )
             ok = resp.status_code == 200
             if not ok and self.logger:

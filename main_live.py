@@ -833,12 +833,16 @@ class MainLiveApp:
             self.logger.warning(f"실시간 구독 해제 실패 | {e}")
 
         try:
+            self.engine._send_notifications_on_stop = bool(
+                getattr(config, "SEND_TELEGRAM_ON_SHUTDOWN", False)
+            )
             self.engine.stop()
         except Exception as e:
             self.logger.warning(f"엔진 종료 실패 | {e}")
 
         self.logger.info("프로그램 종료")
-        self._send_telegram("자동매매 종료")
+        if getattr(config, "SEND_TELEGRAM_ON_SHUTDOWN", False):
+            self._send_telegram("자동매매 종료")
         os._exit(0)
 
     def auto_shutdown(self):

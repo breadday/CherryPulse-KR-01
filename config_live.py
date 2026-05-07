@@ -38,6 +38,8 @@ SQLITE_DB_PATH = os.getenv(
 # =========================
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_SEND_TIMEOUT_SEC = float(os.getenv("TELEGRAM_SEND_TIMEOUT_SEC", "3"))
+SEND_TELEGRAM_ON_SHUTDOWN = False
 
 # =========================
 # 주문 / 자금 관리
@@ -99,12 +101,20 @@ REENTRY_BLOCK_SEC_AFTER_SELL = 120
 MAX_CONSECUTIVE_LOSS = 3
 MAX_DAILY_LOSS = -150000
 MAX_ERROR_COUNT = 5
+# 연속손실 보호는 전체 엔진이 아니라 전략별로 적용합니다.
+STRATEGY_PROTECTION_ENABLED = True
 
 # =========================
 # 잔존 포지션 강제청산
 # =========================
 FORCE_EXIT_STALE_POSITIONS = True
 STALE_POSITION_POLICY = {
+    "vcp_box": {
+        "enabled": True,
+        "stale_after_days": 1,
+        "exit_start_hhmm": "09:20",
+        "exit_end_hhmm": "10:00",
+    },
     "momentum": {
         "enabled": True,
         "stale_after_days": 1,
@@ -157,6 +167,27 @@ TREND_HOLD_BREAKEVEN_FLOOR_PCT = -0.001
 # 전략별 주문금액 / 청산 설정
 # =========================
 STRATEGY_RUNTIME_CONFIG = {
+    "vcp_box": {
+        "enabled": True,
+        "start_hhmm": "09:45",
+        "end_hhmm": "14:20",
+        # 신규 검증 전략이라 소액/저빈도로만 먼저 돌립니다.
+        "max_daily_orders": 1,
+        "max_positions": 1,
+        "max_symbol_position": 1,
+        "order_interval_seconds": 600,
+        "order_amount_per_trade": 300_000,
+        "stop_loss_pct": -0.012,
+        "partial_take_profit_pct": 0.020,
+        "partial_take_ratio": 0.50,
+        "take_profit_pct": 0.040,
+        "breakeven_enabled": True,
+        "trailing_stop_enabled": True,
+        "trailing_start_pct": 0.022,
+        "trailing_stop_pct": 0.012,
+        "stop_loss_grace_seconds": 90,
+        "stop_loss_grace_ticks": 0,
+    },
     "momentum": {
         "enabled": True,
         "start_hhmm": "09:35",
@@ -226,6 +257,10 @@ STRATEGY_RUNTIME_CONFIG = {
 }
 
 STRATEGY_UNIVERSE_CONFIG = {
+    "vcp_box": {
+        "use_snapshot": True,
+        "use_condition": True,
+    },
     "momentum": {
         "use_snapshot": True,
         "use_condition": True,
@@ -245,6 +280,7 @@ STRATEGY_UNIVERSE_CONFIG = {
 # =========================
 STRATEGY_CONFIG = {
     "watchlist": [],
+    "enable_vcp_box_entry": True,
     "enable_momentum_entry": True,
     "enable_leader_pullback_entry": True,
     "enable_close_buy_entry": True,
@@ -290,6 +326,29 @@ STRATEGY_CONFIG = {
     # 포지션 / 재진입
     "entry_cooldown_sec": 30,
     "allow_reentry": False,
+
+    # VCP + 다바스 박스 돌파 전략
+    # 장중 고점 추격보다, 좁은 박스 안에서 변동성이 줄었다가 다시 돌파하는 종목만 소액 검증합니다.
+    "vcp_box_selector_start_hhmm": "09:45",
+    "vcp_box_selector_end_hhmm": "14:20",
+    "vcp_box_min_price": 1000,
+    "vcp_box_min_price_change_pct": 0.2,
+    "vcp_box_max_price_change_pct": 12.0,
+    "vcp_box_min_volume_ratio": 0.7,
+    "vcp_box_history_size": 80,
+    "vcp_box_min_history": 35,
+    "vcp_box_lookback": 24,
+    "vcp_box_early_lookback": 24,
+    "vcp_box_max_box_width_pct": 2.8,
+    "vcp_box_min_prior_width_pct": 1.2,
+    "vcp_box_max_contraction_ratio": 0.75,
+    "vcp_box_breakout_buffer_pct": 0.05,
+    "vcp_box_min_trade_strength": 80.0,
+    "vcp_box_signal_min_volume_ratio": 1.1,
+    "vcp_box_signal_min_price_change_pct": 0.5,
+    "vcp_box_signal_max_price_change_pct": 12.0,
+    "vcp_box_entry_cooldown_sec": 600,
+
     "leader_entry_start_hhmm": "09:00",
     "leader_initial_rally_pct": 0.2,
     "leader_pullback_min_pct": 0.2,
