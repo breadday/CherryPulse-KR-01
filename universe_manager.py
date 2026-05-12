@@ -80,6 +80,45 @@ class UniverseManager:
         self._apply_source_to_strategy_universes("snapshot", clean_codes)
         return clean_codes
 
+    def replace_snapshot_rows(self, rows: Iterable[dict]) -> list[str]:
+        clean_codes = []
+        strategy_codes = {strategy_name: [] for strategy_name in self.strategy_names}
+        has_strategy_tags = False
+
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            symbol = str(row.get("symbol", "")).strip()
+            if not symbol:
+                continue
+            clean_codes.append(symbol)
+
+            raw_strategies = row.get("strategies", [])
+            if isinstance(raw_strategies, str):
+                strategies = [raw_strategies]
+            elif isinstance(raw_strategies, list):
+                strategies = [str(x).strip() for x in raw_strategies if str(x).strip()]
+            else:
+                strategies = []
+
+            if strategies:
+                has_strategy_tags = True
+                for strategy_name in strategies:
+                    if strategy_name in strategy_codes and self._strategy_uses_source(strategy_name, "snapshot"):
+                        strategy_codes[strategy_name].append(symbol)
+
+        clean_codes = sorted(set(clean_codes))
+        self.snapshot_universe.replace(clean_codes)
+
+        if has_strategy_tags:
+            for strategy_name in self.strategy_names:
+                target = self.strategy_source_universes[strategy_name]["snapshot"]
+                target.replace(strategy_codes.get(strategy_name, []))
+        else:
+            self._apply_source_to_strategy_universes("snapshot", clean_codes)
+
+        return clean_codes
+
     def replace_condition(self, codes: Iterable[str]) -> list[str]:
         clean_codes = self.condition_universe.replace(codes)
         self._apply_source_to_strategy_universes("condition", clean_codes)
@@ -126,6 +165,8 @@ class UniverseManager:
             return self.strategy_contains("momentum", symbol)
         if universe_name == "vcp_box_universe":
             return self.strategy_contains("vcp_box", symbol)
+        if universe_name == "bottom_reversal_universe":
+            return self.strategy_contains("bottom_reversal", symbol)
         if universe_name == "leader_universe":
             return self.strategy_contains("leader_pullback", symbol)
         if universe_name == "close_buy_universe":
@@ -136,7 +177,7 @@ class UniverseManager:
         payload = self.snapshot_selector.load_payload()
         rows = self.snapshot_selector.extract_rows(payload)
         codes = [row["symbol"] for row in rows]
-        clean_codes = self.replace_snapshot(codes)
+        clean_codes = self.replace_snapshot_rows(rows)
         return payload, rows, clean_codes
 
     def resolve_snapshot_condition_name(self, payload: dict) -> str:

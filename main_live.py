@@ -725,8 +725,9 @@ class MainLiveApp:
 
     def log_run_mode(self):
         self.logger.info("프로그램 시작")
+        run_source = "일봉 후보 snapshot 실행" if not bool(getattr(config, "ENABLE_CONDITION_SEARCH", True)) else "snapshot + 조건검색 실행"
         self.logger.info(
-            f"snapshot + 조건검색 실행 | condition_name={CONDITION_NAME} | "
+            f"{run_source} | condition_name={CONDITION_NAME} | "
             f"condition_search_start={CONDITION_SEARCH_START_HHMM} | "
             f"snapshot_file={self.snapshot_path.name}"
         )
@@ -747,6 +748,10 @@ class MainLiveApp:
 
     def start_condition_search(self):
         if self.shutting_down:
+            return
+        if not bool(getattr(config, "ENABLE_CONDITION_SEARCH", True)):
+            self.condition_started = True
+            self.logger.info("조건검색 비활성화 | 일봉 후보 snapshot만 사용")
             return
 
         try:
@@ -795,6 +800,9 @@ class MainLiveApp:
 
         if not self.condition_started:
             self.start_condition_search()
+            return
+
+        if not bool(getattr(config, "ENABLE_CONDITION_SEARCH", True)):
             return
 
         if len(self.universe.condition_codes()) == 0:
@@ -986,7 +994,8 @@ class MainLiveApp:
         self.load_snapshot_and_subscribe()
         self.maybe_start_condition_search()
 
-        self.logger.info("실시간 엔진 시작 | mode=snapshot_plus_condition")
+        run_mode = "daily_snapshot_only" if not bool(getattr(config, "ENABLE_CONDITION_SEARCH", True)) else "snapshot_plus_condition"
+        self.logger.info(f"실시간 엔진 시작 | mode={run_mode}")
         sys.exit(self.app.exec_())
 
 

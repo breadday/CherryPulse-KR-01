@@ -94,6 +94,14 @@ MARKET_HOLIDAYS = []
 # =========================
 REENTRY_BLOCK_SEC_AFTER_STOPLOSS = 300
 REENTRY_BLOCK_SEC_AFTER_SELL = 120
+# 손절로 청산된 종목은 같은 날 재매수하지 않습니다.
+BLOCK_STOPLOSS_SYMBOL_FOR_DAY = True
+
+# =========================
+# 신규매수 공통 안전장치
+# =========================
+# 모든 전략 공통으로 전일 대비 이 이상 오른 급등 종목은 신규매수하지 않습니다.
+MAX_NEW_BUY_PRICE_CHANGE_PCT = 10.0
 
 # =========================
 # 엔진 보호
@@ -105,6 +113,13 @@ MAX_ERROR_COUNT = 5
 STRATEGY_PROTECTION_ENABLED = True
 
 # =========================
+# 키움 응답 대기 제한
+# =========================
+# Kiwoom 이벤트가 누락되면 QEventLoop가 하루 종일 멈출 수 있어 timeout 후 재시도/복구 흐름으로 빠져나오게 합니다.
+KIWOOM_TR_TIMEOUT_SEC = 20
+KIWOOM_CONDITION_TIMEOUT_SEC = 20
+
+# =========================
 # 잔존 포지션 강제청산
 # =========================
 FORCE_EXIT_STALE_POSITIONS = True
@@ -114,6 +129,12 @@ STALE_POSITION_POLICY = {
         "stale_after_days": 1,
         "exit_start_hhmm": "09:20",
         "exit_end_hhmm": "10:00",
+    },
+    "bottom_reversal": {
+        "enabled": True,
+        "stale_after_days": 20,
+        "exit_start_hhmm": "14:30",
+        "exit_end_hhmm": "15:10",
     },
     "momentum": {
         "enabled": True,
@@ -148,6 +169,8 @@ ENABLE_DEBUG_LOG = True
 ENABLE_TELEGRAM_LOG = True
 # 같은 종목/전략/사유의 주문 차단 로그는 아래 초 동안 한 번만 남깁니다.
 ORDER_BLOCK_LOG_COOLDOWN_SEC = 30
+# 같은 종목/사유의 신호 탈락 로그도 과도하게 쌓이지 않도록 제한합니다.
+SIGNAL_SKIP_LOG_COOLDOWN_SEC = 30
 ENABLE_TREND_HOLD_AFTER_SCALP = True
 TREND_HOLD_MIN_PNL_PCT = 0.012
 TREND_HOLD_ENTRY_STRENGTH = 140.0
@@ -168,7 +191,7 @@ TREND_HOLD_BREAKEVEN_FLOOR_PCT = -0.001
 # =========================
 STRATEGY_RUNTIME_CONFIG = {
     "vcp_box": {
-        "enabled": True,
+        "enabled": False,
         "start_hhmm": "09:45",
         "end_hhmm": "14:20",
         # 신규 검증 전략이라 소액/저빈도로만 먼저 돌립니다.
@@ -188,8 +211,38 @@ STRATEGY_RUNTIME_CONFIG = {
         "stop_loss_grace_seconds": 90,
         "stop_loss_grace_ticks": 0,
     },
-    "momentum": {
+    "bottom_reversal": {
         "enabled": True,
+        "start_hhmm": "09:35",
+        "end_hhmm": "14:20",
+        # 바닥권 회복 전략은 급등 추격이 아니라 좋은 자리 검증용이라 소액/저빈도로 시작합니다.
+        "max_daily_orders": 2,
+        "max_positions": 1,
+        "max_symbol_position": 1,
+        "order_interval_seconds": 600,
+        "order_amount_per_trade": 300_000,
+        "stop_loss_pct": -0.050,
+        "partial_take_profit_pct": 0.100,
+        "partial_take_ratio": 0.35,
+        "take_profit_pct": 0.200,
+        "breakeven_enabled": True,
+        "trailing_stop_enabled": True,
+        "trailing_start_pct": 0.120,
+        "trailing_stop_pct": 0.040,
+        # 바닥패턴 매수 후 충분히 오른 상태에서 일봉 긴 양봉이 2번 나오면 분출/과열로 보고 잔여 물량을 청산합니다.
+        "long_bull_exit_enabled": True,
+        "long_bull_exit_timeframe": "daily",
+        "long_bull_exit_min_pnl_pct": 0.080,
+        "long_bull_body_pct": 0.050,
+        "long_bull_close_position": 0.65,
+        "long_bull_required_count": 2,
+        "long_bull_lookback_candles": 5,
+        "stop_loss_grace_seconds": 300,
+        "stop_loss_grace_ticks": 0,
+        "max_consecutive_loss": 2,
+    },
+    "momentum": {
+        "enabled": False,
         "start_hhmm": "09:35",
         "end_hhmm": "14:50",
         "max_daily_orders": 4,
@@ -207,6 +260,8 @@ STRATEGY_RUNTIME_CONFIG = {
         "trailing_stop_pct": 0.010,
         "stop_loss_grace_seconds": 90,
         "stop_loss_grace_ticks": 0,
+        # 모멘텀은 급등 추격 손실이 빠르게 누적될 수 있어 2연속 손실이면 당일 중지합니다.
+        "max_consecutive_loss": 2,
     },
     "leader_pullback": {
         "enabled": True,
@@ -258,30 +313,38 @@ STRATEGY_RUNTIME_CONFIG = {
 
 STRATEGY_UNIVERSE_CONFIG = {
     "vcp_box": {
+        "use_snapshot": False,
+        "use_condition": False,
+    },
+    "bottom_reversal": {
         "use_snapshot": True,
-        "use_condition": True,
+        "use_condition": False,
     },
     "momentum": {
-        "use_snapshot": True,
-        "use_condition": True,
+        "use_snapshot": False,
+        "use_condition": False,
     },
     "leader_pullback": {
         "use_snapshot": True,
-        "use_condition": True,
+        "use_condition": False,
     },
     "close_buy": {
         "use_snapshot": True,
-        "use_condition": True,
+        "use_condition": False,
     },
 }
 
 # =========================
 # 전략 설정
 # =========================
+ENABLE_CONDITION_SEARCH = False
+
 STRATEGY_CONFIG = {
     "watchlist": [],
-    "enable_vcp_box_entry": True,
-    "enable_momentum_entry": True,
+    "daily_candidate_mode": True,
+    "enable_vcp_box_entry": False,
+    "enable_bottom_reversal_entry": True,
+    "enable_momentum_entry": False,
     "enable_leader_pullback_entry": True,
     "enable_close_buy_entry": True,
 
@@ -333,7 +396,7 @@ STRATEGY_CONFIG = {
     "vcp_box_selector_end_hhmm": "14:20",
     "vcp_box_min_price": 1000,
     "vcp_box_min_price_change_pct": 0.2,
-    "vcp_box_max_price_change_pct": 12.0,
+    "vcp_box_max_price_change_pct": 10.0,
     "vcp_box_min_volume_ratio": 0.7,
     "vcp_box_history_size": 80,
     "vcp_box_min_history": 35,
@@ -346,8 +409,58 @@ STRATEGY_CONFIG = {
     "vcp_box_min_trade_strength": 80.0,
     "vcp_box_signal_min_volume_ratio": 1.1,
     "vcp_box_signal_min_price_change_pct": 0.5,
-    "vcp_box_signal_max_price_change_pct": 12.0,
+    "vcp_box_signal_max_price_change_pct": 10.0,
     "vcp_box_entry_cooldown_sec": 600,
+
+    # 바닥권 회복 전략
+    # 하락이 멈춘 뒤 저점 대비 회복, 단기 평균선 회복, 거래량/체결강도 개선이 같이 나올 때만 매수합니다.
+    "bottom_reversal_selector_start_hhmm": "09:35",
+    "bottom_reversal_selector_end_hhmm": "14:20",
+    "bottom_reversal_min_price": 1000,
+    "bottom_reversal_min_price_change_pct": -3.5,
+    "bottom_reversal_max_price_change_pct": 4.0,
+    "bottom_reversal_min_volume_ratio": 0.4,
+    "bottom_reversal_daily_candle_count": 100,
+    "bottom_reversal_daily_cache_ttl_sec": 21600,
+    "bottom_reversal_require_daily_pattern": True,
+    "bottom_reversal_daily_min_candles": 60,
+    "bottom_reversal_daily_lookback": 60,
+    "bottom_reversal_daily_min_decline_pct": 25.0,
+    "bottom_reversal_daily_near_low_pct": 16.0,
+    "bottom_reversal_daily_recovery_from_low_pct": 5.0,
+    "bottom_reversal_daily_min_volume_ratio": 1.2,
+    "bottom_reversal_daily_ma_short": 5,
+    "bottom_reversal_daily_ma_mid": 20,
+    "bottom_reversal_daily_w_low_tolerance_pct": 5.0,
+    "bottom_reversal_daily_w_min_separation": 5,
+    "bottom_reversal_daily_v_recovery_pct": 5.0,
+    "bottom_reversal_daily_rounded_rising_days": 2,
+    "bottom_reversal_history_size": 80,
+    "bottom_reversal_min_history": 25,
+    "bottom_reversal_short_window": 5,
+    "bottom_reversal_long_window": 20,
+    "bottom_reversal_pattern_lookback": 50,
+    "bottom_reversal_min_ticks_after_low": 3,
+    "bottom_reversal_require_pattern": True,
+    "bottom_reversal_enable_w_bottom": True,
+    "bottom_reversal_enable_v_reversal": True,
+    "bottom_reversal_enable_rounded_bottom": True,
+    "bottom_reversal_w_min_separation": 6,
+    "bottom_reversal_w_low_tolerance_pct": 1.2,
+    "bottom_reversal_w_undercut_tolerance_pct": 0.6,
+    "bottom_reversal_w_neckline_break_pct": 0.05,
+    "bottom_reversal_v_drop_pct": 1.0,
+    "bottom_reversal_v_recovery_pct": 0.8,
+    "bottom_reversal_rounded_rising_ticks": 3,
+    "bottom_reversal_min_recovery_from_low_pct": 0.4,
+    "bottom_reversal_max_recovery_from_low_pct": 3.0,
+    "bottom_reversal_max_pullback_from_high_pct": 5.0,
+    "bottom_reversal_min_last_momentum_pct": 0.12,
+    "bottom_reversal_signal_min_price_change_pct": -3.0,
+    "bottom_reversal_signal_max_price_change_pct": 4.0,
+    "bottom_reversal_signal_min_volume_ratio": 0.7,
+    "bottom_reversal_signal_min_trade_strength": 80.0,
+    "bottom_reversal_entry_cooldown_sec": 900,
 
     "leader_entry_start_hhmm": "09:00",
     "leader_initial_rally_pct": 0.2,

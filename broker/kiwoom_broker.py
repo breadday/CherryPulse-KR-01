@@ -1,7 +1,7 @@
 # broker/kiwoom_broker.py
 
 from collections import defaultdict, deque
-from PyQt5.QtCore import QObject, QEventLoop
+from PyQt5.QtCore import QObject, QEventLoop, QTimer
 from PyQt5.QAxContainer import QAxWidget
 import time
 
@@ -75,6 +75,8 @@ class KiwoomBroker(QObject):
         self.tr_retry_wait_sec = 1.2
         self.max_tr_retry = 3
         self.last_tr_request_ts = 0.0
+        self.tr_timeout_sec = int(getattr(config, "KIWOOM_TR_TIMEOUT_SEC", 20) or 20)
+        self.condition_timeout_sec = int(getattr(config, "KIWOOM_CONDITION_TIMEOUT_SEC", 20) or 20)
 
         # -------------------------
         # 주문 요청 속도 제한
@@ -97,6 +99,32 @@ class KiwoomBroker(QObject):
         self.symbol_last_seen_at = {}
 
         self._set_signal_slots()
+
+    def _exec_loop_with_timeout(self, loop_attr: str, label: str, timeout_sec: int | None = None) -> bool:
+        loop = getattr(self, loop_attr, None)
+        if loop is None:
+            return False
+
+        timeout_ms = max(1000, int((timeout_sec or self.tr_timeout_sec) * 1000))
+        timed_out = {"value": False}
+
+        def on_timeout():
+            current_loop = getattr(self, loop_attr, None)
+            if current_loop is not loop:
+                return
+            if loop.isRunning():
+                timed_out["value"] = True
+                self.logger.warning(f"{label} 대기 시간 초과 | timeout_ms={timeout_ms}")
+                loop.quit()
+
+        timer = QTimer(self)
+        timer.setSingleShot(True)
+        timer.timeout.connect(on_timeout)
+        timer.start(timeout_ms)
+        loop.exec_()
+        timer.stop()
+        timer.deleteLater()
+        return bool(timed_out["value"])
 
     # -------------------------
     # 이벤트 연결
@@ -642,7 +670,9 @@ class KiwoomBroker(QObject):
             screen_no=self.deposit_screen_no,
         )
 
-        self.tr_loop.exec_()
+        if self._exec_loop_with_timeout("tr_loop", "deposit_req", self.tr_timeout_sec):
+            self.tr_loop = None
+            raise TimeoutError("deposit_req 응답 대기 시간 초과")
         return self._deposit_result
 
     def get_positions(self, password: str = "") -> list[dict]:
@@ -656,7 +686,9 @@ class KiwoomBroker(QObject):
         self.tr_loop = QEventLoop()
 
         self._request_positions(prev_next="0", password=password)
-        self.tr_loop.exec_()
+        if self._exec_loop_with_timeout("tr_loop", "opw00018_req", self.tr_timeout_sec):
+            self.tr_loop = None
+            raise TimeoutError("opw00018_req 응답 대기 시간 초과")
 
         self.logger.info(f"get_positions 완료 | count={len(self._positions_result)}")
         return self._positions_result
@@ -686,7 +718,9 @@ class KiwoomBroker(QObject):
         self.tr_loop = QEventLoop()
 
         self._request_pending_orders(prev_next="0", password=password)
-        self.tr_loop.exec_()
+        if self._exec_loop_with_timeout("tr_loop", "opt10075_req", self.tr_timeout_sec):
+            self.tr_loop = None
+            raise TimeoutError("opt10075_req 응답 대기 시간 초과")
 
         self.logger.info(f"get_pending_orders 완료 | count={len(self._pending_orders_result)}")
         return self._pending_orders_result
@@ -738,7 +772,9 @@ class KiwoomBroker(QObject):
             prev_next=int(prev_next),
             screen_no=self.daily_screen_no,
         )
-        self.tr_loop.exec_()
+        if self._exec_loop_with_timeout("tr_loop", "opt10081_req", self.tr_timeout_sec):
+            self.tr_loop = None
+            raise TimeoutError(f"opt10081_req 응답 대기 시간 초과 | symbol={symbol}")
 
     def get_investor_flow(self, symbol: str, date_yyyymmdd: str):
         self.logger.info(f"get_investor_flow 호출 | symbol={symbol} date={date_yyyymmdd}")
@@ -759,7 +795,9 @@ class KiwoomBroker(QObject):
             prev_next=0,
             screen_no=self.investor_screen_no,
         )
-        self.tr_loop.exec_()
+        if self._exec_loop_with_timeout("tr_loop", "opt10060_req", self.tr_timeout_sec):
+            self.tr_loop = None
+            raise TimeoutError(f"opt10060_req 응답 대기 시간 초과 | symbol={symbol}")
 
         self.logger.info(
             f"get_investor_flow 완료 | symbol={symbol} "
@@ -1102,7 +1140,9 @@ class KiwoomBroker(QObject):
             self.condition_loop = None
             raise RuntimeError(f"GetConditionLoad 실패 | ret={ret}")
 
-        self.condition_loop.exec_()
+        if self._exec_loop_with_timeout("condition_loop", "GetConditionLoad", self.condition_timeout_sec):
+            self.condition_loop = None
+            raise TimeoutError("GetConditionLoad 응답 대기 시간 초과")
 
         if not self._condition_loaded:
             raise RuntimeError("조건검색 목록 로드 실패")
@@ -1150,7 +1190,9 @@ class KiwoomBroker(QObject):
                 f"SendCondition 실패 | condition_name={target_name} index={index} ret={ret}"
             )
 
-        self.condition_loop.exec_()
+        if self._exec_loop_with_timeout("condition_loop", "SendCondition", self.condition_timeout_sec):
+            self.condition_loop = None
+            raise TimeoutError(f"SendCondition 응답 대기 시간 초과 | condition_name={target_name}")
 
         self._condition_active_name = target_name
         self._condition_active_index = index

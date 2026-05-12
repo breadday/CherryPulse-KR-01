@@ -23,6 +23,9 @@ class CloseBuyStrategy(BaseStrategy):
         self.rsi_max_samples = max(4, int(self.config.get("close_buy_rsi_max_samples", 30) or 30))
         self.min_recovery_from_low_pct = float(self.config.get("close_buy_min_recovery_from_low_pct", 0.3) or 0.3)
         self.max_pullback_from_high_pct = float(self.config.get("close_buy_max_pullback_from_high_pct", 4.5) or 4.5)
+        self.daily_candidate_mode = bool(self.config.get("daily_candidate_mode", False))
+        self.daily_candidate_max_gap_pct = float(self.config.get("daily_candidate_max_gap_pct", 5.0) or 5.0)
+        self.daily_candidate_min_change_pct = float(self.config.get("daily_candidate_min_change_pct", -3.0) or -3.0)
         self.last_entry_date: dict[str, str] = {}
         self.symbol_state: dict[str, dict] = {}
 
@@ -122,6 +125,29 @@ class CloseBuyStrategy(BaseStrategy):
         if price <= 0:
             self.last_reject_reason = "invalid price"
             return None
+
+        if self.daily_candidate_mode:
+            if price_change_pct < self.daily_candidate_min_change_pct:
+                self.last_reject_reason = f"daily_candidate_chg<{self.daily_candidate_min_change_pct}"
+                return None
+            if price_change_pct > self.daily_candidate_max_gap_pct:
+                self.last_reject_reason = f"daily_candidate_chg>{self.daily_candidate_max_gap_pct}"
+                return None
+            return Signal(
+                symbol=symbol,
+                side=Side.BUY,
+                qty=self.default_qty,
+                reason=(
+                    "daily_close_buy_entry"
+                    f" | chg={price_change_pct:.2f}"
+                    f" | vr={volume_ratio:.2f}"
+                    f" | strength={trade_strength:.1f}"
+                ),
+                price=price,
+                order_type=OrderType.MARKET,
+                ts=getattr(tick, "ts", datetime.now()),
+            )
+
         if price_change_pct < self.min_price_change_pct:
             self.last_reject_reason = f"close_buy_chg<{self.min_price_change_pct}"
             return None
