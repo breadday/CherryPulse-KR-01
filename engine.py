@@ -2,7 +2,7 @@
 
 import csv
 import time
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict, deque
 from datetime import datetime
 from pathlib import Path
 
@@ -58,12 +58,17 @@ class TradingEngine:
         self.last_market_data_map = {}
         self.reentry_block_until = {}
         self.last_exit_reason = {}
+        self.stoploss_blocked_symbols = {}
 
         self.partial_exit_done = set()
         self.breakeven_active = set()
         self.trailing_high_price = {}
         self.trailing_armed = set()
         self.trend_hold_active = set()
+        self.bottom_reversal_candle_state = {}
+        self.bottom_reversal_long_bull_history = defaultdict(lambda: deque(maxlen=5))
+        self.daily_candle_cache = {}
+        self.daily_candle_fetch_ts = {}
 
         self.cancel_in_progress = set()
         self.pending_resell = {}
@@ -95,6 +100,12 @@ class TradingEngine:
         self.order_block_log_cooldown_sec = max(
             1,
             self._safe_int(self._cfg("ORDER_BLOCK_LOG_COOLDOWN_SEC", 30), 30),
+        )
+        self.signal_skip_log_last_ts = {}
+        self.signal_skip_log_suppressed = Counter()
+        self.signal_skip_log_cooldown_sec = max(
+            1,
+            self._safe_int(self._cfg("SIGNAL_SKIP_LOG_COOLDOWN_SEC", 30), 30),
         )
 
         # -------------------------
@@ -166,6 +177,12 @@ class TradingEngine:
 
     def _strategy_cfg_value(self, strategy_name: str, key: str, default):
         return self._strategy_runtime_cfg(strategy_name).get(key, default)
+
+    def _strategy_max_consecutive_loss(self, strategy_name: str) -> int:
+        default = self._safe_int(self._cfg("MAX_CONSECUTIVE_LOSS", 3), 3)
+        if not str(strategy_name or "").strip():
+            return default
+        return max(1, self._safe_int(self._strategy_cfg_value(strategy_name, "max_consecutive_loss", default), default))
 
     def _strategy_cfg_float(self, strategy_name: str, key: str, default: float) -> float:
         return self._safe_float(self._strategy_cfg_value(strategy_name, key, default), default)
@@ -267,6 +284,22 @@ class TradingEngine:
 
         suppressed = int(self.order_block_log_suppressed.pop(key, 0))
         self.order_block_log_last_ts[key] = now_ts
+        return True, suppressed
+
+    def _should_emit_signal_skip(self, symbol: str, reason: str):
+        reason_text = str(reason or "").strip()
+        # 숫자/세부값만 조금씩 바뀌는 반복 탈락 사유는 같은 로그로 묶습니다.
+        reason_key = reason_text.split("(", 1)[0].strip() or reason_text
+
+        key = (str(symbol or "").strip(), reason_key)
+        now_ts = time.time()
+        last_ts = float(self.signal_skip_log_last_ts.get(key, 0.0))
+        if now_ts - last_ts < self.signal_skip_log_cooldown_sec:
+            self.signal_skip_log_suppressed[key] += 1
+            return False, 0
+
+        suppressed = int(self.signal_skip_log_suppressed.pop(key, 0))
+        self.signal_skip_log_last_ts[key] = now_ts
         return True, suppressed
 
     def _format_strategy_diagnostics_lines(self) -> list[str]:
@@ -570,6 +603,68 @@ class TradingEngine:
 
     def _notify_enabled(self, key: str, default: bool):
         return bool(self._cfg(key, default))
+
+    def _get_daily_candles_cached(self, symbol: str) -> list[dict]:
+        symbol = str(symbol or "").strip()
+        if not symbol:
+            return []
+
+        now_ts = time.time()
+        strategy_config = getattr(config, "STRATEGY_CONFIG", {}) or {}
+        ttl_sec = max(
+            60,
+            self._safe_int(
+                strategy_config.get("bottom_reversal_daily_cache_ttl_sec", 21600),
+                21600,
+            ),
+        )
+        cached = self.daily_candle_cache.get(symbol)
+        if cached and now_ts - float(cached.get("ts", 0.0)) < ttl_sec:
+            return list(cached.get("candles", []) or [])
+
+        last_fetch_ts = float(self.daily_candle_fetch_ts.get(symbol, 0.0))
+        if now_ts - last_fetch_ts < 10:
+            return list(cached.get("candles", []) or []) if cached else []
+        self.daily_candle_fetch_ts[symbol] = now_ts
+
+        if not hasattr(self.broker, "get_daily_candles"):
+            return []
+
+        count = max(
+            20,
+            self._safe_int(
+                strategy_config.get("bottom_reversal_daily_candle_count", 40),
+                40,
+            ),
+        )
+        try:
+            candles = self.broker.get_daily_candles(symbol, count=count)
+        except Exception as e:
+            self.logger.warning(f"일봉 조회 실패 | symbol={symbol} err={e}")
+            return list(cached.get("candles", []) or []) if cached else []
+
+        clean = []
+        for candle in candles or []:
+            if not isinstance(candle, dict):
+                continue
+            close_price = abs(self._safe_float(candle.get("close", 0.0), 0.0))
+            if close_price <= 0:
+                continue
+            clean.append(
+                {
+                    "date": str(candle.get("date", "") or ""),
+                    "open": abs(self._safe_float(candle.get("open", 0.0), 0.0)),
+                    "high": abs(self._safe_float(candle.get("high", 0.0), 0.0)),
+                    "low": abs(self._safe_float(candle.get("low", 0.0), 0.0)),
+                    "close": close_price,
+                    "volume": abs(self._safe_float(candle.get("volume", 0.0), 0.0)),
+                    "trade_value": abs(self._safe_float(candle.get("trade_value", 0.0), 0.0)),
+                }
+            )
+        clean.sort(key=lambda row: row.get("date", ""))
+        self.daily_candle_cache[symbol] = {"ts": now_ts, "candles": clean}
+        self.logger.info(f"일봉 캐시 갱신 | symbol={symbol} count={len(clean)}")
+        return clean
 
     def _should_notify_order_event(self, event: str, status: str = "") -> bool:
         event = str(event or "")
@@ -1245,6 +1340,8 @@ class TradingEngine:
             total_realized_pnl = float(self.trade_cycle_realized_pnl.pop(symbol, 0.0))
             self.position_entry_context.pop(symbol, None)
             self.trend_hold_active.discard(symbol)
+            self.bottom_reversal_candle_state.pop(symbol, None)
+            self.bottom_reversal_long_bull_history.pop(symbol, None)
 
             if not open_info:
                 self.logger.warning(
@@ -1416,6 +1513,7 @@ class TradingEngine:
             self.consecutive_loss_count = 0
             self.consecutive_loss_count_by_strategy = Counter()
             self.strategy_protected = set()
+            self.stoploss_blocked_symbols = {}
             self.daily_realized_pnl_base = float(getattr(self.portfolio, "realized_pnl", 0.0) or 0.0)
             if self.daily_loss_protection_active:
                 self.daily_loss_protection_active = False
@@ -1497,6 +1595,7 @@ class TradingEngine:
                 pos.avg_price = avg_price
                 pos.partial_taken = False
                 pos.highest_return_pct = 0.0
+                self.portfolio.positions[symbol] = pos
 
                 self.logger.info(
                     f"포지션 반영 | symbol={symbol} qty={qty} avg_price={avg_price}"
@@ -1712,6 +1811,9 @@ class TradingEngine:
             )
             trade_strength = self._safe_float(raw_tick.get("trade_strength", 0.0), 0.0)
             volume_ratio = self._safe_float(raw_tick.get("volume_ratio", 0.0), 0.0)
+            open_price = self._safe_float(raw_tick.get("open", raw_tick.get("open_price", 0.0)), 0.0)
+            high_price = self._safe_float(raw_tick.get("high", raw_tick.get("high_price", 0.0)), 0.0)
+            low_price = self._safe_float(raw_tick.get("low", raw_tick.get("low_price", 0.0)), 0.0)
 
             external_scores = self._build_external_scores(raw_tick)
             current_tick_no = self._register_tick(symbol)
@@ -1733,6 +1835,9 @@ class TradingEngine:
                 "price_change_pct": price_change_pct,
                 "trade_strength": trade_strength,
                 "volume_ratio": volume_ratio,
+                "open_price": open_price,
+                "high_price": high_price,
+                "low_price": low_price,
                 "news_score": external_scores["news_score"],
                 "theme_score": external_scores["theme_score"],
                 "leader_score": external_scores["leader_score"],
@@ -1757,6 +1862,11 @@ class TradingEngine:
                 theme_score=external_scores["theme_score"],
                 leader_score=external_scores["leader_score"],
             )
+            # 전략에서 장중 시가/고가/저가를 선택적으로 활용할 수 있게 붙입니다.
+            tick.open_price = open_price
+            tick.high_price = high_price
+            tick.low_price = low_price
+            tick.daily_candles = self._get_daily_candles_cached(symbol)
 
             self._check_auto_exit(symbol, price, tick=tick)
             self._check_stale_sell_order(symbol)
@@ -1903,6 +2013,155 @@ class TradingEngine:
     # -------------------------
     # 자동 매도 검사
     # -------------------------
+    def _update_bottom_reversal_candle(self, symbol: str, price: float, tick=None):
+        ts = getattr(tick, "ts", None)
+        if not isinstance(ts, datetime):
+            ts = datetime.now()
+        bucket = ts.strftime("%Y-%m-%d %H:%M")
+
+        state = self.bottom_reversal_candle_state.get(symbol)
+        if not state:
+            self.bottom_reversal_candle_state[symbol] = {
+                "bucket": bucket,
+                "open": float(price),
+                "high": float(price),
+                "low": float(price),
+                "close": float(price),
+            }
+            return None
+
+        if state.get("bucket") != bucket:
+            finalized = dict(state)
+            self.bottom_reversal_candle_state[symbol] = {
+                "bucket": bucket,
+                "open": float(price),
+                "high": float(price),
+                "low": float(price),
+                "close": float(price),
+            }
+            return finalized
+
+        state["high"] = max(float(state.get("high", price) or price), float(price))
+        state["low"] = min(float(state.get("low", price) or price), float(price))
+        state["close"] = float(price)
+        return None
+
+    def _is_long_bull_candle(self, candle: dict, strategy_name: str) -> tuple[bool, float, float]:
+        open_price = self._safe_float(candle.get("open", 0.0), 0.0)
+        high_price = self._safe_float(candle.get("high", 0.0), 0.0)
+        low_price = self._safe_float(candle.get("low", 0.0), 0.0)
+        close_price = self._safe_float(candle.get("close", 0.0), 0.0)
+        if open_price <= 0 or high_price <= 0 or low_price <= 0 or close_price <= 0:
+            return False, 0.0, 0.0
+
+        body_pct = (close_price - open_price) / open_price
+        range_price = max(1.0, high_price - low_price)
+        close_position = (close_price - low_price) / range_price
+        min_body_pct = self._strategy_cfg_float(strategy_name, "long_bull_body_pct", 0.008)
+        min_close_position = self._strategy_cfg_float(strategy_name, "long_bull_close_position", 0.65)
+        is_long_bull = body_pct >= min_body_pct and close_position >= min_close_position
+        return is_long_bull, body_pct, close_position
+
+    def _check_bottom_reversal_long_bull_exit(self, symbol: str, price: int, avg_price: float, qty: int, tick=None):
+        strategy_name = self._strategy_name_for_symbol(symbol)
+        if strategy_name != "bottom_reversal":
+            return None
+        if not self._strategy_cfg_bool(strategy_name, "long_bull_exit_enabled", True):
+            return None
+
+        timeframe = str(self._strategy_cfg_value(strategy_name, "long_bull_exit_timeframe", "intraday") or "intraday")
+        if timeframe.lower() == "daily":
+            return self._check_bottom_reversal_daily_long_bull_exit(symbol, price, avg_price, tick=tick)
+
+        finalized = self._update_bottom_reversal_candle(symbol, price, tick=tick)
+        if not finalized:
+            return None
+
+        lookback = max(2, self._safe_int(self._strategy_cfg_value(strategy_name, "long_bull_lookback_candles", 5), 5))
+        history = self.bottom_reversal_long_bull_history[symbol]
+        if history.maxlen != lookback:
+            history = deque(history, maxlen=lookback)
+            self.bottom_reversal_long_bull_history[symbol] = history
+
+        is_long_bull, body_pct, close_position = self._is_long_bull_candle(finalized, strategy_name)
+        history.append(bool(is_long_bull))
+
+        pnl_pct = (price - avg_price) / avg_price if avg_price > 0 else 0.0
+        min_pnl_pct = self._strategy_cfg_float(strategy_name, "long_bull_exit_min_pnl_pct", 0.030)
+        required_count = max(1, self._safe_int(self._strategy_cfg_value(strategy_name, "long_bull_required_count", 2), 2))
+        long_bull_count = sum(1 for value in history if value)
+
+        self.logger.info(
+            f"[BOTTOM_LONG_BULL_CHECK] {symbol} candle={finalized.get('bucket')} "
+            f"is_long={is_long_bull} body={body_pct:.2%} close_pos={close_position:.2f} "
+            f"count={long_bull_count}/{required_count} pnl={pnl_pct:.2%}"
+        )
+
+        if pnl_pct >= min_pnl_pct and long_bull_count >= required_count:
+            return (
+                f"bottom_long_bull_exhaustion "
+                f"count={long_bull_count}/{required_count} "
+                f"body={body_pct:.2%} pnl={pnl_pct:.2%}"
+            )
+        return None
+
+    def _check_bottom_reversal_daily_long_bull_exit(self, symbol: str, price: int, avg_price: float, tick=None):
+        candles = getattr(tick, "daily_candles", []) if tick is not None else []
+        today = datetime.now().strftime("%Y%m%d")
+        clean = []
+        for candle in candles or []:
+            if not isinstance(candle, dict):
+                continue
+            date = str(candle.get("date", "") or "").strip()
+            if date and date >= today:
+                continue
+            open_price = self._safe_float(candle.get("open", 0.0), 0.0)
+            high_price = self._safe_float(candle.get("high", 0.0), 0.0)
+            low_price = self._safe_float(candle.get("low", 0.0), 0.0)
+            close_price = self._safe_float(candle.get("close", 0.0), 0.0)
+            if min(open_price, high_price, low_price, close_price) <= 0:
+                continue
+            clean.append(
+                {
+                    "date": date,
+                    "open": open_price,
+                    "high": high_price,
+                    "low": low_price,
+                    "close": close_price,
+                }
+            )
+        clean.sort(key=lambda row: row.get("date", ""))
+        lookback = max(2, self._safe_int(self._strategy_cfg_value("bottom_reversal", "long_bull_lookback_candles", 5), 5))
+        recent = clean[-lookback:]
+        if len(recent) < 2:
+            return None
+
+        long_bull_count = 0
+        last_body_pct = 0.0
+        last_close_position = 0.0
+        for candle in recent:
+            is_long_bull, body_pct, close_position = self._is_long_bull_candle(candle, "bottom_reversal")
+            if is_long_bull:
+                long_bull_count += 1
+                last_body_pct = body_pct
+                last_close_position = close_position
+
+        pnl_pct = (price - avg_price) / avg_price if avg_price > 0 else 0.0
+        min_pnl_pct = self._strategy_cfg_float("bottom_reversal", "long_bull_exit_min_pnl_pct", 0.080)
+        required_count = max(1, self._safe_int(self._strategy_cfg_value("bottom_reversal", "long_bull_required_count", 2), 2))
+        self.logger.info(
+            f"[BOTTOM_DAILY_LONG_BULL_CHECK] {symbol} "
+            f"count={long_bull_count}/{required_count} pnl={pnl_pct:.2%} "
+            f"last_body={last_body_pct:.2%} last_close_pos={last_close_position:.2f}"
+        )
+        if pnl_pct >= min_pnl_pct and long_bull_count >= required_count:
+            return (
+                f"bottom_daily_long_bull_exhaustion "
+                f"count={long_bull_count}/{required_count} "
+                f"body={last_body_pct:.2%} pnl={pnl_pct:.2%}"
+            )
+        return None
+
     def _check_auto_exit(self, symbol: str, price: int, tick=None):
         try:
             pos = self.portfolio.get_position(symbol)
@@ -2032,6 +2291,23 @@ class TradingEngine:
                     )
                     self._submit_auto_sell(symbol, qty, "breakeven_exit")
                     return
+
+            bottom_long_bull_reason = self._check_bottom_reversal_long_bull_exit(
+                symbol=symbol,
+                price=price,
+                avg_price=avg_price,
+                qty=qty,
+                tick=tick,
+            )
+            if bottom_long_bull_reason:
+                self.last_exit_reason[symbol] = bottom_long_bull_reason
+                self._log_exit_event(symbol, price, avg_price, qty, "BOTTOM_LONG_BULL_EXIT")
+                self.logger.info(
+                    f"바닥패턴 긴 양봉 2회 청산 | symbol={symbol} price={price} "
+                    f"avg_price={avg_price} qty={qty} pnl={pnl_pct:.2%} reason={bottom_long_bull_reason}"
+                )
+                self._submit_auto_sell(symbol=symbol, qty=qty, reason=bottom_long_bull_reason)
+                return
 
             if symbol in self.partial_exit_done and symbol in self.trailing_armed and trailing_stop_enabled:
                 high_price = self.trailing_high_price.get(symbol, 0)
@@ -2342,11 +2618,19 @@ class TradingEngine:
     # -------------------------
     def _set_reentry_block(self, symbol: str, reason: str):
         now_ts = time.time()
+        reason_text = str(reason or "")
+        is_stoploss = "손절" in reason_text or "stop" in reason_text.lower()
 
-        if "손절" in reason or "stop" in reason:
+        if is_stoploss:
             block_sec = self._cfg("REENTRY_BLOCK_SEC_AFTER_STOPLOSS", 60)
         else:
             block_sec = self._cfg("REENTRY_BLOCK_SEC_AFTER_SELL", 30)
+
+        if is_stoploss and self._cfg("BLOCK_STOPLOSS_SYMBOL_FOR_DAY", True):
+            self.stoploss_blocked_symbols[symbol] = {
+                "date": datetime.now().date(),
+                "reason": reason_text,
+            }
 
         until_ts = now_ts + block_sec
         self.reentry_block_until[symbol] = until_ts
@@ -2358,6 +2642,11 @@ class TradingEngine:
         )
 
     def _can_reenter_buy(self, symbol: str):
+        stoploss_block = self.stoploss_blocked_symbols.get(symbol)
+        if stoploss_block and stoploss_block.get("date") == datetime.now().date():
+            reason = stoploss_block.get("reason", "당일 손절")
+            return False, f"당일 손절 종목 재진입 금지(사유={reason})"
+
         until_ts = self.reentry_block_until.get(symbol, 0)
         now_ts = time.time()
 
@@ -2393,6 +2682,7 @@ class TradingEngine:
         side_value = self._side_value(signal.side)
         qty = max(0, self._safe_int(getattr(signal, "qty", 0), 0))
         price = max(0, self._safe_float(getattr(tick, "price", 0), 0.0))
+        price_change_pct = self._safe_float(getattr(tick, "price_change_pct", 0.0), 0.0)
         estimated_amount = self._estimate_order_amount(qty, price)
         order_amount_limit = self._effective_order_amount_limit(signal=signal)
         strategy_max_positions = max(
@@ -2428,6 +2718,10 @@ class TradingEngine:
             return False, "주문수량 오류"
 
         if side_value == "BUY":
+            max_new_buy_chg = self._safe_float(self._cfg("MAX_NEW_BUY_PRICE_CHANGE_PCT", 10.0), 10.0)
+            if max_new_buy_chg > 0 and price_change_pct >= max_new_buy_chg:
+                return False, f"급등 종목 신규매수 차단(chg={price_change_pct:.2f}%>={max_new_buy_chg:.2f}%)"
+
             if strategy_name and not self._strategy_enabled(strategy_name):
                 return False, f"전략 비활성화({strategy_name})"
             if strategy_name and self._strategy_daily_order_count(strategy_name) >= self._strategy_daily_order_limit(strategy_name):
@@ -2500,7 +2794,10 @@ class TradingEngine:
                 self._record_strategy_reject_details(getattr(self.strategy, "last_reject_details", {}))
                 reject_reason = getattr(self.strategy, "last_reject_reason", "")
                 if reject_reason:
-                    self.logger.info(f"[SIGNAL_SKIP] {symbol} | {reject_reason}")
+                    should_log, suppressed = self._should_emit_signal_skip(symbol, reject_reason)
+                    if should_log:
+                        suppressed_text = f" suppressed={suppressed}" if suppressed else ""
+                        self.logger.info(f"[SIGNAL_SKIP] {symbol} | {reject_reason}{suppressed_text}")
                 return
 
             self._normalize_buy_signal_qty(signal, tick)
@@ -2760,12 +3057,12 @@ class TradingEngine:
     # -------------------------
     def _check_engine_protection(self, strategy_name: str = ""):
         try:
-            max_consecutive_loss = self._cfg("MAX_CONSECUTIVE_LOSS", 3)
             max_error_count = self._cfg("MAX_ERROR_COUNT", self._cfg("MAX_ENGINE_ERROR_COUNT", 5))
             daily_loss_hit, realized_pnl, daily_loss_limit = self._daily_loss_limit_reached()
 
             strategy_name = str(strategy_name or "").strip()
             if self._strategy_protection_enabled() and strategy_name:
+                max_consecutive_loss = self._strategy_max_consecutive_loss(strategy_name)
                 strategy_loss_count = int(self.consecutive_loss_count_by_strategy.get(strategy_name, 0))
                 if strategy_loss_count >= max_consecutive_loss and strategy_name not in self.strategy_protected:
                     self.strategy_protected.add(strategy_name)

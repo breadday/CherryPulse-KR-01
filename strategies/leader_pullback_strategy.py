@@ -25,6 +25,9 @@ class LeaderPullbackStrategy(BaseStrategy):
         )
         self.leader_rally_by_change_pct = float(self.config.get("leader_rally_by_change_pct", 0.3) or 0.3)
         self.leader_rally_by_volume_ratio = float(self.config.get("leader_rally_by_volume_ratio", 0.8) or 0.8)
+        self.daily_candidate_mode = bool(self.config.get("daily_candidate_mode", False))
+        self.daily_candidate_max_gap_pct = float(self.config.get("daily_candidate_max_gap_pct", 5.0) or 5.0)
+        self.daily_candidate_min_change_pct = float(self.config.get("daily_candidate_min_change_pct", -3.0) or -3.0)
         self.leader_state: dict[str, dict[str, Any]] = {}
 
     def _time_hhmm(self, tick) -> str:
@@ -106,6 +109,28 @@ class LeaderPullbackStrategy(BaseStrategy):
             return reject("invalid price")
         if self._time_hhmm(tick) < self.leader_entry_start_hhmm:
             return reject(f"leader_wait<{self.leader_entry_start_hhmm}")
+
+        if self.daily_candidate_mode:
+            if price_change_pct < self.daily_candidate_min_change_pct:
+                return reject(f"daily_candidate_chg<{self.daily_candidate_min_change_pct}")
+            if price_change_pct > self.daily_candidate_max_gap_pct:
+                return reject(f"daily_candidate_chg>{self.daily_candidate_max_gap_pct}")
+            state["prev_price"] = price
+            return Signal(
+                symbol=symbol,
+                side=Side.BUY,
+                qty=self.default_qty,
+                reason=(
+                    "daily_pullback_leader_entry"
+                    f" | chg={price_change_pct:.2f}"
+                    f" | vr={volume_ratio:.2f}"
+                    f" | strength={trade_strength:.1f}"
+                ),
+                price=price,
+                order_type=OrderType.MARKET,
+                ts=getattr(tick, "ts", datetime.now()),
+            )
+
         if not bool(state.get("rally_seen", False)):
             return reject("leader_rally_not_seen")
 

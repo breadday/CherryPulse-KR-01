@@ -25,11 +25,19 @@ class SnapshotSelector(BaseSelector):
             if isinstance(item, dict):
                 symbol = str(item.get("symbol", "")).strip()
                 name = str(item.get("name", "")).strip()
+                raw_strategies = item.get("strategies", [])
             else:
                 symbol = str(item).strip()
                 name = ""
+                raw_strategies = []
             if symbol:
-                rows.append({"symbol": symbol, "name": name})
+                if isinstance(raw_strategies, str):
+                    strategies = [raw_strategies]
+                elif isinstance(raw_strategies, list):
+                    strategies = [str(x).strip() for x in raw_strategies if str(x).strip()]
+                else:
+                    strategies = []
+                rows.append({"symbol": symbol, "name": name, "strategies": strategies})
         return rows
 
     def resolve_condition_name(self, payload: dict) -> str:
@@ -37,4 +45,3 @@ class SnapshotSelector(BaseSelector):
 
     def resolve_generated_at(self, payload: dict) -> str:
         return str(payload.get("generated_at", "")).strip()
-

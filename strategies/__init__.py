@@ -1,5 +1,7 @@
 from .base_strategy import BaseStrategy
+from .bottom_reversal_strategy import BottomReversalStrategy
 from .close_buy_strategy import CloseBuyStrategy
 from .composite_strategy import CompositeIntradayStrategy
 from .leader_pullback_strategy import LeaderPullbackStrategy
 from .momentum_strategy import MomentumStrategy
+from .vcp_box_strategy import VcpBoxStrategy

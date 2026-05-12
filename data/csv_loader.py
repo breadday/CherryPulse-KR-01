@@ -37,7 +37,10 @@ class CsvDataLoader:
         self.default_code = code or "UNKNOWN"
 
     def _normalize(self, s: str) -> str:
-        return str(s).strip().lower().replace(" ", "").replace("_", "")
+        text = str(s).strip().lower().replace(" ", "").replace("_", "")
+        if text == "date":
+            return "date"
+        return text
 
     def _find_col(self, fieldnames: List[str], candidates: List[str]) -> Optional[str]:
         norm_map = {self._normalize(name): name for name in fieldnames}
@@ -140,8 +143,8 @@ class CsvDataLoader:
         code_col = self._find_col(headers, self.CODE_CANDIDATES)
 
         missing = []
-        if not dt_col and not (date_col and time_col):
-            missing.append("datetime(or date+time)")
+        if not dt_col and not date_col:
+            missing.append("datetime(or date)")
         if not open_col:
             missing.append("open")
         if not high_col:
@@ -166,6 +169,8 @@ class CsvDataLoader:
             try:
                 if dt_col:
                     dt_value = row.get(dt_col, "")
+                elif date_col and not time_col:
+                    dt_value = row.get(date_col, "")
                 else:
                     dt_value = f"{row.get(date_col, '')} {row.get(time_col, '')}"
 
