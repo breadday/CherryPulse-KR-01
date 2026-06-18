@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
 
@@ -266,6 +266,20 @@ class SQLiteStore:
                     self._json(payload),
                 ),
             )
+
+    def prune_old_blocked_signals(self, retention_days: int = 7) -> int:
+        retention_days = max(1, int(retention_days or 7))
+        cutoff = (datetime.now() - timedelta(days=retention_days)).strftime("%Y-%m-%d %H:%M:%S")
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                DELETE FROM signals
+                WHERE allowed = 0
+                  AND created_at < ?
+                """,
+                (cutoff,),
+            )
+            return int(cursor.rowcount or 0)
 
     def record_order(self, *, test_name: str, order, request_price=None, strategy_name: str = "", selector_name: str = "", universe_name: str = ""):
         with self._connect() as conn:

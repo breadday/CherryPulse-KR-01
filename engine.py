@@ -65,10 +65,12 @@ class TradingEngine:
         self.trailing_high_price = {}
         self.trailing_armed = set()
         self.trend_hold_active = set()
+        self.trend_hold_breakeven_skip_logged = set()
         self.bottom_reversal_candle_state = {}
         self.bottom_reversal_long_bull_history = defaultdict(lambda: deque(maxlen=5))
         self.daily_candle_cache = {}
         self.daily_candle_fetch_ts = {}
+        self.daily_candle_csv_missing_logged = set()
 
         self.cancel_in_progress = set()
         self.pending_resell = {}
@@ -91,6 +93,9 @@ class TradingEngine:
         self.loss_count = 0
         self.trade_open_info = {}
         self.trade_cycle_realized_pnl = {}
+        self.trade_cycle_exit_amount = {}
+        self.trade_cycle_exit_qty = {}
+        self.trade_cycle_exit_legs = {}
         self.strategy_reject_reason_counts = defaultdict(Counter)
         self.strategy_signal_counts = Counter()
         self.strategy_order_block_counts = defaultdict(Counter)
@@ -207,6 +212,19 @@ class TradingEngine:
             return datetime.strptime(text, "%H:%M").time()
         except Exception:
             return datetime.strptime(default, "%H:%M").time()
+
+    def _is_between_hhmm(self, start_hhmm: str, end_hhmm: str) -> bool:
+        now_time = datetime.now().time()
+        start_time = self._parse_hhmm(start_hhmm, "09:00")
+        end_time = self._parse_hhmm(end_hhmm, "15:30")
+        return start_time <= now_time <= end_time
+
+    def _auto_sell_allowed_now(self, reason: str = ""):
+        start_hhmm = str(self._cfg("AUTO_SELL_START_HHMM", "09:03"))
+        end_hhmm = str(self._cfg("AUTO_SELL_END_HHMM", "15:20"))
+        if self._is_between_hhmm(start_hhmm, end_hhmm):
+            return True, "OK"
+        return False, f"자동매도 허용시간 아님({start_hhmm}~{end_hhmm}, reason={reason})"
 
     def _strategy_enabled(self, strategy_name: str) -> bool:
         return self._strategy_cfg_bool(strategy_name, "enabled", True)
@@ -367,6 +385,8 @@ class TradingEngine:
         cash = max(0.0, float(getattr(self.portfolio, "cash", 0.0)))
         max_affordable_amount = min(float(order_amount_limit), cash)
         normalized_qty = int(max_affordable_amount // price)
+        if normalized_qty <= 0 and self._cfg("ALLOW_MIN_ONE_SHARE_OVER_ORDER_AMOUNT", False) and cash >= price:
+            normalized_qty = 1
         signal.qty = max(0, normalized_qty)
 
     def _restore_position_route_context(self, symbol: str, qty: int, avg_price: float):
@@ -601,8 +621,71 @@ class TradingEngine:
             f"order_amount_per_trade={self.order_amount_per_trade}"
         )
 
+    def _cleanup_signal_history(self, reason: str = "startup"):
+        if not self.sqlite_store:
+            return
+        if not bool(self._cfg("SIGNAL_DB_CLEANUP_ON_START", True)):
+            return
+
+        retention_days = self._safe_int(self._cfg("SIGNAL_DB_BLOCKED_RETENTION_DAYS", 7), 7)
+        try:
+            deleted = self.sqlite_store.prune_old_blocked_signals(retention_days=retention_days)
+            if deleted > 0:
+                self.logger.info(
+                    f"오래된 차단 신호 정리 완료 | reason={reason} "
+                    f"retention_days={retention_days} deleted={deleted}"
+                )
+        except Exception as e:
+            self.logger.warning(f"오래된 차단 신호 정리 실패 | reason={reason} err={e}")
+
     def _notify_enabled(self, key: str, default: bool):
         return bool(self._cfg(key, default))
+
+    def _load_daily_candles_from_csv(self, symbol: str) -> list[dict]:
+        symbol = str(symbol or "").strip()
+        if not symbol:
+            return []
+
+        csv_dir = Path(str(self._cfg("DAILY_CANDLE_CSV_DIR", Path("data") / "daily")))
+        if not csv_dir.is_absolute():
+            csv_dir = Path(__file__).resolve().parent / csv_dir
+
+        files = sorted(csv_dir.glob(f"{symbol}_*.csv"))
+        if not files:
+            files = sorted(csv_dir.glob(f"{symbol}.csv"))
+        if not files:
+            if symbol not in self.daily_candle_csv_missing_logged:
+                self.daily_candle_csv_missing_logged.add(symbol)
+                self.logger.info(f"일봉 CSV 없음 | symbol={symbol} dir={csv_dir}")
+            return []
+
+        clean = []
+        try:
+            with open(files[0], newline="", encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    close_price = abs(self._safe_float(row.get("close", 0.0), 0.0))
+                    if close_price <= 0:
+                        continue
+                    date_text = str(row.get("date", row.get("datetime", "")) or "").strip()
+                    clean.append(
+                        {
+                            "date": date_text[:10].replace("-", ""),
+                            "open": abs(self._safe_float(row.get("open", 0.0), 0.0)),
+                            "high": abs(self._safe_float(row.get("high", 0.0), 0.0)),
+                            "low": abs(self._safe_float(row.get("low", 0.0), 0.0)),
+                            "close": close_price,
+                            "volume": abs(self._safe_float(row.get("volume", 0.0), 0.0)),
+                            "trade_value": abs(self._safe_float(row.get("trade_value", 0.0), 0.0)),
+                        }
+                    )
+        except Exception as e:
+            self.logger.warning(f"일봉 CSV 로드 실패 | symbol={symbol} path={files[0]} err={e}")
+            return []
+
+        clean.sort(key=lambda row: row.get("date", ""))
+        self.logger.info(f"일봉 CSV 캐시 로드 | symbol={symbol} path={files[0].name} count={len(clean)}")
+        return clean
 
     def _get_daily_candles_cached(self, symbol: str) -> list[dict]:
         symbol = str(symbol or "").strip()
@@ -610,6 +693,19 @@ class TradingEngine:
             return []
 
         now_ts = time.time()
+        cached = self.daily_candle_cache.get(symbol)
+        if not cached:
+            csv_candles = self._load_daily_candles_from_csv(symbol)
+            if csv_candles:
+                cached = {"ts": now_ts, "candles": csv_candles, "source": "csv"}
+                self.daily_candle_cache[symbol] = cached
+
+        if (
+            bool(self._cfg("SKIP_DAILY_CANDLE_FETCH_BEFORE_MARKET", True))
+            and not self.is_market_open()
+        ):
+            return list(cached.get("candles", []) or []) if cached else []
+
         strategy_config = getattr(config, "STRATEGY_CONFIG", {}) or {}
         ttl_sec = max(
             60,
@@ -618,12 +714,15 @@ class TradingEngine:
                 21600,
             ),
         )
-        cached = self.daily_candle_cache.get(symbol)
         if cached and now_ts - float(cached.get("ts", 0.0)) < ttl_sec:
             return list(cached.get("candles", []) or [])
 
+        if bool(self._cfg("DISABLE_INTRADAY_DAILY_CANDLE_TR", True)) and self.is_market_open():
+            return list(cached.get("candles", []) or []) if cached else []
+
         last_fetch_ts = float(self.daily_candle_fetch_ts.get(symbol, 0.0))
-        if now_ts - last_fetch_ts < 10:
+        retry_sec = max(10, self._safe_int(self._cfg("DAILY_CANDLE_FETCH_RETRY_SEC", 600), 600))
+        if now_ts - last_fetch_ts < retry_sec:
             return list(cached.get("candles", []) or []) if cached else []
         self.daily_candle_fetch_ts[symbol] = now_ts
 
@@ -706,6 +805,20 @@ class TradingEngine:
             )
         except Exception:
             return 0
+
+    def _current_buy_limited_open_symbols(self) -> int:
+        if bool(self._cfg("ENFORCE_GLOBAL_MAX_POSITIONS_FOR_BUY", True)):
+            return self._current_open_symbols()
+
+        try:
+            return sum(
+                1
+                for symbol, pos in getattr(self.portfolio, "positions", {}).items()
+                if int(getattr(pos, "qty", 0)) > 0
+                and self._strategy_enabled(self._strategy_name_for_symbol(symbol))
+            )
+        except Exception:
+            return self._current_open_symbols()
 
     def _estimate_order_amount(self, qty: int, price: float) -> int:
         try:
@@ -1223,11 +1336,18 @@ class TradingEngine:
                 "exit_time",
                 "entry_price",
                 "exit_price",
+                "avg_exit_price",
                 "qty",
+                "exit_qty",
+                "exit_legs",
+                "exit_prices",
                 "pnl",
                 "pnl_pct",
                 "result",
                 "exit_reason",
+                "strategy_name",
+                "selector_name",
+                "universe_name",
             ]
 
             row = {
@@ -1238,11 +1358,18 @@ class TradingEngine:
                 "exit_time": trade_item.get("exit_time", ""),
                 "entry_price": trade_item.get("entry_price", 0.0),
                 "exit_price": trade_item.get("exit_price", 0.0),
+                "avg_exit_price": trade_item.get("avg_exit_price", trade_item.get("exit_price", 0.0)),
                 "qty": trade_item.get("qty", 0),
+                "exit_qty": trade_item.get("exit_qty", trade_item.get("qty", 0)),
+                "exit_legs": trade_item.get("exit_legs", 0),
+                "exit_prices": trade_item.get("exit_prices", ""),
                 "pnl": trade_item.get("pnl", 0.0),
                 "pnl_pct": trade_item.get("pnl_pct", 0.0),
                 "result": trade_item.get("result", ""),
                 "exit_reason": trade_item.get("exit_reason", ""),
+                "strategy_name": trade_item.get("strategy_name", ""),
+                "selector_name": trade_item.get("selector_name", ""),
+                "universe_name": trade_item.get("universe_name", ""),
             }
 
             with open(csv_path, "a", newline="", encoding="utf-8-sig") as f:
@@ -1280,6 +1407,9 @@ class TradingEngine:
                     "universe_name": str(signal_ctx.get("universe_name", "") or ""),
                 }
                 self.trade_cycle_realized_pnl[symbol] = 0.0
+                self.trade_cycle_exit_amount[symbol] = 0.0
+                self.trade_cycle_exit_qty[symbol] = 0
+                self.trade_cycle_exit_legs[symbol] = []
 
                 # 엔진 직접 약손절용 진입 컨텍스트 생성
                 self.position_entry_context[symbol] = {
@@ -1296,6 +1426,7 @@ class TradingEngine:
                     "entry_trade_date": datetime.now().strftime("%Y-%m-%d"),
                 }
                 self.trend_hold_active.discard(symbol)
+                self.trend_hold_breakeven_skip_logged.discard(symbol)
 
                 self.logger.info(
                     f"[TRADE_OPEN] symbol={symbol} entry_price={avg_price_after:.2f} qty={qty_after}"
@@ -1331,6 +1462,26 @@ class TradingEngine:
         except Exception as e:
             self.logger.exception(f"실현손익 누적 실패 | symbol={symbol} err={e}")
 
+    def _accumulate_trade_exit_leg(self, symbol: str, qty: int, price: float, reason: str = ""):
+        try:
+            qty = max(0, int(qty or 0))
+            price = float(price or 0.0)
+            if qty <= 0 or price <= 0:
+                return
+            self.trade_cycle_exit_amount[symbol] = float(self.trade_cycle_exit_amount.get(symbol, 0.0)) + qty * price
+            self.trade_cycle_exit_qty[symbol] = int(self.trade_cycle_exit_qty.get(symbol, 0)) + qty
+            legs = self.trade_cycle_exit_legs.setdefault(symbol, [])
+            legs.append(
+                {
+                    "time": datetime.now().strftime("%H:%M:%S"),
+                    "qty": qty,
+                    "price": round(price, 2),
+                    "reason": str(reason or self.last_exit_reason.get(symbol, "")),
+                }
+            )
+        except Exception as e:
+            self.logger.exception(f"청산 체결 상세 누적 실패 | symbol={symbol} err={e}")
+
     def _close_trade_cycle_if_needed(self, symbol: str, qty_before: int, qty_after: int, fill_price: float, exit_reason: str = ""):
         try:
             if not (qty_before > 0 and qty_after <= 0):
@@ -1338,8 +1489,12 @@ class TradingEngine:
 
             open_info = self.trade_open_info.pop(symbol, None)
             total_realized_pnl = float(self.trade_cycle_realized_pnl.pop(symbol, 0.0))
+            exit_amount = float(self.trade_cycle_exit_amount.pop(symbol, 0.0))
+            exit_qty = int(self.trade_cycle_exit_qty.pop(symbol, 0))
+            exit_legs = self.trade_cycle_exit_legs.pop(symbol, [])
             self.position_entry_context.pop(symbol, None)
             self.trend_hold_active.discard(symbol)
+            self.trend_hold_breakeven_skip_logged.discard(symbol)
             self.bottom_reversal_candle_state.pop(symbol, None)
             self.bottom_reversal_long_bull_history.pop(symbol, None)
 
@@ -1357,6 +1512,11 @@ class TradingEngine:
             pnl_pct = 0.0
             if entry_amount > 0:
                 pnl_pct = (total_realized_pnl / entry_amount) * 100.0
+            avg_exit_price = (exit_amount / exit_qty) if exit_qty > 0 else float(fill_price)
+            exit_prices = ";".join(
+                f"{leg.get('qty', 0)}@{leg.get('price', 0)}:{leg.get('reason', '')}"
+                for leg in exit_legs
+            )
 
             result = "WIN" if total_realized_pnl > 0 else "LOSS" if total_realized_pnl < 0 else "FLAT"
 
@@ -1366,7 +1526,11 @@ class TradingEngine:
                 "exit_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "entry_price": round(entry_price, 2),
                 "exit_price": round(float(fill_price), 2),
+                "avg_exit_price": round(avg_exit_price, 2),
                 "qty": entry_qty,
+                "exit_qty": exit_qty,
+                "exit_legs": len(exit_legs),
+                "exit_prices": exit_prices,
                 "pnl": round(total_realized_pnl, 2),
                 "pnl_pct": round(pnl_pct, 4),
                 "result": result,
@@ -1388,7 +1552,8 @@ class TradingEngine:
 
             self.logger.info(
                 f"[TRADE_CLOSE] symbol={symbol} result={result} "
-                f"entry={entry_price:.2f} exit={float(fill_price):.2f} qty={entry_qty} "
+                f"entry={entry_price:.2f} exit={float(fill_price):.2f} "
+                f"avg_exit={avg_exit_price:.2f} qty={entry_qty} exit_qty={exit_qty} "
                 f"pnl={total_realized_pnl:.2f} pnl_pct={pnl_pct:.4f}% "
                 f"reason={trade_item['exit_reason']}"
             )
@@ -1524,6 +1689,7 @@ class TradingEngine:
 
     def start(self):
         self.broker.connect()
+        self._cleanup_signal_history(reason="engine_start")
         self.is_running = True
         self.logger.info("브로커 연결 완료")
 
@@ -1818,13 +1984,15 @@ class TradingEngine:
             external_scores = self._build_external_scores(raw_tick)
             current_tick_no = self._register_tick(symbol)
 
-            self.logger.info(
-                f"[TICK] {symbol} tick_no={current_tick_no} price={price} vol={volume} "
-                f"chg={price_change_pct} strength={trade_strength} vr={volume_ratio} "
-                f"news={external_scores['news_score']} "
-                f"theme={external_scores['theme_score']} "
-                f"leader={external_scores['leader_score']}"
-            )
+            log_tick_every_n = self._safe_int(self._cfg("LOG_REAL_TICK_EVERY_N", 0), 0)
+            if log_tick_every_n > 0 and current_tick_no % log_tick_every_n == 0:
+                self.logger.info(
+                    f"[TICK] {symbol} tick_no={current_tick_no} price={price} vol={volume} "
+                    f"chg={price_change_pct} strength={trade_strength} vr={volume_ratio} "
+                    f"news={external_scores['news_score']} "
+                    f"theme={external_scores['theme_score']} "
+                    f"leader={external_scores['leader_score']}"
+                )
 
             if price <= 0:
                 return
@@ -2283,14 +2451,22 @@ class TradingEngine:
 
             if symbol in self.breakeven_active:
                 if pnl_pct <= breakeven_floor:
-                    self.last_exit_reason[symbol] = "breakeven_exit"
-                    self._log_exit_event(symbol, price, avg_price, qty, "BREAKEVEN_EXIT")
-                    self.logger.info(
-                        f"본절 청산 실행 | symbol={symbol} price={price} avg_price={avg_price} "
-                        f"pnl={pnl_pct:.2%} floor={breakeven_floor:.2%}"
-                    )
-                    self._submit_auto_sell(symbol, qty, "breakeven_exit")
-                    return
+                    if trend_hold_now:
+                        if symbol not in self.trend_hold_breakeven_skip_logged:
+                            self.trend_hold_breakeven_skip_logged.add(symbol)
+                            self.logger.info(
+                                f"[TREND_HOLD_BREAKEVEN_SKIP] {symbol} price={price} avg_price={avg_price} "
+                                f"pnl={pnl_pct:.2%} floor={breakeven_floor:.2%}"
+                            )
+                    else:
+                        self.last_exit_reason[symbol] = "breakeven_exit"
+                        self._log_exit_event(symbol, price, avg_price, qty, "BREAKEVEN_EXIT")
+                        self.logger.info(
+                            f"본절 청산 실행 | symbol={symbol} price={price} avg_price={avg_price} "
+                            f"pnl={pnl_pct:.2%} floor={breakeven_floor:.2%}"
+                        )
+                        self._submit_auto_sell(symbol, qty, "breakeven_exit")
+                        return
 
             bottom_long_bull_reason = self._check_bottom_reversal_long_bull_exit(
                 symbol=symbol,
@@ -2345,6 +2521,17 @@ class TradingEngine:
             if qty <= 0:
                 return
 
+            allowed, block_reason = self._auto_sell_allowed_now(reason)
+            if not allowed:
+                should_log, suppressed = self._should_emit_order_block("auto_sell", block_reason)
+                if should_log:
+                    suppressed_text = f" suppressed={suppressed}" if suppressed else ""
+                    self.logger.warning(
+                        f"자동매도 시간 차단 | symbol={symbol} qty={qty} "
+                        f"reason={reason} block={block_reason}{suppressed_text}"
+                    )
+                return
+
             self.sell_in_progress.add(symbol)
             signal = Signal(
                 symbol=symbol,
@@ -2374,7 +2561,6 @@ class TradingEngine:
 
             if order.status == OrderStatus.SUBMITTED:
                 self.last_order_time[symbol] = time.time()
-                self.daily_order_count += 1
                 strategy_name = self._strategy_name_for_symbol(symbol)
                 is_loss_exit = "손절" in reason or "stop" in reason
 
@@ -2531,6 +2717,17 @@ class TradingEngine:
             qty = int(pending.get("qty", 0))
             reason = str(pending.get("reason", "취소후재매도"))
 
+            allowed, block_reason = self._auto_sell_allowed_now(reason)
+            if not allowed:
+                should_log, suppressed = self._should_emit_order_block("auto_sell_retry", block_reason)
+                if should_log:
+                    suppressed_text = f" suppressed={suppressed}" if suppressed else ""
+                    self.logger.warning(
+                        f"재매도 시간 차단 | symbol={symbol} qty={qty} "
+                        f"reason={reason} block={block_reason}{suppressed_text}"
+                    )
+                return
+
             if qty <= 0:
                 self.pending_resell.pop(symbol, None)
                 self.cancel_in_progress.discard(symbol)
@@ -2586,7 +2783,6 @@ class TradingEngine:
             if order.status == OrderStatus.SUBMITTED:
                 self.resell_retry_count[symbol] = retry_count + 1
                 self.last_order_time[symbol] = time.time()
-                self.daily_order_count += 1
 
                 self.logger.warning(
                     f"취소 후 재매도 주문 등록 | symbol={symbol} qty={sell_qty} "
@@ -2758,7 +2954,7 @@ class TradingEngine:
             if hold_qty >= strategy_max_symbol_position:
                 return False, f"전략 종목 최대 보유수 초과({hold_qty}>={strategy_max_symbol_position})"
 
-            open_symbols = self._current_open_symbols()
+            open_symbols = self._current_buy_limited_open_symbols()
             strategy_open_symbols = self._current_open_symbols_for_strategy(strategy_name)
             if hold_qty <= 0 and open_symbols >= self.max_positions:
                 return False, "동시 보유 종목 수 초과"
@@ -2768,7 +2964,12 @@ class TradingEngine:
             if getattr(tick, "volume", 0) < self.min_tick_volume:
                 return False, "틱 거래량 부족"
 
-            if order_amount_limit > 0 and estimated_amount > order_amount_limit:
+            min_one_share_override = (
+                self._cfg("ALLOW_MIN_ONE_SHARE_OVER_ORDER_AMOUNT", False)
+                and qty == 1
+                and price > order_amount_limit
+            )
+            if order_amount_limit > 0 and estimated_amount > order_amount_limit and not min_one_share_override:
                 return False, f"주문금액 한도 초과({estimated_amount}>{order_amount_limit})"
 
             if estimated_amount > cash:
@@ -2787,7 +2988,10 @@ class TradingEngine:
             symbol = tick.symbol
             price = int(tick.price)
 
-            self.logger.info(f"[CHECK] {symbol} price={price}")
+            log_check_every_n = self._safe_int(self._cfg("LOG_ENTRY_CHECK_EVERY_N", 0), 0)
+            current_tick_no = int(self.tick_seq.get(symbol, 0))
+            if log_check_every_n > 0 and current_tick_no % log_check_every_n == 0:
+                self.logger.info(f"[CHECK] {symbol} tick_no={current_tick_no} price={price}")
 
             signal = self.strategy.generate_signal(tick, self.portfolio)
             if signal is None:
@@ -3017,6 +3221,12 @@ class TradingEngine:
                 self._start_trade_cycle_if_needed(symbol, qty_before, qty_after, avg_after)
             elif side_value == "SELL":
                 self._accumulate_trade_realized_pnl(symbol, realized_delta)
+                self._accumulate_trade_exit_leg(
+                    symbol=symbol,
+                    qty=int(getattr(fill, "fill_qty", 0)),
+                    price=float(getattr(fill, "fill_price", 0.0)),
+                    reason=self.last_exit_reason.get(symbol, ""),
+                )
                 self._close_trade_cycle_if_needed(
                     symbol=symbol,
                     qty_before=qty_before,
