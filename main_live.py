@@ -59,6 +59,7 @@ RECONNECT_DISABLE_AFTER_HHMM = "14:40"
 TELEGRAM_ALERT_COOLDOWN_SEC = 300
 LOGIN_FAILURE_BACKOFF_SEC = 600
 SHUTDOWN_WATCHDOG_GRACE_SEC = 30
+STALE_REALDATA_DISABLE_AFTER_HHMM = "15:20"
 
 
 class MainLiveApp:
@@ -84,6 +85,7 @@ class MainLiveApp:
 
         self.shutting_down = False
         self.condition_started = False
+        self.booting = True
 
         self.universe = UniverseManager(
             snapshot_path=Path(__file__).resolve().parent / SNAPSHOT_FILE,
@@ -107,8 +109,10 @@ class MainLiveApp:
         self.reconnect_in_progress = False
         self.reconnect_blocked_until_ts = 0.0
         self.reconnect_block_log_last_sent_ts: dict[str, float] = {}
+        self.reconnect_attempt_count_by_reason: dict[str, int] = {}
         self.telegram_alert_last_sent_ts: dict[str, float] = {}
         self.shutdown_watchdog_thread = None
+        self.stale_realdata_last_log_ts = 0.0
 
     def _build_telegram(self):
         telegram = None
@@ -460,6 +464,28 @@ class MainLiveApp:
             self.logger.warning(f"snapshot 종목 없음 | path={self.snapshot_path}")
             return
 
+        ok, freshness_reason = self._validate_snapshot_freshness(payload)
+        if not ok:
+            self.universe.replace_snapshot_rows([])
+            self.logger.error(
+                f"snapshot 최신성 검사 실패 | {freshness_reason} | "
+                f"path={self.snapshot_path} | 신규매수 후보를 반영하지 않습니다."
+            )
+            self._send_telegram_throttled(
+                "snapshot_stale",
+                (
+                    f"snapshot 최신성 검사 실패\n"
+                    f"{freshness_reason}\n"
+                    f"오래된 일봉 후보라 신규매수 후보를 반영하지 않습니다.\n"
+                    f"먼저 일봉 CSV 갱신 후 build_daily_strategy_snapshot을 다시 실행하세요."
+                ),
+                cooldown_sec=30 * 60,
+            )
+            self._refresh_real_registration()
+            self._store_strategy_universe_snapshot()
+            self._log_strategy_universe_summary("오래된 snapshot 제외 후 유니버스")
+            return
+
         self._refresh_real_registration()
 
         generated_at = self.universe.resolve_snapshot_generated_at(payload)
@@ -477,6 +503,15 @@ class MainLiveApp:
             f"condition_name={source_condition} count={len(clean_codes)} "
             f"codes={display_text if display_text else '(empty)'}"
         )
+        for strategy_name, count in self.universe.strategy_counts().items():
+            strategy_codes = self.universe.strategy_codes(strategy_name)
+            if not strategy_codes:
+                continue
+            strategy_display = ", ".join(self._format_display_list(strategy_codes, limit=10))
+            self.logger.info(
+                f"snapshot 전략 후보 | strategy={strategy_name} "
+                f"count={count} codes={strategy_display}"
+            )
         self._store_strategy_universe_snapshot()
         self._log_strategy_universe_summary("snapshot 반영 후 유니버스")
 
@@ -488,6 +523,92 @@ class MainLiveApp:
             f"종목: {display_text if display_text else '(없음)'}\n"
             f"전략유니버스: {self.universe.strategy_counts()}"
         )
+
+    def _validate_snapshot_freshness(self, payload: dict):
+        max_stale_days = int(getattr(config, "SNAPSHOT_MAX_STALE_DAYS", 1) or 1)
+        max_missing_trading_days = int(getattr(config, "SNAPSHOT_MAX_MISSING_TRADING_DAYS", 0) or 0)
+        today = datetime.now().date()
+        generated_at = str(payload.get("generated_at", "") or "").strip()
+
+        generated_date = None
+        if generated_at:
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+                try:
+                    generated_date = datetime.strptime(generated_at[:19], fmt).date()
+                    break
+                except Exception:
+                    continue
+
+        if generated_date and generated_date != today:
+            return False, f"생성일 불일치 generated_at={generated_at} today={today}"
+
+        latest_date = None
+        latest_data_date = str(payload.get("latest_data_date", "") or "").strip()
+        if latest_data_date:
+            try:
+                latest_date = datetime.strptime(latest_data_date[:10], "%Y-%m-%d").date()
+            except Exception:
+                latest_date = None
+
+        for item in payload.get("codes", []) or []:
+            if not isinstance(item, dict):
+                continue
+            text = str(item.get("last_date", "") or "").strip()
+            if not text:
+                continue
+            try:
+                item_date = datetime.strptime(text[:10], "%Y-%m-%d").date()
+            except Exception:
+                continue
+            if latest_date is None or item_date > latest_date:
+                latest_date = item_date
+
+        if latest_date is None:
+            return False, "후보 last_date 없음"
+
+        calendar_days = (today - latest_date).days
+        missing_trading_days = self._count_trading_days_between(latest_date, today)
+        if missing_trading_days > max_missing_trading_days:
+            return False, (
+                f"전일 거래일 데이터 누락 latest_date={latest_date} today={today} "
+                f"missing_trading_days={missing_trading_days}>{max_missing_trading_days} "
+                f"calendar_days={calendar_days}"
+            )
+
+        # 주말이 끼면 달력일수는 3일이어도 거래일 기준으로는 정상입니다.
+        trading_stale_days = missing_trading_days
+        if trading_stale_days > max_stale_days:
+            return False, (
+                f"후보 일봉이 오래됨 latest_date={latest_date} today={today} "
+                f"trading_stale_days={trading_stale_days}>{max_stale_days} "
+                f"calendar_days={calendar_days}"
+            )
+
+        return True, (
+            f"OK latest_date={latest_date} calendar_days={calendar_days} "
+            f"missing_trading_days={missing_trading_days}"
+        )
+
+    def _count_trading_days_between(self, start_date, end_date) -> int:
+        # start_date 다음 날부터 end_date 전날까지 빠진 거래일 수를 계산합니다.
+        # 주말과 config_live.MARKET_HOLIDAYS는 제외합니다.
+        holidays = {
+            str(day).strip()
+            for day in getattr(config, "MARKET_HOLIDAYS", [])
+            if str(day).strip()
+        }
+        count = 0
+        cursor = start_date
+        while True:
+            cursor = cursor.fromordinal(cursor.toordinal() + 1)
+            if cursor >= end_date:
+                break
+            if cursor.weekday() >= 5:
+                continue
+            if cursor.strftime("%Y-%m-%d") in holidays:
+                continue
+            count += 1
+        return count
 
     def on_filtered_real_tick(self, raw_tick: dict):
         self.auto_shutdown()
@@ -564,6 +685,29 @@ class MainLiveApp:
         if now_ts - self.last_reconnect_attempt_ts < RECONNECT_COOLDOWN_SEC:
             return
 
+        reason_key = str(reason or "").split(":", 1)[0]
+        max_recoveries = int(getattr(config, "STALE_REALDATA_MAX_RECOVERIES", 3) or 3)
+        if reason_key == "stale_realdata":
+            current_count = self.reconnect_attempt_count_by_reason.get(reason_key, 0)
+            if current_count >= max_recoveries:
+                self.reconnect_blocked_until_ts = max(self.reconnect_blocked_until_ts, now_ts + 300)
+                self.logger.warning(
+                    f"브로커 세션 복구 횟수 초과 보류 | reason={reason} "
+                    f"count={current_count}/{max_recoveries} block_sec=300"
+                )
+                self._send_telegram_throttled(
+                    "recover_blocked_max_stale_realdata",
+                    (
+                        f"브로커 자동 복구 보류\n"
+                        f"사유: {reason}\n"
+                        f"실시간 틱 무수신 복구가 {max_recoveries}회 반복되어 5분간 추가 복구를 멈춥니다.\n"
+                        f"Kiwoom 연결 상태와 실시간 수신 상태를 확인해주세요."
+                    ),
+                    cooldown_sec=15 * 60,
+                )
+                return
+            self.reconnect_attempt_count_by_reason[reason_key] = current_count + 1
+
         self.reconnect_in_progress = True
         self.last_reconnect_attempt_ts = now_ts
         self.logger.warning(f"브로커 세션 복구 시도 | reason={reason}")
@@ -580,6 +724,7 @@ class MainLiveApp:
             time.sleep(0.5)
             self.engine.sync_pending_orders(password=ACCOUNT_PASSWORD)
             self.engine.health_check()
+            self.load_snapshot_and_subscribe()
             self._refresh_real_registration()
 
             self.condition_started = False
@@ -781,6 +926,8 @@ class MainLiveApp:
         self.auto_shutdown()
         if self.shutting_down:
             return
+        if self.booting:
+            return
 
         if time.time() < self.reconnect_blocked_until_ts:
             return
@@ -885,6 +1032,8 @@ class MainLiveApp:
         self.auto_shutdown()
         if self.shutting_down:
             return
+        if self.booting:
+            return
 
         if self._market_phase() != "market_session":
             return
@@ -904,6 +1053,8 @@ class MainLiveApp:
 
         if now_hhmm < STALE_REALDATA_CHECK_HHMM:
             return
+        if now_hhmm >= STALE_REALDATA_DISABLE_AFTER_HHMM:
+            return
 
         watch_codes = self._all_watch_codes()
         if not watch_codes or self.last_real_tick_received_ts <= 0:
@@ -911,6 +1062,10 @@ class MainLiveApp:
 
         idle_sec = time.time() - self.last_real_tick_received_ts
         if idle_sec >= STALE_REALDATA_SEC:
+            now_ts = time.time()
+            if now_ts - self.stale_realdata_last_log_ts < TELEGRAM_ALERT_COOLDOWN_SEC:
+                return
+            self.stale_realdata_last_log_ts = now_ts
             self.logger.warning(
                 f"장중 실시간 틱 무수신 감지 | idle_sec={idle_sec:.1f} watch_count={len(watch_codes)}"
             )
@@ -992,6 +1147,7 @@ class MainLiveApp:
         self.engine.health_check()
 
         self.load_snapshot_and_subscribe()
+        self.booting = False
         self.maybe_start_condition_search()
 
         run_mode = "daily_snapshot_only" if not bool(getattr(config, "ENABLE_CONDITION_SEARCH", True)) else "snapshot_plus_condition"

@@ -28,6 +28,8 @@ class LeaderPullbackStrategy(BaseStrategy):
         self.daily_candidate_mode = bool(self.config.get("daily_candidate_mode", False))
         self.daily_candidate_max_gap_pct = float(self.config.get("daily_candidate_max_gap_pct", 5.0) or 5.0)
         self.daily_candidate_min_change_pct = float(self.config.get("daily_candidate_min_change_pct", -3.0) or -3.0)
+        excluded_symbols = self.config.get("leader_pullback_exclude_symbols", []) or []
+        self.excluded_symbols = {str(symbol).strip() for symbol in excluded_symbols if str(symbol).strip()}
         self.leader_state: dict[str, dict[str, Any]] = {}
 
     def _time_hhmm(self, tick) -> str:
@@ -93,6 +95,9 @@ class LeaderPullbackStrategy(BaseStrategy):
         symbol = str(getattr(tick, "symbol", "")).strip()
         if not symbol:
             self.last_reject_reason = "symbol empty"
+            return None
+        if symbol in self.excluded_symbols:
+            self.last_reject_reason = "leader_excluded_symbol"
             return None
 
         if portfolio is not None and hasattr(portfolio, "has_position") and portfolio.has_position(symbol):

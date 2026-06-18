@@ -5,10 +5,12 @@ import argparse
 import csv
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 from PyQt5.QtWidgets import QApplication
 
+import config_live as config
 from broker.kiwoom_broker import KiwoomBroker
 from utils.logger import setup_logger
 
@@ -49,6 +51,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--count", type=int, default=300, help="종목별 조회할 일봉 개수")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="CSV 저장 폴더")
     parser.add_argument("--sleep-sec", type=float, default=0.8, help="종목 조회 사이 대기시간")
+    parser.add_argument(
+        "--allow-early",
+        action="store_true",
+        help="07:05 이전에도 강제로 실행합니다. 보통은 키움 서버 재시작 때문에 권장하지 않습니다.",
+    )
     return parser.parse_args()
 
 
@@ -61,6 +68,29 @@ def clean_symbols(raw_symbols: str) -> list[str]:
     return sorted(dict.fromkeys(symbols))
 
 
+def parse_hhmm(value: str, default: str = "07:05"):
+    text = str(value or default).strip() or default
+    try:
+        return datetime.strptime(text, "%H:%M").time()
+    except Exception:
+        return datetime.strptime(default, "%H:%M").time()
+
+
+def should_block_early_run(allow_early: bool) -> tuple[bool, str]:
+    if allow_early:
+        return False, "강제 실행 옵션 사용"
+
+    resume_hhmm = str(getattr(config, "KIWOOM_RELOGIN_RESUME_HHMM", "07:05"))
+    resume_at = parse_hhmm(resume_hhmm)
+    now = datetime.now().time()
+    if now < resume_at:
+        return True, (
+            f"현재 {datetime.now().strftime('%H:%M')}입니다. "
+            f"키움 서버 재시작 이후 안정 실행 권장 시각은 {resume_hhmm} 이후입니다."
+        )
+    return False, "OK"
+
+
 def resolve_symbol_name(symbol: str, broker: KiwoomBroker) -> str:
     """기본 감시 종목은 고정 매핑을 우선 사용해 한글 깨짐을 막는다."""
     if symbol in DEFAULT_SYMBOLS:
@@ -68,9 +98,27 @@ def resolve_symbol_name(symbol: str, broker: KiwoomBroker) -> str:
     return broker.get_code_name(symbol) or symbol
 
 
+def is_suspicious_daily_stub(row: dict) -> bool:
+    """장전 조회 때 현재가만 들어간 가짜 일봉 행을 저장하지 않기 위한 방어."""
+    try:
+        open_price = abs(int(row.get("open", 0) or 0))
+        high_price = abs(int(row.get("high", 0) or 0))
+        low_price = abs(int(row.get("low", 0) or 0))
+        close_price = abs(int(row.get("close", 0) or 0))
+        volume = abs(int(row.get("volume", 0) or 0))
+    except Exception:
+        return False
+
+    same_ohlc = open_price == high_price == low_price == close_price
+    return same_ohlc and volume < 1_000
+
+
 def write_daily_csv(path: Path, symbol: str, name: str, candles: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    rows = sorted(candles or [], key=lambda row: str(row.get("date", "")))
+    rows = sorted(
+        [row for row in candles or [] if not is_suspicious_daily_stub(row)],
+        key=lambda row: str(row.get("date", "")),
+    )
     with path.open("w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(
             f,
@@ -98,6 +146,12 @@ def main() -> int:
     symbols = clean_symbols(args.symbols)
     if not symbols:
         raise ValueError("조회할 종목코드가 없습니다.")
+
+    blocked, block_reason = should_block_early_run(args.allow_early)
+    if blocked:
+        print(f"일봉 다운로드 중단 | {block_reason}")
+        print("07:05 이후 다시 실행하거나, 정말 필요할 때만 --allow-early 옵션을 사용하세요.")
+        return 2
 
     output_dir = Path(args.output_dir)
     if not output_dir.is_absolute():

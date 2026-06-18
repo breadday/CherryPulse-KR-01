@@ -47,6 +47,10 @@ SEND_TELEGRAM_ON_SHUTDOWN = False
 MAX_POSITIONS = 3
 ORDER_AMOUNT_PER_TRADE = 1000000     #  주문 금액  1,000,000
 REBUY_COOLDOWN_SECONDS = 300
+# 기존 보유 잔고가 많아도 전략별 신규매수 검증은 막지 않습니다.
+# 대신 각 전략의 max_positions / max_daily_orders로 위험을 제한합니다.
+ENFORCE_GLOBAL_MAX_POSITIONS_FOR_BUY = False
+ALLOW_MIN_ONE_SHARE_OVER_ORDER_AMOUNT = True
 
 
 # =========================
@@ -80,6 +84,10 @@ SELL_ORDER_TIMEOUT_SEC = 10
 RETRY_SELL_AFTER_CANCEL = True
 RETRY_SELL_DELAY_SEC = 2
 RETRY_SELL_MAX_COUNT = 2
+# 자동매도는 정규장 체결이 안정적으로 가능한 시간에만 허용합니다.
+# 장 시작 직후 호가/체결 지연을 피하려고 09:03부터 열어둡니다.
+AUTO_SELL_START_HHMM = "09:03"
+AUTO_SELL_END_HHMM = "15:20"
 
 # =========================
 # 자동 종료 / 오버나이트 보유
@@ -87,7 +95,12 @@ RETRY_SELL_MAX_COUNT = 2
 AUTO_SHUTDOWN_ENABLED = True
 # 토/일은 자동으로 휴장일로 판단합니다.
 # 평일 휴장일은 아래 목록에 "YYYY-MM-DD" 형식으로 추가하세요.
-MARKET_HOLIDAYS = []
+# 2026-05-25: 부처님오신날 대체공휴일
+MARKET_HOLIDAYS = [
+    "2026-05-25",  # 부처님오신날 대체공휴일
+    "2026-06-03",  # 제9회 전국동시지방선거일
+    "2026-07-17",  # 제헌절
+]
 
 # =========================
 # 재진입 제한
@@ -104,6 +117,16 @@ BLOCK_STOPLOSS_SYMBOL_FOR_DAY = True
 MAX_NEW_BUY_PRICE_CHANGE_PCT = 10.0
 
 # =========================
+# 운영 로그 설정
+# =========================
+# 0이면 틱/진입체크 원문 로그를 남기지 않습니다.
+# 장중에는 틱이 초당 수십 건 들어와 로그 파일이 빠르게 커질 수 있으므로 기본값은 끕니다.
+LOG_REAL_TICK_EVERY_N = 0
+LOG_ENTRY_CHECK_EVERY_N = 0
+SIGNAL_DB_BLOCKED_RETENTION_DAYS = 7
+SIGNAL_DB_CLEANUP_ON_START = True
+
+# =========================
 # 엔진 보호
 # =========================
 MAX_CONSECUTIVE_LOSS = 3
@@ -118,6 +141,21 @@ STRATEGY_PROTECTION_ENABLED = True
 # Kiwoom 이벤트가 누락되면 QEventLoop가 하루 종일 멈출 수 있어 timeout 후 재시도/복구 흐름으로 빠져나오게 합니다.
 KIWOOM_TR_TIMEOUT_SEC = 20
 KIWOOM_CONDITION_TIMEOUT_SEC = 20
+# 실시간 틱마다 일봉 TR을 반복 호출하면 Kiwoom 응답 지연 시 매매 판단이 무너집니다.
+# 일봉 후보는 사전 snapshot을 기본으로 쓰고, 장중 TR 재조회는 긴 간격으로만 재시도합니다.
+SKIP_DAILY_CANDLE_FETCH_BEFORE_MARKET = True
+DAILY_CANDLE_FETCH_RETRY_SEC = 600
+DISABLE_INTRADAY_DAILY_CANDLE_TR = True
+DAILY_CANDLE_CSV_DIR = os.path.join(os.path.dirname(__file__), "data", "daily")
+
+# snapshot 후보가 오래된 일봉으로 만들어졌으면 당일 신규매수 후보로 쓰지 않습니다.
+SNAPSHOT_MAX_STALE_DAYS = 1
+# 오늘 기준 전일 거래일까지의 일봉만 허용합니다.
+# 예: 수요일 실행인데 후보 last_date가 월요일이면 화요일 데이터가 빠진 것이므로 차단합니다.
+SNAPSHOT_MAX_MISSING_TRADING_DAYS = 0
+
+# 실시간 틱 무수신 복구가 반복되면 계좌/TR 요청까지 같이 지연될 수 있어 횟수를 제한합니다.
+STALE_REALDATA_MAX_RECOVERIES = 3
 
 # =========================
 # 잔존 포지션 강제청산
@@ -265,10 +303,10 @@ STRATEGY_RUNTIME_CONFIG = {
     },
     "leader_pullback": {
         "enabled": True,
-        "start_hhmm": "09:35",
+        "start_hhmm": "09:40",
         "end_hhmm": "14:30",
         # 아직 승률 검증이 부족한 전략이라 소액/저빈도로만 비교합니다.
-        "max_daily_orders": 1,
+        "max_daily_orders": 3,
         "max_positions": 1,
         "max_symbol_position": 1,
         "order_interval_seconds": 120,
@@ -463,6 +501,8 @@ STRATEGY_CONFIG = {
     "bottom_reversal_entry_cooldown_sec": 900,
 
     "leader_entry_start_hhmm": "09:00",
+    "leader_pullback_exclude_symbols": ["005930", "000660"],
+    "daily_candidate_max_gap_pct": 7.0,
     "leader_initial_rally_pct": 0.2,
     "leader_pullback_min_pct": 0.2,
     "leader_pullback_max_pct": 2.5,
@@ -480,13 +520,13 @@ STRATEGY_CONFIG = {
     "close_buy_min_price_change_pct": 0.3,
     "close_buy_min_volume_ratio": 0.8,
     "close_buy_min_trade_strength": 0.0,
-    "close_buy_max_price_change_pct": 6.0,
+    "close_buy_max_price_change_pct": 7.0,
 
     # 종가매수 signal: 상승추세 종목의 장후반 눌림/회복을 소액 검증합니다.
     "close_buy_signal_min_price_change_pct": 0.3,
     "close_buy_signal_min_volume_ratio": 0.8,
     "close_buy_signal_min_trade_strength": 0.0,
-    "close_buy_signal_max_price_change_pct": 6.0,
+    "close_buy_signal_max_price_change_pct": 7.0,
     "close_buy_signal_min_total_score": 0.0,
     "close_buy_use_rsi2": True,
     "close_buy_signal_max_rsi2": 30.0,

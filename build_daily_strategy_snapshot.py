@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
+import config_live as config
 from data.csv_loader import BarData, CsvDataLoader
 from quant_bottom_reversal_backtest import detect_daily_bottom_pattern
 
@@ -22,6 +23,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT), help="저장할 후보 snapshot 경로")
     parser.add_argument("--min-bars", type=int, default=80, help="전략 판정에 필요한 최소 일봉 수")
     parser.add_argument("--max-per-strategy", type=int, default=12, help="전략별 최대 후보 수")
+    parser.add_argument(
+        "--include-current-day",
+        action="store_true",
+        help="장중에 생성 중인 당일 일봉까지 포함합니다. 기본값은 오늘 미완성 일봉 제외입니다.",
+    )
     return parser.parse_args()
 
 
@@ -127,13 +133,63 @@ def close_buy_candidate(bars: list[BarData]) -> tuple[bool, float, str]:
     return True, score, "daily_close_buy"
 
 
-def build_rows(files: list[Path], min_bars: int, max_per_strategy: int) -> list[dict]:
+def remove_incomplete_current_day(bars: list[BarData], include_current_day: bool) -> list[BarData]:
+    if include_current_day:
+        return bars
+
+    today = datetime.now().date()
+    return [bar for bar in bars if bar.dt.date() < today]
+
+
+def is_suspicious_daily_stub(bar: BarData) -> bool:
+    """키움이 장전/조회 불안정 때 주는 현재가성 가짜 일봉을 걸러냅니다."""
+    same_ohlc = bar.open == bar.high == bar.low == bar.close
+    return same_ohlc and float(bar.volume or 0.0) < 1_000
+
+
+def remove_suspicious_daily_stubs(bars: list[BarData]) -> tuple[list[BarData], int]:
+    clean = [bar for bar in bars if not is_suspicious_daily_stub(bar)]
+    return clean, len(bars) - len(clean)
+
+
+def excluded_symbols_for_strategy(strategy_name: str) -> set[str]:
+    strategy_config = getattr(config, "STRATEGY_CONFIG", {}) or {}
+    symbols = strategy_config.get(f"{strategy_name}_exclude_symbols", []) or []
+    return {str(symbol).strip() for symbol in symbols if str(symbol).strip()}
+
+
+def build_rows(
+    files: list[Path],
+    min_bars: int,
+    max_per_strategy: int,
+    include_current_day: bool = False,
+) -> tuple[list[dict], dict]:
     by_symbol: dict[str, dict] = {}
     scored_by_strategy: dict[str, list[tuple[float, str]]] = defaultdict(list)
+    latest_data_date = ""
+    loaded_files = 0
+    skipped_files = 0
+    invalid_daily_row_count = 0
+    strategy_names = ("bottom_reversal", "leader_pullback", "close_buy")
+    excludes_by_strategy = {
+        strategy_name: excluded_symbols_for_strategy(strategy_name)
+        for strategy_name in strategy_names
+    }
 
     for path in files:
         code, name = code_name_from_file(path)
-        bars = CsvDataLoader(path, code=code).load_bars()
+        raw_bars = CsvDataLoader(path, code=code).load_bars()
+        bars = remove_incomplete_current_day(raw_bars, include_current_day=include_current_day)
+        bars, removed_count = remove_suspicious_daily_stubs(bars)
+        invalid_daily_row_count += removed_count
+        if bars:
+            loaded_files += 1
+            last_date = bars[-1].dt.strftime("%Y-%m-%d")
+            if not latest_data_date or last_date > latest_data_date:
+                latest_data_date = last_date
+        else:
+            skipped_files += 1
+
         if len(bars) < min_bars:
             continue
 
@@ -144,6 +200,8 @@ def build_rows(files: list[Path], min_bars: int, max_per_strategy: int) -> list[
         ]
         for strategy_name, (ok, score, reason) in checks:
             if not ok:
+                continue
+            if code in excludes_by_strategy.get(strategy_name, set()):
                 continue
             row = by_symbol.setdefault(
                 code,
@@ -178,7 +236,15 @@ def build_rows(files: list[Path], min_bars: int, max_per_strategy: int) -> list[
         rows.append(row)
 
     rows.sort(key=lambda item: (",".join(item["strategies"]), item["symbol"]))
-    return rows
+    metadata = {
+        "latest_data_date": latest_data_date,
+        "input_file_count": len(files),
+        "loaded_file_count": loaded_files,
+        "skipped_file_count": skipped_files,
+        "invalid_daily_row_count": invalid_daily_row_count,
+        "include_current_day": include_current_day,
+    }
+    return rows, metadata
 
 
 def main() -> int:
@@ -191,12 +257,18 @@ def main() -> int:
         output_path = BASE_DIR / output_path
 
     files = load_daily_files(input_dir)
-    rows = build_rows(files, min_bars=args.min_bars, max_per_strategy=args.max_per_strategy)
+    rows, metadata = build_rows(
+        files,
+        min_bars=args.min_bars,
+        max_per_strategy=args.max_per_strategy,
+        include_current_day=args.include_current_day,
+    )
     payload = {
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "condition_name": "일봉_전략후보",
         "source": "daily_strategy_snapshot",
         "count": len(rows),
+        **metadata,
         "codes": rows,
     }
     output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -205,7 +277,10 @@ def main() -> int:
     for row in rows:
         for strategy_name in row.get("strategies", []):
             counts[strategy_name] += 1
-    print(f"일봉 후보 저장 완료 | path={output_path} count={len(rows)} counts={dict(counts)}")
+    print(
+        f"일봉 후보 저장 완료 | path={output_path} count={len(rows)} "
+        f"latest_data_date={metadata.get('latest_data_date', '')} counts={dict(counts)}"
+    )
     for row in rows[:20]:
         print(f"{row['symbol']} {row.get('name', '')} strategies={','.join(row.get('strategies', []))}")
     return 0
