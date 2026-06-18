@@ -1,0 +1,7 @@
+interface:
+  display_name: "CherryPulse 유지보수"
+  short_description: "자동매매 로그 진단과 전략 변경을 안전하게 수행"
+  default_prompt: "$cherrypulse-maintainer를 사용해 최신 매매 로그와 전략 성과를 진단해줘."
+
+policy:
+  allow_implicit_invocation: true
