@@ -87,7 +87,7 @@ $reviewPath
 "@ $reviewPath
 
 $review = Get-Content -Raw $reviewPath
-if ($review -notmatch "(?m)^PASS\\b") {
+if ($review -notmatch "(?m)^PASS\b") {
   throw "Review did not PASS. No publish was attempted."
 }
 
