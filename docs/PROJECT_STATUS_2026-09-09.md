@@ -2,8 +2,9 @@
 
 - 점검일: 2026-09-09
 - 점검 기준 브랜치: main
-- 현재 HEAD: dc1613ab80366ffbc77583e978a81b3d0dcf7e99
-- 최근 커밋: 문서: CherryPulse 소스 분석 추가
+- 점검 대상 소스 HEAD: dc1613ab80366ffbc77583e978a81b3d0dcf7e99
+- 점검 대상 소스 커밋: 문서: CherryPulse 소스 분석 추가
+- 진행현황 문서 반영 커밋: 585943a78a1c20126d226e99144673126c7e7a4d
 - 최근 코드 변경 커밋: b65dec1bff718341c3fd8a2c9b5f2b1c93d010e8
 - 저장소: https://github.com/breadday/CherryPulse-KR-01
 - 점검 방법: GitHub 저장소 트리, 설정·실행 파일, 전략·브로커·백테스트 코드, 최근 커밋을 정적 확인
