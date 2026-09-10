@@ -21,6 +21,19 @@ function Require-Command([string]$Name) {
   }
 }
 
+function Expose-UntrackedForReview {
+  $untracked = @(& git ls-files --others --exclude-standard)
+  foreach ($path in $untracked) {
+    if ($path -match "(^|/)\.env($|\.)") {
+      throw "Refusing to expose a secret-like untracked file: $path"
+    }
+    & git add --intent-to-add -- $path
+    if ($LASTEXITCODE -ne 0) {
+      throw "Unable to expose untracked file for review: $path"
+    }
+  }
+}
+
 Require-Command "git"
 Require-Command "opencode"
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "scripts/safety-check.ps1") -Mode pre
@@ -73,6 +86,7 @@ Run the relevant tests and write the test report to:
 $testPath
 "@ $testPath
 
+Expose-UntrackedForReview
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "scripts/safety-check.ps1") -Mode post
 
 Run-Stage "reviewer" @"
@@ -82,7 +96,10 @@ $specPath
 $implementationPath
 $testPath
 
-Review the complete diff against main and write the review verdict to:
+Review the complete working-tree change against main. Use both:
+- git diff main
+- git status --short
+Untracked files exposed by the runner are part of the review and must not be ignored. Check scope, tests, and trading safety. Write the verdict to:
 $reviewPath
 "@ $reviewPath
 
