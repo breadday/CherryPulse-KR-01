@@ -132,7 +132,7 @@ foreach ($path in $baselinePaths) {
   $baselineHashes[$path] = Get-FileHash $path
 }
 
-$manifestPath = Join-Path $handoff "$TaskId-SCOPE.md"
+$manifestPath = Join-Path $handoff "$TaskId-SCOPE-MANIFEST.md"
 @(
   "# $TaskId baseline"
   ""
