@@ -15,6 +15,14 @@ param(
 $ErrorActionPreference = "Stop"
 Set-Location $RepoRoot
 
+# Keep native OpenCode output and handoff logs UTF-8 on Windows PowerShell 7.
+$utf8 = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8
+[Console]::OutputEncoding = $utf8
+$OutputEncoding = $utf8
+$env:PYTHONIOENCODING = "utf-8"
+$env:PYTHONUTF8 = "1"
+
 function Require-Command([string]$Name) {
   if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
     throw "Required command not found: $Name"
@@ -45,7 +53,8 @@ New-Item -ItemType Directory -Force -Path $handoff | Out-Null
 function Run-Stage([string]$Agent, [string]$Prompt, [string]$OutputPath) {
   $logPath = Join-Path $handoff "$TaskId-$Agent.log"
   Write-Host "=== $Agent ==="
-  & opencode run --agent $Agent --auto $Prompt 2>&1 | Tee-Object -FilePath $logPath
+  & opencode run --agent $Agent --auto $Prompt 2>&1 |
+    Tee-Object -FilePath $logPath -Encoding utf8
   if ($LASTEXITCODE -ne 0) {
     throw "OpenCode stage failed: $Agent. See $logPath"
   }
@@ -103,7 +112,7 @@ Untracked files exposed by the runner are part of the review and must not be ign
 $reviewPath
 "@ $reviewPath
 
-$review = Get-Content -Raw $reviewPath
+$review = Get-Content -Raw -Encoding utf8 $reviewPath
 if ($review -notmatch "(?m)^PASS\b") {
   throw "Review did not PASS. No publish was attempted."
 }
