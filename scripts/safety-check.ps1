@@ -39,7 +39,7 @@ if ($forbidden.Count -gt 0) {
 }
 
 $liveDiff = @(Invoke-Git @("diff", "main...HEAD", "--", "*.py", "*.json", "*.yaml", "*.yml") |
-  Select-String -Pattern "RUN_MODE\s*=\s*['\"]live['\"]|LIVE_TRADING\s*=\s*True")
+  Select-String -Pattern 'RUN_MODE\s*=\s*.*live|LIVE_TRADING\s*=\s*True')
 if ($liveDiff.Count -gt 0) {
   throw "Live-trading enablement detected in the automation diff."
 }
