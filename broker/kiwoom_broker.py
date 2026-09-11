@@ -285,6 +285,16 @@ class KiwoomBroker(QObject):
     # -------------------------
     # 로그인
     # -------------------------
+    def _validate_server_environment(self, server_gubun: str) -> None:
+        expected = str(getattr(config, "KIWOOM_EXPECTED_SERVER", "paper")).strip().lower()
+        if expected not in {"paper", "live"}:
+            expected = "paper"
+        actual = "paper" if str(server_gubun).strip() == "1" else "live"
+        if actual != expected:
+            raise RuntimeError(
+                f"서버 환경 불일치 | expected={expected} actual={actual}"
+            )
+
     def connect(self):
         self.logger.info("키움 로그인 시도")
 
@@ -317,6 +327,9 @@ class KiwoomBroker(QObject):
 
         if not self.connected:
             raise RuntimeError("로그인 실패")
+
+        server_gubun = self.ocx.dynamicCall("GetLoginInfo(QString)", "GetServerGubun")
+        self._validate_server_environment(str(server_gubun))
 
         accounts = self.ocx.dynamicCall("GetLoginInfo(QString)", "ACCNO")
         account_list = [x for x in str(accounts).split(";") if x.strip()]

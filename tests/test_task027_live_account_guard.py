@@ -55,3 +55,18 @@ def test_connect_rejects_configured_account_that_is_not_ten_digits(monkeypatch):
 
     with pytest.raises(RuntimeError, match="10자리"):
         _broker(module, "12345678").connect()
+
+
+def test_server_guard_accepts_configured_paper_server(monkeypatch):
+    module = _load_broker(monkeypatch)
+    monkeypatch.setattr(module.config, "KIWOOM_EXPECTED_SERVER", "paper")
+
+    module.KiwoomBroker._validate_server_environment(_broker(module, None), "1")
+
+
+def test_server_guard_rejects_unexpected_server(monkeypatch):
+    module = _load_broker(monkeypatch)
+    monkeypatch.setattr(module.config, "KIWOOM_EXPECTED_SERVER", "paper")
+
+    with pytest.raises(RuntimeError, match="서버 환경 불일치"):
+        module.KiwoomBroker._validate_server_environment(_broker(module, None), "0")

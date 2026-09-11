@@ -18,7 +18,7 @@
 - `daily_snapshot_only` 운영 모드
 - 최신 snapshot 검증: `SNAPSHOT_OK`, 최신 일봉 `2026-09-10`
 - Python 3.8 32-bit broker import: `KiwoomBroker`
-- 전체 회귀 테스트: `113 passed, 18 skipped`
+- 전체 회귀 테스트: `115 passed, 18 skipped`
 - 장 종료 후 실행: 계좌/TR 동기화를 생략하고 정상 종료
 - SQLite 현재 누적 건수: `trades=0`, `orders=0`, `fills=0`, `strategy_daily_summary=0`
 
@@ -32,6 +32,7 @@
 6. snapshot·broker import·timeout·리스크·복구 회귀 테스트와 GitHub Actions 설정을 저장소에 반영했다.
 7. 로그인 이벤트 대기에도 20초 timeout을 적용하고 실패 경로 회귀 테스트를 추가했다.
 8. 명시적 계좌번호는 10자리 숫자만 허용하고, 주문 허용 모드의 계좌번호 누락은 로그인 전에 차단하도록 했다.
+9. 키움 로그인 서버가 `KIWOOM_EXPECTED_SERVER`와 다르면 계좌 조회 전에 차단하도록 했다.
 
 ## 남은 작업
 
@@ -39,7 +40,7 @@
 
 - Telegram token 교체를 완료했고, `.env`와 기존 백업 ZIP은 로컬에 보존한 채 Git 인덱스에서 제거했다. 이후 백업도 `_backups/` 규칙으로 추적되지 않는다. 이 staged 삭제와 `.gitignore` 변경은 다음 커밋에 반영해야 한다.
 - 과거 커밋에 비밀값이 남아 있는지는 별도 Git 이력 점검이 필요하다.
-- `RUN_MODE=live` 전환 시 키움 모의/실서버 확인과 별도 승인값을 추가한다.
+- `RUN_MODE=live` 전환 시 별도 승인값을 추가한다.
 
 ### 운영 검증
 
