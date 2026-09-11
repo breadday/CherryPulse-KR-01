@@ -46,11 +46,16 @@ class TelegramNotifier:
             return self.token[:3] + "***"
         return self.token[:8] + "***"
 
+    def _masked_chat_id(self) -> str:
+        if not self.chat_id:
+            return "(empty)"
+        return "***"
+
     def debug_identity(self):
         if self.logger:
             self.logger.info(
                 f"텔레그램 설정 | enabled={self.is_enabled()} "
-                f"token={self._masked_token()} chat_id={self.chat_id!r}"
+                f"token={self._masked_token()} chat_id={self._masked_chat_id()}"
             )
 
     def get_name(self, symbol: str) -> str:
