@@ -288,6 +288,13 @@ class KiwoomBroker(QObject):
     def connect(self):
         self.logger.info("키움 로그인 시도")
 
+        configured_account = str(self.account_no or "").strip()
+        if getattr(config, "ALLOW_LIVE_ORDERS", config.LIVE_MODE) and not configured_account:
+            raise RuntimeError("실주문 모드에서는 ACCOUNT_NO가 필수입니다.")
+        if configured_account and (len(configured_account) != 10 or not configured_account.isdigit()):
+            raise RuntimeError("계좌번호는 10자리 숫자여야 합니다.")
+        self.account_no = configured_account or None
+
         self.login_loop = QEventLoop()
 
         ret = self.ocx.dynamicCall("CommConnect()")
