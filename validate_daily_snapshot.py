@@ -63,8 +63,8 @@ def validate_snapshot(path: Path) -> tuple[bool, str]:
 
     generated_at = str(payload.get("generated_at", "") or "").strip()
     generated_date = parse_date(generated_at)
-    if generated_date and generated_date != today:
-        return False, f"생성일 불일치 generated_at={generated_at} today={today}"
+    if generated_date and generated_date > today:
+        return False, f"미래 생성일 generated_at={generated_at} today={today}"
 
     latest_date = parse_date(str(payload.get("latest_data_date", "") or "").strip())
     for item in payload.get("codes", []) or []:
@@ -76,6 +76,9 @@ def validate_snapshot(path: Path) -> tuple[bool, str]:
 
     if latest_date is None:
         return False, "후보 last_date 없음"
+
+    if latest_date > today:
+        return False, f"미래 일봉 latest_date={latest_date} today={today}"
 
     calendar_days = (today - latest_date).days
     missing_trading_days = count_trading_days_between(latest_date, today)

@@ -164,7 +164,7 @@ class SQLiteStore:
                     UNIQUE(trade_date, test_name, strategy_name, selector_name, universe_name)
                 );
 
-                CREATE TABLE IF NOT EXISTS strategy_universe_symbols (
+                 CREATE TABLE IF NOT EXISTS strategy_universe_symbols (
                     trade_date TEXT NOT NULL,
                     test_name TEXT,
                     strategy_name TEXT NOT NULL,
@@ -173,9 +173,21 @@ class SQLiteStore:
                     symbol TEXT NOT NULL,
                     name TEXT,
                     created_at TEXT NOT NULL,
-                    PRIMARY KEY (trade_date, test_name, strategy_name, universe_name, source_type, symbol)
-                );
-                """
+                     PRIMARY KEY (trade_date, test_name, strategy_name, universe_name, source_type, symbol)
+                 );
+
+                 CREATE TABLE IF NOT EXISTS risk_events (
+                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     event_id TEXT NOT NULL UNIQUE,
+                     idempotency_key TEXT NOT NULL UNIQUE,
+                     created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                     test_name TEXT, symbol TEXT NOT NULL, position_key TEXT,
+                     qty INTEGER NOT NULL, price REAL, avg_price REAL, pnl_pct REAL,
+                     reason TEXT, state TEXT NOT NULL, local_order_id TEXT,
+                     broker_order_id TEXT, attempt_count INTEGER NOT NULL DEFAULT 0,
+                     last_error TEXT, raw_payload TEXT
+                 );
+                 """
             )
             self._ensure_column(conn, "signals", "selector_name", "TEXT")
             self._ensure_column(conn, "signals", "universe_name", "TEXT")
@@ -188,6 +200,8 @@ class SQLiteStore:
             self._ensure_column(conn, "trades", "strategy_name", "TEXT")
             self._ensure_column(conn, "trades", "selector_name", "TEXT")
             self._ensure_column(conn, "trades", "universe_name", "TEXT")
+            self._ensure_column(conn, "risk_events", "cancel_requested_at", "TEXT")
+            self._ensure_column(conn, "risk_events", "last_action_at", "TEXT")
 
     def _ensure_column(self, conn, table_name: str, column_name: str, column_type: str):
         columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table_name})")}
@@ -202,6 +216,51 @@ class SQLiteStore:
             return json.dumps(payload, ensure_ascii=False, default=str)
         except Exception:
             return "{}"
+
+    def create_risk_event(self, *, event_id, idempotency_key, test_name="default", symbol="", position_key="", qty=0, price=None, avg_price=None, pnl_pct=None, reason="", state="STOP_DETECTED", raw_payload=None):
+        now = self._now()
+        try:
+            with self._connect() as conn:
+                conn.execute("""INSERT INTO risk_events
+                    (event_id,idempotency_key,created_at,updated_at,test_name,symbol,position_key,qty,price,avg_price,pnl_pct,reason,state,raw_payload)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (event_id, idempotency_key, now, now, test_name, symbol, position_key, int(qty), price, avg_price, pnl_pct, reason, state, self._json(raw_payload or {})))
+        except sqlite3.IntegrityError:
+            return self.get_risk_event_by_idempotency_key(idempotency_key)
+        return self.get_risk_event_by_idempotency_key(idempotency_key)
+
+    def update_risk_event(self, event_id, **values):
+        values = dict(values)
+        values["updated_at"] = self._now()
+        if "raw_payload" in values:
+            values["raw_payload"] = self._json(values["raw_payload"])
+        allowed = {"updated_at", "state", "local_order_id", "broker_order_id", "attempt_count", "last_error", "qty", "reason", "raw_payload", "cancel_requested_at", "last_action_at"}
+        values = {k: v for k, v in values.items() if k in allowed}
+        if not values:
+            return None
+        with self._connect() as conn:
+            cur = conn.execute("UPDATE risk_events SET " + ", ".join(f"{k}=?" for k in values) + " WHERE event_id=?", (*values.values(), event_id))
+            if cur.rowcount != 1:
+                raise RuntimeError("risk event update matched no rows")
+        result = self.get_risk_event(event_id)
+        if result is None:
+            raise RuntimeError("risk event disappeared after update")
+        return result
+
+    def get_risk_event(self, event_id):
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM risk_events WHERE event_id=?", (event_id,)).fetchone()
+        return dict(row) if row else None
+
+    def get_risk_event_by_idempotency_key(self, key):
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM risk_events WHERE idempotency_key=?", (key,)).fetchone()
+        return dict(row) if row else None
+
+    def get_open_risk_events(self, include_manual=False):
+        with self._connect() as conn:
+            excluded = "'SELL_FILLED','CLOSED'" if include_manual else "'SELL_FILLED','CLOSED','MANUAL_INTERVENTION_REQUIRED'"
+            rows = conn.execute(f"SELECT * FROM risk_events WHERE state NOT IN ({excluded}) ORDER BY id").fetchall()
+        return [dict(row) for row in rows]
 
     def record_signal(
         self,

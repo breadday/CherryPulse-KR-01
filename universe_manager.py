@@ -1,25 +1,48 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
-from selectors import CodeUniverse, SnapshotSelector
+from selectors import (
+    CodeUniverse,
+    ExternalCandidate,
+    ExternalCandidateError,
+    ExternalCandidateProvider,
+    SnapshotSelector,
+)
 
 
 class UniverseManager:
-    def __init__(self, snapshot_path: Path, fallback_condition_name: str, strategy_universe_config: dict | None = None):
+    def __init__(
+        self,
+        snapshot_path: Path,
+        fallback_condition_name: str,
+        strategy_universe_config: dict | None = None,
+        external_candidate_path: Path | None = None,
+    ):
         self.snapshot_path = Path(snapshot_path)
         self.snapshot_selector = SnapshotSelector(self.snapshot_path, fallback_condition_name)
+        self.external_candidate_path = (
+            Path(external_candidate_path) if external_candidate_path is not None else None
+        )
+        self.external_candidate_provider = (
+            ExternalCandidateProvider(self.external_candidate_path)
+            if self.external_candidate_path is not None
+            else None
+        )
         self.strategy_universe_config = strategy_universe_config or {}
 
         self.snapshot_universe = CodeUniverse()
         self.condition_universe = CodeUniverse()
+        self.external_universe = CodeUniverse()
 
         self.strategy_names = sorted(self.strategy_universe_config.keys())
         self.strategy_source_universes = {
             strategy_name: {
                 "snapshot": CodeUniverse(),
                 "condition": CodeUniverse(),
+                "external": CodeUniverse(),
             }
             for strategy_name in self.strategy_names
         }
@@ -46,7 +69,9 @@ class UniverseManager:
         source_universes = self.strategy_source_universes.get(strategy_name)
         if not source_universes:
             return []
-        merged = set(source_universes["snapshot"].snapshot()) | set(source_universes["condition"].snapshot())
+        merged = set()
+        for source_universe in source_universes.values():
+            merged.update(source_universe.snapshot())
         return sorted(merged)
 
     def strategy_source_codes(self, strategy_name: str, source: str) -> list[str]:
@@ -68,6 +93,9 @@ class UniverseManager:
 
     def condition_codes(self) -> list[str]:
         return self.condition_universe.snapshot()
+
+    def external_codes(self) -> list[str]:
+        return self.external_universe.snapshot()
 
     def all_watch_codes(self) -> list[str]:
         merged = set()
@@ -138,6 +166,60 @@ class UniverseManager:
         self.condition_universe.discard(symbol)
         for strategy_name in self.strategy_names:
             self.strategy_source_universes[strategy_name]["condition"].discard(symbol)
+
+    def _clear_external_candidates(self) -> None:
+        self.external_universe.replace([])
+        for strategy_name in self.strategy_names:
+            self.strategy_source_universes[strategy_name]["external"].replace([])
+
+    def replace_external_candidates(
+        self, candidates: Iterable[ExternalCandidate]
+    ) -> list[str]:
+        candidate_rows = list(candidates)
+        strategy_codes = {strategy_name: [] for strategy_name in self.strategy_names}
+        identities = set()
+
+        for candidate in candidate_rows:
+            if not isinstance(candidate, ExternalCandidate):
+                raise ExternalCandidateError(
+                    "external candidates must be ExternalCandidate objects"
+                )
+            if candidate.strategy_tag not in strategy_codes:
+                raise ExternalCandidateError(
+                    f"unknown strategy_tag: {candidate.strategy_tag}"
+                )
+            identity = (candidate.symbol, candidate.strategy_tag)
+            if identity in identities:
+                raise ExternalCandidateError(
+                    "duplicate candidate identity "
+                    f"symbol={candidate.symbol} strategy_tag={candidate.strategy_tag}"
+                )
+            identities.add(identity)
+            strategy_codes[candidate.strategy_tag].append(candidate.symbol)
+
+        clean_codes = self.external_universe.replace(
+            candidate.symbol for candidate in candidate_rows
+        )
+        for strategy_name in self.strategy_names:
+            self.strategy_source_universes[strategy_name]["external"].replace(
+                strategy_codes[strategy_name]
+            )
+        return clean_codes
+
+    def load_external_candidates(
+        self, as_of: Optional[datetime] = None
+    ) -> list[ExternalCandidate]:
+        if self.external_candidate_provider is None:
+            self._clear_external_candidates()
+            raise ExternalCandidateError("external candidate path is not configured")
+
+        try:
+            candidates = self.external_candidate_provider.load(as_of=as_of)
+            self.replace_external_candidates(candidates)
+        except Exception:
+            self._clear_external_candidates()
+            raise
+        return candidates
 
     def has_snapshot(self, code: str) -> bool:
         return self.snapshot_universe.contains(code)

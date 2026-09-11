@@ -5,12 +5,14 @@ import time
 from collections import Counter, defaultdict, deque
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Tuple
 
 import config_live as config
 from core.models import Order, TickData, OrderStatus, Signal, Side, OrderType
 from core.order_manager import OrderManager
 from core.portfolio import Portfolio
 from core.risk_manager import RiskManager
+from core.risk_guard import RiskGuard, RiskPosition
 from data.news_provider import NewsProvider
 
 
@@ -25,9 +27,11 @@ class TradingEngine:
 
         self.portfolio = Portfolio(initial_cash=initial_cash)
         self.risk_manager = RiskManager()
+        self.risk_guard = RiskGuard(store=sqlite_store, logger=logger)
         self.order_manager = OrderManager()
 
         self.is_running = False
+        self.shutdown_requested = False
 
         # 외부 점수 공급기
         self.news_provider = NewsProvider(logger=logger)
@@ -121,6 +125,11 @@ class TradingEngine:
         self.last_entry_signal_context = {}
         self.position_entry_context = {}
         self.order_route_context = {}
+        self.risk_order_events = {}
+        self.risk_order_context = {}
+        self.risk_retry_count = {}
+        self.risk_cancel_in_progress = set()
+        self._risk_pending_broker_ids = set()
 
         self.engine_early_stop_enabled = True
         self.engine_early_stop_max_hold_ticks = 4
@@ -320,7 +329,7 @@ class TradingEngine:
         self.signal_skip_log_last_ts[key] = now_ts
         return True, suppressed
 
-    def _format_strategy_diagnostics_lines(self) -> list[str]:
+    def _format_strategy_diagnostics_lines(self) -> List[str]:
         strategy_names = sorted(
             set(self.strategy_reject_reason_counts.keys())
             | set(self.strategy_signal_counts.keys())
@@ -610,6 +619,11 @@ class TradingEngine:
             0,
             self._safe_int(self._cfg("ORDER_AMOUNT_PER_TRADE", 0), 0),
         )
+        self.risk_sell_timeout_sec = self._finite_positive_cfg("RISK_SELL_ORDER_TIMEOUT_SEC", 10.0)
+        self.risk_retry_delay_sec = self._finite_nonnegative_cfg("RISK_SELL_RETRY_DELAY_SEC", 2.0)
+        self.risk_max_retry_count = max(0, self._safe_int(self._cfg("RISK_SELL_MAX_RETRY_COUNT", 2), 2))
+        self.risk_cancel_confirm_timeout_sec = self._finite_positive_cfg("RISK_CANCEL_CONFIRM_TIMEOUT_SEC", 15.0)
+        self.risk_reconcile_interval_sec = self._finite_positive_cfg("RISK_RECONCILE_INTERVAL_SEC", 5.0)
 
         self.logger.info(
             "리스크 설정 로드 | "
@@ -620,6 +634,14 @@ class TradingEngine:
             f"max_positions={self.max_positions} "
             f"order_amount_per_trade={self.order_amount_per_trade}"
         )
+
+    def _finite_positive_cfg(self, name, default):
+        value = self._safe_float(self._cfg(name, default), default)
+        return value if value > 0 and value != float("inf") else default
+
+    def _finite_nonnegative_cfg(self, name, default):
+        value = self._safe_float(self._cfg(name, default), default)
+        return value if 0 <= value < float("inf") else default
 
     def _cleanup_signal_history(self, reason: str = "startup"):
         if not self.sqlite_store:
@@ -641,7 +663,7 @@ class TradingEngine:
     def _notify_enabled(self, key: str, default: bool):
         return bool(self._cfg(key, default))
 
-    def _load_daily_candles_from_csv(self, symbol: str) -> list[dict]:
+    def _load_daily_candles_from_csv(self, symbol: str) -> List[Dict]:
         symbol = str(symbol or "").strip()
         if not symbol:
             return []
@@ -687,7 +709,7 @@ class TradingEngine:
         self.logger.info(f"일봉 CSV 캐시 로드 | symbol={symbol} path={files[0].name} count={len(clean)}")
         return clean
 
-    def _get_daily_candles_cached(self, symbol: str) -> list[dict]:
+    def _get_daily_candles_cached(self, symbol: str) -> List[Dict]:
         symbol = str(symbol or "").strip()
         if not symbol:
             return []
@@ -1690,6 +1712,7 @@ class TradingEngine:
     def start(self):
         self.broker.connect()
         self._cleanup_signal_history(reason="engine_start")
+        self.shutdown_requested = False
         self.is_running = True
         self.logger.info("브로커 연결 완료")
 
@@ -1723,6 +1746,10 @@ class TradingEngine:
 
         self.is_running = False
         self.logger.info("엔진 종료 완료")
+
+    def request_shutdown(self):
+        """Fail closed for all new broker order actions."""
+        self.shutdown_requested = True
 
     def health_check(self):
         try:
@@ -1773,29 +1800,61 @@ class TradingEngine:
 
         except Exception as e:
             self.logger.exception(f"계좌 동기화 실패 | {e}")
-            return {"deposit": 0, "positions": []}
+            raise
 
     def sync_pending_orders(self, password: str = ""):
         try:
             pending_orders = self.broker.get_pending_orders(password=password)
+            self._risk_pending_broker_ids = {str(x.get("order_no", "")) for x in pending_orders if x.get("order_no")}
             self.logger.info(f"미체결 주문 동기화 시작 | count={len(pending_orders)}")
+            open_risk_events = (
+                self.sqlite_store.get_open_risk_events(include_manual=True)
+                if self.sqlite_store else []
+            )
 
             restored = 0
             for item in pending_orders:
-                symbol = item["symbol"]
-                order_no = item["order_no"]
-                side = item["side"]
-                order_qty = int(item["order_qty"])
-                unfilled_qty = int(item["unfilled_qty"])
-                filled_qty = int(item["filled_qty"])
-                order_price = float(item["order_price"])
-                order_status = str(item["order_status"])
+                symbol = str(item.get("symbol", "")).strip()
+                order_no = str(item.get("order_no", "")).strip()
+                side = item.get("side")
+                side_value = str(getattr(side, "value", side or "")).strip()
+                try:
+                    order_qty = int(item["order_qty"])
+                    unfilled_qty = int(item["unfilled_qty"])
+                    filled_qty = int(item["filled_qty"])
+                    order_price = float(item.get("order_price", 0) or 0)
+                except (KeyError, TypeError, ValueError):
+                    self._mark_open_risk_manual("invalid pending identity or quantity state", broker_order_id=order_no)
+                    continue
+                order_status = str(item.get("order_status", ""))
 
+                if (not symbol or not order_no or not side_value
+                        or order_qty <= 0 or filled_qty < 0 or unfilled_qty < 0
+                        or filled_qty > order_qty or unfilled_qty > order_qty
+                        or filled_qty + unfilled_qty != order_qty):
+                    self._mark_open_risk_manual("invalid pending quantity state", broker_order_id=order_no)
+                    continue
                 if unfilled_qty <= 0:
                     continue
 
-                local_id = f"RESTORE_{order_no}"
+                risk_matches = [event for event in open_risk_events
+                                if str(event.get("broker_order_id", "")).strip() == order_no]
+                if len(risk_matches) > 1:
+                    self._mark_open_risk_manual("ambiguous pending risk identity", broker_order_id=order_no)
+                    continue
+                risk_match = risk_matches[0] if risk_matches else None
+                if risk_match and (
+                        str(risk_match.get("symbol", "")).strip() != symbol
+                        or str(risk_match.get("side", "SELL")).strip() not in {"", side_value, "SELL"}
+                ):
+                    self._mark_open_risk_manual("pending risk identity mismatch", broker_order_id=order_no)
+                    continue
+                local_id = str(risk_match.get("local_order_id") or f"RESTORE_{order_no}") if risk_match else f"RESTORE_{order_no}"
                 if self.order_manager.get_order(local_id) is not None:
+                    existing = self.order_manager.get_order(local_id)
+                    if str(existing.broker_order_id or "") != str(order_no):
+                        self._mark_open_risk_manual("pending order identity conflict", broker_order_id=order_no)
+                        continue
                     continue
 
                 order_type = OrderType.LIMIT if order_price > 0 else OrderType.MARKET
@@ -1811,11 +1870,39 @@ class TradingEngine:
                     status=status,
                     filled_qty=filled_qty,
                     avg_fill_price=order_price if filled_qty > 0 else 0.0,
-                    reason=f"restored_pending:{order_status}",
+                        reason=f"restored_pending:{order_status}",
+                    purpose="RISK_STOP" if risk_match else "",
+                    risk_event_id=str(risk_match.get("event_id", "")) if risk_match else "",
+                    broker_order_id="",
                 )
-
+                # Binding is transactional from the engine's perspective.
+                # A custom/legacy manager may mutate before returning None, so
+                # retain and restore every local identity structure on failure.
+                orders_before = dict(self.order_manager.orders)
+                local_map_before = dict(self.order_manager.local_to_broker_id)
+                broker_map_before = dict(self.order_manager.broker_to_local_id)
+                risk_events_before = dict(self.risk_order_events)
+                broker_fields_before = {
+                    id(order): getattr(order, "broker_order_id", "")
+                    for order in self.order_manager.orders.values()
+                }
                 self.order_manager.register(restored_order)
-                self.order_manager.broker_to_local_id[order_no] = local_id
+                if self.order_manager.bind_broker_order_id(local_id, str(order_no), restored_order.risk_event_id) is None:
+                    self.order_manager.orders.clear()
+                    self.order_manager.orders.update(orders_before)
+                    self.order_manager.local_to_broker_id.clear()
+                    self.order_manager.local_to_broker_id.update(local_map_before)
+                    self.order_manager.broker_to_local_id.clear()
+                    self.order_manager.broker_to_local_id.update(broker_map_before)
+                    for existing in self.order_manager.orders.values():
+                        if id(existing) in broker_fields_before:
+                            existing.broker_order_id = broker_fields_before[id(existing)]
+                    self.risk_order_events.clear()
+                    self.risk_order_events.update(risk_events_before)
+                    self._mark_open_risk_manual("pending order identity binding failed", event_id=(risk_match or {}).get("event_id"), broker_order_id=order_no)
+                    continue
+                if risk_match:
+                    self.risk_order_events[local_id] = str(risk_match["event_id"])
                 restored += 1
 
                 self.logger.info(
@@ -1826,10 +1913,75 @@ class TradingEngine:
                 )
 
             self.logger.info(f"미체결 주문 동기화 완료 | restored={restored}")
+            if self.sqlite_store:
+                for event in self.sqlite_store.get_open_risk_events(include_manual=True):
+                    if event.get("state") not in {"SELL_FILLED", "CLOSED", "MANUAL_INTERVENTION_REQUIRED"}:
+                        try:
+                            self._reconcile_risk_event(
+                                str(event.get("symbol", "")),
+                                password=password,
+                                force=True,
+                                event_id=str(event.get("event_id", "")),
+                            )
+                        except Exception as exc:
+                            self._mark_open_risk_manual(
+                                f"risk event reconciliation failed: {exc}",
+                                event_id=event.get("event_id"),
+                            )
+            self._restore_risk_events()
             return pending_orders
 
         except Exception as e:
             self.logger.exception(f"미체결 주문 동기화 실패 | {e}")
+            raise
+
+    def _mark_open_risk_manual(self, reason: str, event_id=None, local_order_id=None, broker_order_id=None):
+        if not self.sqlite_store:
+            return
+        try:
+            events = self.sqlite_store.get_open_risk_events(include_manual=False)
+            if event_id:
+                events = [e for e in events if str(e.get("event_id")) == str(event_id)]
+            elif local_order_id or broker_order_id:
+                events = [e for e in events if (local_order_id and str(e.get("local_order_id")) == str(local_order_id)) or (broker_order_id and str(e.get("broker_order_id")) == str(broker_order_id))]
+            else:
+                self.logger.warning("[RISK_GUARD] manual intervention identity unresolved | reason=%s", reason)
+                return
+            for event in events:
+                self.sqlite_store.update_risk_event(
+                    event["event_id"], state="MANUAL_INTERVENTION_REQUIRED", last_error=reason
+                )
+        except Exception as exc:
+            self.logger.error("[RISK_GUARD] unable to persist manual state err=%s", exc)
+
+    def _restore_risk_events(self):
+        """Reconcile durable stop events without blindly resubmitting orders."""
+        if self.sqlite_store is None:
+            return []
+        try:
+            events = self.risk_guard.restore_pending()
+            for event in events:
+                symbol = event.get("symbol", "")
+                qty = int(getattr(self.portfolio.get_position(symbol), "qty", 0) or 0)
+                if qty <= 0:
+                    self.sqlite_store.update_risk_event(event["event_id"], state="CLOSED", qty=0)
+                else:
+                    if event.get("local_order_id"):
+                        self.risk_order_events[str(event["local_order_id"])] = event["event_id"]
+                    broker_id = str(event.get("broker_order_id") or "")
+                    tracked = self.order_manager.get_order(str(event.get("local_order_id") or ""))
+                    if tracked is not None:
+                        tracked.purpose = "RISK_STOP"
+                        tracked.risk_event_id = str(event["event_id"])
+                    elif broker_id and broker_id not in self._risk_pending_broker_ids and event.get("state") != "CANCEL_REQUESTED":
+                        self.sqlite_store.update_risk_event(event["event_id"], state="MANUAL_INTERVENTION_REQUIRED", last_error="risk order reconciliation is inconclusive")
+                    self.logger.info(
+                        f"[RISK_GUARD] restored risk_event_id={event['event_id']} "
+                        f"symbol={symbol} qty={qty} state={event.get('state')}"
+                    )
+            return events
+        except Exception as exc:
+            self.logger.exception(f"[RISK_GUARD] restore failed; manual intervention required err={exc}")
             return []
 
     # -------------------------
@@ -1944,6 +2096,9 @@ class TradingEngine:
         try:
             if not self.is_running:
                 return
+            if self.shutdown_requested:
+                self.logger.info("종료 게이트 활성화 | 미체결 주문 관리는 관찰만 수행")
+                return
 
             self._check_stale_position_force_exit()
 
@@ -1954,10 +2109,20 @@ class TradingEngine:
                         symbols.add(order.symbol)
 
             symbols.update(self.pending_resell.keys())
+            if self.sqlite_store:
+                symbols.update(str(e.get("symbol", "")) for e in self.sqlite_store.get_open_risk_events() if e.get("symbol"))
 
             for symbol in list(symbols):
+                risk_event = next((e for e in (self.sqlite_store.get_open_risk_events(include_manual=True) if self.sqlite_store else [])
+                                   if e.get("symbol") == symbol and e.get("state") not in {"SELL_FILLED", "CLOSED", "MANUAL_INTERVENTION_REQUIRED"}), None)
+                if self._get_open_risk_order(symbol) is not None or risk_event is not None:
+                    self._check_stale_risk_order(symbol)
+                    self._reconcile_risk_event(symbol)
+                    self._process_risk_retry(symbol)
+                    continue
                 self._check_stale_sell_order(symbol)
-                self._retry_sell_after_cancel(symbol)
+                if self._get_open_risk_order(symbol) is None:
+                    self._retry_sell_after_cancel(symbol)
 
         except Exception as e:
             self.logger.exception(f"미체결 주문 관리 실패 | {e}")
@@ -1981,21 +2146,26 @@ class TradingEngine:
             high_price = self._safe_float(raw_tick.get("high", raw_tick.get("high_price", 0.0)), 0.0)
             low_price = self._safe_float(raw_tick.get("low", raw_tick.get("low_price", 0.0)), 0.0)
 
-            external_scores = self._build_external_scores(raw_tick)
             current_tick_no = self._register_tick(symbol)
+
+            if price <= 0:
+                return
+
+            # This is deliberately before news, daily data, strategy, and all
+            # ordinary auto-sell gates.  A received valid tick is sufficient.
+            if self._check_risk_guard(symbol, price):
+                return
+
+            external_scores = self._build_external_scores(raw_tick)
 
             log_tick_every_n = self._safe_int(self._cfg("LOG_REAL_TICK_EVERY_N", 0), 0)
             if log_tick_every_n > 0 and current_tick_no % log_tick_every_n == 0:
                 self.logger.info(
                     f"[TICK] {symbol} tick_no={current_tick_no} price={price} vol={volume} "
                     f"chg={price_change_pct} strength={trade_strength} vr={volume_ratio} "
-                    f"news={external_scores['news_score']} "
-                    f"theme={external_scores['theme_score']} "
+                    f"news={external_scores['news_score']} theme={external_scores['theme_score']} "
                     f"leader={external_scores['leader_score']}"
                 )
-
-            if price <= 0:
-                return
 
             self.last_price_map[symbol] = price
             self.last_market_data_map[symbol] = {
@@ -2055,6 +2225,156 @@ class TradingEngine:
             self.error_count += 1
             self.logger.exception(f"실시간 틱 처리 실패 | tick={raw_tick} err={e}")
             self._check_engine_protection()
+
+    def _check_risk_guard(self, symbol: str, price: float) -> bool:
+        """Check an owned position without consulting entry/strategy inputs."""
+        try:
+            pos = self.portfolio.get_position(symbol)
+            strategy_name = self._strategy_name_for_symbol(symbol)
+            stop_pct = self._strategy_cfg_float(
+                strategy_name, "stop_loss_pct", self._cfg("STOP_LOSS_PCT", -0.02)
+            )
+            position_key = str(symbol)
+            risk_position = RiskPosition(symbol, price, getattr(pos, "avg_price", 0), getattr(pos, "qty", 0), stop_pct, position_key)
+            decision = self.risk_guard.check_stop(risk_position)
+            if decision.event_type == "INVALID_INPUT":
+                self.logger.warning(f"[RISK_GUARD] symbol={symbol} state=INVALID_INPUT")
+                return False
+            if not decision.triggered:
+                return False
+            key = f"{symbol}:{position_key}:stop"
+            if not self.risk_guard.should_submit(symbol, position_key, self._get_open_risk_order(symbol) is not None, None):
+                self.logger.info(f"[RISK_GUARD] duplicate suppressed symbol={symbol} idempotency_key={key}")
+                return True
+            if self.sqlite_store is not None:
+                event = self.sqlite_store.create_risk_event(
+                    event_id=f"risk-{key}", idempotency_key=key, test_name=self.test_name,
+                    symbol=symbol, position_key=position_key, qty=decision.qty,
+                    price=price, avg_price=float(pos.avg_price), pnl_pct=decision.pnl_pct,
+                    reason=decision.reason, state="STOP_DETECTED",
+                )
+                if not event or event.get("state") != "STOP_DETECTED":
+                    self.logger.error(f"[RISK_GUARD] storage failure/manual intervention symbol={symbol}")
+                    return True
+                event_id = event["event_id"]
+            else:
+                event_id = f"risk-{key}"
+            self.last_exit_reason[symbol] = decision.reason
+            self._submit_risk_sell(symbol, decision.qty, decision.reason, event_id, key)
+            return True
+        except Exception as exc:
+            self.logger.exception(f"[RISK_GUARD] manual intervention symbol={symbol} err={exc}")
+            return True
+
+    def _submit_risk_sell(self, symbol: str, qty: int, reason: str, risk_event_id: str, idempotency_key: str):
+        """Submit a market stop order; never apply ordinary sell time gates."""
+        try:
+            if self.shutdown_requested:
+                return
+            current_qty = int(getattr(self.portfolio.get_position(symbol), "qty", 0) or 0)
+            qty = min(max(int(qty), 0), current_qty)
+            if qty <= 0:
+                return
+            if self.sqlite_store is not None:
+                existing = self.sqlite_store.get_risk_event(risk_event_id)
+                if existing and existing.get("state") in {"SELL_FILLED", "CLOSED", "MANUAL_INTERVENTION_REQUIRED"}:
+                    return
+            if self._get_open_risk_order(symbol) is not None:
+                return
+            self.sell_in_progress.add(symbol)
+            signal = Signal(symbol=symbol, side=Side.SELL, qty=qty, price=0, order_type=OrderType.MARKET, reason=reason)
+            signal.purpose = "RISK_STOP"
+            signal.risk_event_id = risk_event_id
+            order = self.broker.place_order(signal)
+            order.purpose = "RISK_STOP"
+            order.risk_event_id = risk_event_id
+            order.broker_order_id = ""
+            binding_orders_before = dict(self.order_manager.orders)
+            binding_local_before = dict(self.order_manager.local_to_broker_id)
+            binding_broker_before = dict(self.order_manager.broker_to_local_id)
+            binding_risk_events_before = dict(self.risk_order_events)
+            binding_fields_before = {
+                id(existing): getattr(existing, "broker_order_id", "")
+                for existing in self.order_manager.orders.values()
+            }
+            self.risk_order_events[str(order.order_id)] = risk_event_id
+            self._attach_order_route_context(order, self._get_symbol_route_context(symbol))
+            self.order_manager.register(order)
+            self._record_order_snapshot(order, request_price=float(self.last_price_map.get(symbol, 0) or 0.0))
+            if self.sqlite_store is not None:
+                old = self.sqlite_store.get_risk_event(risk_event_id) or {}
+                self.sqlite_store.update_risk_event(risk_event_id, state="SELL_SUBMITTING", local_order_id=str(order.order_id), broker_order_id="", attempt_count=max(1, int(old.get("attempt_count", 0) or 0)), qty=qty, last_action_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            # Resolve the broker id only from an immediate, unambiguous pending
+            # snapshot.  Failure is terminal for automation: resubmission could
+            # create a second stop order whose broker identity is unknown.
+            try:
+                pending = self.broker.get_pending_orders(password="")
+                candidates = [p for p in pending
+                              if str(p.get("symbol", "")) == symbol
+                              and str(getattr(p.get("side"), "value", p.get("side", ""))) == "SELL"
+                              and p.get("order_no")]
+                if len(candidates) != 1:
+                    raise RuntimeError("risk broker order id unresolved or ambiguous")
+                candidate = candidates[0]
+                candidate_qty = int(candidate.get("order_qty", 0) or 0)
+                candidate_filled = int(candidate.get("filled_qty", 0) or 0)
+                candidate_unfilled = int(candidate.get("unfilled_qty", 0) or 0)
+                if (candidate_qty != qty or candidate_filled < 0 or candidate_unfilled < 0
+                        or candidate_filled > candidate_qty
+                        or candidate_unfilled > candidate_qty
+                        or candidate_filled + candidate_unfilled != candidate_qty):
+                    raise RuntimeError("risk pending quantity state is inconsistent")
+                broker_id = str(candidates[0]["order_no"])
+                if broker_id == str(order.order_id):
+                    raise RuntimeError("broker returned local order id; identity is unconfirmed")
+                if self.order_manager.bind_broker_order_id(str(order.order_id), broker_id, risk_event_id) is None:
+                    raise RuntimeError("risk broker order identity conflict")
+                self.sqlite_store.update_risk_event(risk_event_id, broker_order_id=broker_id)
+            except Exception as exc:
+                # The broker may already have accepted the order.  Never
+                # cancel/re-submit an identity we failed to prove.
+                self.order_manager.orders.clear()
+                self.order_manager.orders.update(binding_orders_before)
+                self.order_manager.local_to_broker_id.clear()
+                self.order_manager.local_to_broker_id.update(binding_local_before)
+                self.order_manager.broker_to_local_id.clear()
+                self.order_manager.broker_to_local_id.update(binding_broker_before)
+                for existing in self.order_manager.orders.values():
+                    if id(existing) in binding_fields_before:
+                        existing.broker_order_id = binding_fields_before[id(existing)]
+                self.risk_order_events.clear()
+                self.risk_order_events.update(binding_risk_events_before)
+                self.sell_in_progress.discard(symbol)
+                if self.sqlite_store is not None:
+                    self.sqlite_store.update_risk_event(risk_event_id, state="MANUAL_INTERVENTION_REQUIRED", local_order_id="", broker_order_id="", last_error=str(exc))
+                self.logger.error("[RISK_GUARD] broker id binding failed; automation disabled symbol=%s err=%s", symbol, exc)
+                return
+            self.logger.info(f"[RISK_GUARD] risk_event_id={risk_event_id} idempotency_key={idempotency_key} symbol={symbol} qty={qty} state=SELL_SUBMITTING")
+            if order.status == OrderStatus.REJECTED:
+                self.sell_in_progress.discard(symbol)
+                if self.sqlite_store is not None:
+                    self.sqlite_store.update_risk_event(risk_event_id, state="MANUAL_INTERVENTION_REQUIRED", last_error="REJECTED")
+                self._notify_order_event(
+                    event="❌ 손절 주문 거부", symbol=symbol, side=Side.SELL,
+                    qty=qty, price=self.last_price_map.get(symbol, 0),
+                    status="MANUAL_INTERVENTION_REQUIRED", reason=reason,
+                )
+                return
+            if self._cfg("PAPER_TRADING", self._cfg("DRY_RUN", False)):
+                class StubFill:
+                    pass
+                fill = StubFill()
+                fill.order_id, fill.symbol, fill.side = order.broker_order_id, symbol, Side.SELL
+                fill.fill_qty, fill.fill_price, fill.unfilled_qty = qty, self.last_price_map.get(symbol, 0), 0
+                self.on_fill(fill)
+        except Exception as exc:
+            self.sell_in_progress.discard(symbol)
+            if self.sqlite_store is not None:
+                try:
+                    self.sqlite_store.update_risk_event(risk_event_id, state="MANUAL_INTERVENTION_REQUIRED", last_error=str(exc))
+                except Exception:
+                    self.logger.error(f"[RISK_GUARD] durable update failed; no retry risk_event_id={risk_event_id}")
+            self.logger.exception(f"[RISK_GUARD] submit failed risk_event_id={risk_event_id} symbol={symbol} err={exc}")
 
     # -------------------------
     # 청산 로그 포맷
@@ -2214,7 +2534,7 @@ class TradingEngine:
         state["close"] = float(price)
         return None
 
-    def _is_long_bull_candle(self, candle: dict, strategy_name: str) -> tuple[bool, float, float]:
+    def _is_long_bull_candle(self, candle: dict, strategy_name: str) -> Tuple[bool, float, float]:
         open_price = self._safe_float(candle.get("open", 0.0), 0.0)
         high_price = self._safe_float(candle.get("high", 0.0), 0.0)
         low_price = self._safe_float(candle.get("low", 0.0), 0.0)
@@ -2403,17 +2723,6 @@ class TradingEngine:
                 self._submit_auto_sell(symbol=symbol, qty=qty, reason=close_buy_next_day_reason)
                 return
 
-            if pnl_pct <= stop_loss_pct and not stop_loss_grace_active:
-                exit_reason = f"stop_loss {pnl_pct:.2%}"
-                self.last_exit_reason[symbol] = exit_reason
-                self._log_exit_event(symbol, price, avg_price, qty, "STOP_LOSS")
-                self.logger.info(
-                    f"손절 조건 충족 | symbol={symbol} price={price} avg_price={avg_price} "
-                    f"qty={qty} pnl_pct={pnl_pct:.2%}"
-                )
-                self._submit_auto_sell(symbol=symbol, qty=qty, reason=exit_reason)
-                return
-
             if symbol not in self.partial_exit_done and pnl_pct >= partial_take_profit_pct:
                 sell_qty = max(int(qty * partial_take_ratio), 1)
                 sell_qty = min(sell_qty, qty)
@@ -2518,6 +2827,8 @@ class TradingEngine:
 
     def _submit_auto_sell(self, symbol: str, qty: int, reason: str):
         try:
+            if self.shutdown_requested:
+                return
             if qty <= 0:
                 return
 
@@ -2602,8 +2913,26 @@ class TradingEngine:
     # -------------------------
     # 오래된 매도 미체결 주문 취소
     # -------------------------
+    def _get_open_risk_order(self, symbol):
+        events = []
+        if self.sqlite_store:
+            events = [e for e in self.sqlite_store.get_open_risk_events(include_manual=True)
+                      if e.get("symbol") == symbol and e.get("state") not in {"SELL_FILLED", "CLOSED"}]
+        candidates = []
+        for event in events:
+            order = self.order_manager.get_open_risk_sell_order_by_event(str(event.get("event_id", "")))
+            if order is not None:
+                candidates.append(order)
+        if len(candidates) > 1:
+            return None
+        return candidates[0] if candidates else None
+
     def _check_stale_sell_order(self, symbol: str):
         try:
+            if self.shutdown_requested:
+                return
+            if self._get_open_risk_order(symbol) is not None:
+                return self._check_stale_risk_order(symbol)
             if not self._cfg("ENABLE_SELL_CANCEL_TIMEOUT", False):
                 return
             if symbol in self.cancel_in_progress:
@@ -2613,14 +2942,9 @@ class TradingEngine:
             if order is None:
                 return
 
-            broker_order_id = None
-            for real_id, local_id in self.order_manager.broker_to_local_id.items():
-                if local_id == order.order_id:
-                    broker_order_id = real_id
-                    break
-
-            if not broker_order_id:
-                broker_order_id = order.order_id
+            broker_order_id = self.order_manager.local_to_broker_id.get(str(order.order_id), "")
+            if not broker_order_id or self.order_manager.get_order_by_broker_id(broker_order_id) is not order:
+                return
 
             order_ts = getattr(order, "ts", None)
             if order_ts is None:
@@ -2643,6 +2967,9 @@ class TradingEngine:
                 f"broker_id={broker_order_id} elapsed={elapsed:.1f}s remain_qty={remain_qty}"
             )
 
+            if self.shutdown_requested:
+                self.cancel_in_progress.discard(symbol)
+                return
             ret = self.broker.cancel_order(
                 symbol=symbol,
                 order_no=broker_order_id,
@@ -2653,21 +2980,6 @@ class TradingEngine:
             if ret == 0:
                 self.last_cancel_request_time[symbol] = time.time()
                 order.status = OrderStatus.CANCELED
-
-                try:
-                    self.order_manager.orders.pop(order.order_id, None)
-                except Exception:
-                    pass
-
-                try:
-                    remove_keys = []
-                    for broker_id, local_id in self.order_manager.broker_to_local_id.items():
-                        if local_id == order.order_id:
-                            remove_keys.append(broker_id)
-                    for broker_id in remove_keys:
-                        self.order_manager.broker_to_local_id.pop(broker_id, None)
-                except Exception:
-                    pass
 
                 self.sell_in_progress.discard(symbol)
 
@@ -2696,11 +3008,174 @@ class TradingEngine:
             self.logger.exception(f"매도 미체결 취소 검사 실패 | symbol={symbol} err={e}")
             self._check_engine_protection()
 
+    def _check_stale_risk_order(self, symbol):
+        if self.shutdown_requested:
+            return
+        order = self._get_open_risk_order(symbol)
+        if order is None or symbol in self.risk_cancel_in_progress:
+            return
+        elapsed = time.time() - (order.ts.timestamp() if isinstance(order.ts, datetime) else float(order.ts))
+        remain = max(int(order.qty) - int(order.filled_qty), 0)
+        if remain <= 0 or elapsed < self.risk_sell_timeout_sec:
+            return
+        event_id = self.risk_order_events.get(str(order.order_id)) or getattr(order, "risk_event_id", "")
+        event_state = (self.sqlite_store.get_risk_event(event_id) or {}).get("state") if self.sqlite_store else ""
+        if not event_id or event_state in {"CANCEL_REQUESTED", "MANUAL_INTERVENTION_REQUIRED", "SELL_FILLED", "CLOSED"}:
+            return
+        broker_id = str(getattr(order, "broker_order_id", "") or "")
+        if not broker_id or self.order_manager.get_order_by_broker_id(broker_id) is not order:
+            if self.sqlite_store:
+                self.sqlite_store.update_risk_event(event_id, state="MANUAL_INTERVENTION_REQUIRED", last_error="broker order id unresolved; cancel blocked")
+            self.risk_cancel_in_progress.discard(symbol)
+            return
+        self.risk_cancel_in_progress.add(symbol)
+        try:
+            if self.shutdown_requested:
+                self.risk_cancel_in_progress.discard(symbol)
+                return
+            ret = self.broker.cancel_order(symbol=symbol, order_no=broker_id, qty=remain, side=Side.SELL)
+            if ret not in (0, None):
+                raise RuntimeError(f"cancel rejected: {ret}")
+            if self.sqlite_store:
+                self.sqlite_store.update_risk_event(event_id, state="CANCEL_REQUESTED", cancel_requested_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), last_action_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), qty=remain)
+        except Exception as exc:
+            self.risk_cancel_in_progress.discard(symbol)
+            if self.sqlite_store:
+                self.sqlite_store.update_risk_event(event_id, state="MANUAL_INTERVENTION_REQUIRED", last_error=str(exc))
+
+    def _reconcile_risk_event(self, symbol: str, password: str = "", force: bool = False, event_id: str = ""):
+        """Reconcile a risk sell; broker cancel acknowledgement is not a fill."""
+        if not self.sqlite_store:
+            return False
+
+        event = next((e for e in self.sqlite_store.get_open_risk_events(include_manual=True)
+                      if ((event_id and str(e.get("event_id")) == str(event_id))
+                          or (not event_id and e.get("symbol") == symbol))
+                      and e.get("state") not in {"SELL_FILLED", "CLOSED", "MANUAL_INTERVENTION_REQUIRED"}), None)
+        if not event:
+            return False
+        last_action = self._parse_dt(event.get("last_action_at"))
+        if not force and last_action and (datetime.now() - last_action).total_seconds() < self.risk_reconcile_interval_sec:
+            return False
+        try:
+            pending = self.broker.get_pending_orders(password=password)
+        except Exception as exc:
+            self.logger.warning(
+                "[RISK_GUARD] pending query failed; event state unchanged "
+                "event_id=%s err=%s",
+                event["event_id"],
+                exc,
+            )
+            return False
+        broker_id = str(event.get("broker_order_id") or "")
+        if not broker_id or not str(event.get("local_order_id") or ""):
+            self.sqlite_store.update_risk_event(event["event_id"], state="MANUAL_INTERVENTION_REQUIRED", last_error="risk order identity missing")
+            return False
+        candidates = [p for p in pending if str(p.get("symbol", "")) == symbol
+                      and str(getattr(p.get("side"), "value", p.get("side", ""))) == "SELL"]
+        matches = [p for p in candidates if str(p.get("order_no", "")) == broker_id] if broker_id else candidates
+        if len(matches) > 1 or (not broker_id and len(matches) != 1):
+            self.sqlite_store.update_risk_event(event["event_id"], state="MANUAL_INTERVENTION_REQUIRED", last_error="ambiguous or missing risk order identity")
+            return False
+        if matches:
+            item = matches[0]
+            item_qty = int(item.get("order_qty", 0) or 0)
+            item_filled = int(item.get("filled_qty", 0) or 0)
+            item_unfilled = int(item.get("unfilled_qty", 0) or 0)
+            if (item_qty <= 0 or item_filled < 0 or item_unfilled < 0
+                    or item_filled > item_qty or item_unfilled > item_qty
+                    or item_filled + item_unfilled != item_qty):
+                self.sqlite_store.update_risk_event(event["event_id"], state="MANUAL_INTERVENTION_REQUIRED", last_error="invalid pending quantity state")
+                return False
+            local_id = str(event.get("local_order_id"))
+            order = self.order_manager.get_order(local_id)
+            if order is None:
+                order = Order(local_id, symbol, Side.SELL, item_qty,
+                              float(item.get("order_price", 0) or 0), OrderType.MARKET,
+                              OrderStatus.PARTIAL if item_filled else OrderStatus.SUBMITTED,
+                              item_filled, reason="restored risk stop")
+                order.purpose = "RISK_STOP"
+                order.risk_event_id = event["event_id"]
+                order.broker_order_id = broker_id
+                self.order_manager.register(order)
+            elif (int(order.qty) != item_qty
+                  or int(getattr(order, "filled_qty", 0) or 0) > item_filled):
+                self.sqlite_store.update_risk_event(event["event_id"], state="MANUAL_INTERVENTION_REQUIRED", last_error="pending order quantity conflicts with local order")
+                return False
+            else:
+                order.filled_qty = item_filled
+                order.status = OrderStatus.PARTIAL if item_unfilled > 0 else OrderStatus.FILLED
+            if self.order_manager.bind_broker_order_id(local_id, broker_id, event["event_id"]) is None:
+                self.sqlite_store.update_risk_event(event["event_id"], state="MANUAL_INTERVENTION_REQUIRED", last_error="risk order identity binding failed")
+                return False
+            self.risk_order_events[local_id] = event["event_id"]
+            self.sqlite_store.update_risk_event(event["event_id"], local_order_id=local_id, broker_order_id=broker_id,
+                                                qty=item_unfilled)
+            return True
+        if event.get("state") == "CANCEL_REQUESTED":
+            requested = self._parse_dt(event.get("cancel_requested_at"))
+            if not requested or (datetime.now() - requested).total_seconds() < self.risk_cancel_confirm_timeout_sec:
+                # Disappearance before the confirmation window is not a
+                # terminal broker state and cannot trigger a retry.
+                return True
+            self.sqlite_store.update_risk_event(event["event_id"], state="MANUAL_INTERVENTION_REQUIRED", last_error="cancel confirmation unavailable")
+            return True
+        self.sqlite_store.update_risk_event(event["event_id"], state="MANUAL_INTERVENTION_REQUIRED", last_error="risk order missing from broker pending")
+        return False
+
+    def observe_risk_events(self, reason: str = "heartbeat"):
+        """Observe durable risk state without creating a stop from stale data."""
+        if not self.sqlite_store:
+            return []
+        try:
+            events = self.sqlite_store.get_open_risk_events(include_manual=True)
+            for event in events:
+                if event.get("state") not in {"SELL_FILLED", "CLOSED"}:
+                    self.logger.warning(
+                        "[RISK_GUARD] observe | reason=%s event_id=%s symbol=%s qty=%s state=%s attempts=%s",
+                        reason, event.get("event_id"), event.get("symbol"), event.get("qty"),
+                        event.get("state"), event.get("attempt_count", 0),
+                    )
+            return events
+        except Exception as exc:
+            self.logger.error("[RISK_GUARD] observation failed; automatic action disabled err=%s", exc)
+            return []
+
+    def _process_risk_retry(self, symbol):
+        if not self.sqlite_store:
+            return
+        event = next((e for e in self.sqlite_store.get_open_risk_events() if e.get("symbol") == symbol), None)
+        if not event or event.get("state") != "RETRY_PENDING" or self._get_open_risk_order(symbol):
+            return
+        action = self._parse_dt(event.get("last_action_at") or event.get("updated_at"))
+        if action and time.time() - action.timestamp() < self.risk_retry_delay_sec:
+            return
+        attempt = int(event.get("attempt_count", 0) or 0)
+        if attempt >= self.risk_max_retry_count + 1:
+            self.sqlite_store.update_risk_event(event["event_id"], state="MANUAL_INTERVENTION_REQUIRED", last_error="risk retry limit exceeded")
+            return
+        qty = min(int(event.get("qty", 0) or 0), int(getattr(self.portfolio.get_position(symbol), "qty", 0) or 0))
+        if qty <= 0:
+            self.sqlite_store.update_risk_event(event["event_id"], state="CLOSED", qty=0)
+            return
+        try:
+            self.sqlite_store.update_risk_event(event["event_id"], attempt_count=attempt + 1,
+                                                last_action_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        except Exception as exc:
+            try:
+                self.sqlite_store.update_risk_event(event["event_id"], state="MANUAL_INTERVENTION_REQUIRED", last_error=f"attempt persistence failed: {exc}")
+            except Exception:
+                self.logger.error("[RISK_GUARD] attempt persistence failed; automatic retry disabled")
+            return
+        self._submit_risk_sell(symbol, qty, event.get("reason", "risk stop"), event["event_id"], event["idempotency_key"])
+
     # -------------------------
     # 취소 후 재매도 재시도
     # -------------------------
     def _retry_sell_after_cancel(self, symbol: str):
         try:
+            if self.shutdown_requested:
+                return
             if not self._cfg("RETRY_SELL_AFTER_CANCEL", False):
                 return
 
@@ -2775,6 +3250,9 @@ class TradingEngine:
                 reason=f"{reason}_{retry_count + 1}",
             )
 
+            if self.shutdown_requested:
+                self.sell_in_progress.discard(symbol)
+                return
             order = self.broker.place_order(signal)
             self._attach_order_route_context(order, self._get_symbol_route_context(symbol))
             self.order_manager.register(order)
@@ -3150,12 +3628,12 @@ class TradingEngine:
             qty_before = int(getattr(pos_before, "qty", 0))
             realized_before = float(getattr(self.portfolio, "realized_pnl", 0.0))
 
-            local_order_id = self.order_manager.bind_broker_order_id(
-                symbol=fill.symbol,
-                broker_order_id=fill.order_id
-            )
-            resolved_order_id = local_order_id or self.order_manager.resolve_order_id(fill.order_id)
-            tracked_order = self.order_manager.get_order(resolved_order_id) if resolved_order_id else None
+            tracked_order = self.order_manager.get_order_by_broker_id(fill.order_id)
+            if tracked_order is None or tracked_order.symbol != symbol or self._side_value(tracked_order.side) != self._side_value(fill.side):
+                self.logger.warning("체결 identity 불명확; 상태 변경 차단 | broker_id=%s symbol=%s", fill.order_id, symbol)
+                return
+            resolved_order_id = tracked_order.order_id
+            local_order_id = resolved_order_id
             normalized_fill_qty = self._normalize_fill_qty(tracked_order, fill)
 
             if normalized_fill_qty <= 0:
@@ -3206,6 +3684,15 @@ class TradingEngine:
 
             side_value = self._side_value(getattr(fill, "side", ""))
             fill_status = "FILLED" if int(getattr(fill, "unfilled_qty", 0) or 0) == 0 else "PARTIAL"
+
+            risk_event_id = getattr(tracked_order, "risk_event_id", "") or self.risk_order_events.get(str(resolved_order_id))
+            if risk_event_id and self.sqlite_store is not None:
+                self.sqlite_store.update_risk_event(
+                    risk_event_id,
+                    state="CLOSED" if side_value == "SELL" and qty_after <= 0 else ("SELL_FILLED" if fill_status == "FILLED" else "SELL_PARTIAL"),
+                    qty=qty_after,
+                    broker_order_id=str(getattr(fill, "order_id", "")),
+                )
 
             self._notify_order_event(
                 event="✅ 체결",

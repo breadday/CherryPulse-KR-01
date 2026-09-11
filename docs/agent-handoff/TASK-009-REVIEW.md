@@ -1,0 +1,13 @@
+# TASK-009 Review
+
+CHANGES_REQUESTED
+
+Evidence:
+
+- `git diff main` and `git status --short --untracked-files=all` were both inspected. The working tree includes the TASK-009 implementation/tests, but also 95 changed files overall, including `infra/sqlite_store.py`, core/risk files, automation/configuration files, prior TASK-001..008 handoffs/logs, and an untracked `TASK-009-reviewer.log`. This does not match the implementation report's stated TASK-009 scope; the change set must be separated or explicitly accounted for before approval.
+- `python -m pytest -q` passes (`16 passed`), but the test report explicitly confirms that no tests cover the required 14:39/14:40/14:41, 15:19/15:20/15:21/15:34, 15:35/15:36 heartbeat/recovery ordering, or repeated shutdown callbacks. It also lacks pending/account query-exception isolation, ambiguous/missing/conflicting identity cases, and the `_submit_risk_sell()` post-submit binding-failure case (`place=1`, `cancel=0`, durable event preserved). These are mandatory acceptance paths, not optional coverage.
+- The implementation does place the risk check before external/news/daily/strategy processing (`engine.py:2154-2157`) and adds shutdown guards before order/cancel paths (`engine.py:2095-2101`, `2269-2273`, `2829-2832`, `2968-2971`). The 15:35 direct recovery guard and heartbeat ordering are present (`main_live.py:631-640`, `1025-1061`), but they are unverified by the required boundary tests.
+- There is a remaining event-isolation concern in `sync_pending_orders()`: it loops all open risk events and calls `_reconcile_risk_event()` separately (`engine.py:1917-1929`). `_reconcile_risk_event()` converts a `get_pending_orders()` exception into `MANUAL_INTERVENTION_REQUIRED` for the current event (`engine.py:3060-3062`), so one shared pending-query failure can manualize every event in that loop. The specification requires a query exception not to change unrelated open events. Add a regression test with events A/B and a failing shared query, then isolate query-level failure from event-level failure.
+- Syntax checking was reported/passed, and no `broker/kiwoom_broker.py` or `.env` diff was found. No live broker/COM test was run, appropriately. `git diff --check` remains failing because of existing handoff-log whitespace; this is not the primary blocker, but the final change set should avoid adding further unrelated files.
+
+Required before PASS: narrow/account for the actual TASK-009 files, add the missing recovery-window and shutdown-race tests, add all specified binding/query/identity failure tests, and fix or prove pending-query exception isolation so event B cannot be changed by event A/shared-query failure.

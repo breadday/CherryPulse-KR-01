@@ -7,7 +7,7 @@ import signal
 import sys
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
@@ -30,6 +30,7 @@ from engine import TradingEngine
 from infra.sqlite_store import SQLiteStore
 from infra.telegram_notifier import TelegramNotifier
 from strategy.momentum_intraday import MomentumIntradayStrategy
+from selectors.external_candidate_provider import ExternalCandidateError
 from universe_manager import UniverseManager
 from utils.logger import setup_logger
 
@@ -55,11 +56,9 @@ SNAPSHOT_FILE = "condition_snapshot.json"
 RECONNECT_COOLDOWN_SEC = 60
 STALE_REALDATA_SEC = 180
 STALE_REALDATA_CHECK_HHMM = "09:05"
-RECONNECT_DISABLE_AFTER_HHMM = "14:40"
 TELEGRAM_ALERT_COOLDOWN_SEC = 300
 LOGIN_FAILURE_BACKOFF_SEC = 600
 SHUTDOWN_WATCHDOG_GRACE_SEC = 30
-STALE_REALDATA_DISABLE_AFTER_HHMM = "15:20"
 
 
 class MainLiveApp:
@@ -91,6 +90,12 @@ class MainLiveApp:
             snapshot_path=Path(__file__).resolve().parent / SNAPSHOT_FILE,
             fallback_condition_name=CONDITION_NAME,
             strategy_universe_config=STRATEGY_UNIVERSE_CONFIG,
+            external_candidate_path=(
+                Path(__file__).resolve().parent
+                / getattr(config, "EXTERNAL_CANDIDATE_FILE", "external_candidates.json")
+                if bool(getattr(config, "ENABLE_EXTERNAL_UNIVERSE", False))
+                else None
+            ),
         )
         strategy_config["universe_provider"] = self.universe.matches_strategy_universe
         self.strategy = MomentumIntradayStrategy(config=strategy_config)
@@ -412,10 +417,16 @@ class MainLiveApp:
 
     def _log_strategy_universe_summary(self, prefix: str):
         counts = self.universe.strategy_counts()
+        external_strategy_counts = {
+            strategy: len(self.universe.strategy_source_codes(strategy, "external"))
+            for strategy in self.universe.strategy_names
+        }
         self.logger.info(
             f"{prefix} | strategy_universes={counts} "
             f"snapshot_count={len(self.universe.snapshot_codes())} "
-            f"condition_count={len(self.universe.condition_codes())}"
+            f"condition_count={len(self.universe.condition_codes())} "
+            f"external_count={len(self.universe.external_codes())} "
+            f"external_strategy_counts={external_strategy_counts}"
         )
 
     def _store_strategy_universe_snapshot(self):
@@ -425,7 +436,7 @@ class MainLiveApp:
         trade_date = datetime.now().strftime("%Y-%m-%d")
         for strategy_name in STRATEGY_UNIVERSE_CONFIG.keys():
             universe_name = f"{strategy_name}_universe"
-            for source_type in ("snapshot", "condition"):
+            for source_type in ("snapshot", "condition", "external"):
                 rows = [
                     {
                         "symbol": symbol,
@@ -539,8 +550,8 @@ class MainLiveApp:
                 except Exception:
                     continue
 
-        if generated_date and generated_date != today:
-            return False, f"생성일 불일치 generated_at={generated_at} today={today}"
+        if generated_date and generated_date > today:
+            return False, f"미래 생성일 generated_at={generated_at} today={today}"
 
         latest_date = None
         latest_data_date = str(payload.get("latest_data_date", "") or "").strip()
@@ -565,6 +576,9 @@ class MainLiveApp:
 
         if latest_date is None:
             return False, "후보 last_date 없음"
+
+        if latest_date > today:
+            return False, f"미래 일봉 latest_date={latest_date} today={today}"
 
         calendar_days = (today - latest_date).days
         missing_trading_days = self._count_trading_days_between(latest_date, today)
@@ -633,32 +647,10 @@ class MainLiveApp:
             return
 
         now_hhmm = self._now_hhmm()
-        if now_hhmm >= RECONNECT_DISABLE_AFTER_HHMM:
-            log_key = f"late_session:{reason}"
-            now_ts = time.time()
-            if now_ts - self.reconnect_block_log_last_sent_ts.get(log_key, 0.0) >= 60:
-                self.reconnect_block_log_last_sent_ts[log_key] = now_ts
-                self.logger.warning(
-                    f"브로커 세션 복구 보류 | reason={reason} "
-                    f"now={now_hhmm} disable_after={RECONNECT_DISABLE_AFTER_HHMM}"
-                )
-            self._send_telegram_throttled(
-                "recover_blocked_late_session",
-                (
-                    f"브로커 자동 복구 보류\n"
-                    f"사유: {reason}\n"
-                    f"현재시각: {now_hhmm}\n"
-                    f"{RECONNECT_DISABLE_AFTER_HHMM} 이후에는 장마감 지연을 막기 위해 "
-                    f"자동 재로그인을 시도하지 않습니다."
-                ),
-                cooldown_sec=15 * 60,
-            )
-            # 장후반에는 재로그인보다 정상 종료가 우선입니다.
-            # 반복 복구 루프를 잠시 멈춰 종료 타이머가 조용히 동작하게 합니다.
-            self.reconnect_blocked_until_ts = max(
-                self.reconnect_blocked_until_ts,
-                now_ts + 60,
-            )
+        # auto_shutdown() runs first from the heartbeat.  Keep this guard for
+        # direct callers as well, but do not create an earlier late-session
+        # cutoff that leaves positions unwatched before the market closes.
+        if now_hhmm >= AUTO_SHUTDOWN_HHMM:
             return
 
         if self._in_kiwoom_restart_window():
@@ -836,6 +828,7 @@ class MainLiveApp:
                 f"조건 편입\n조건명: {condition_name}\n종목: {symbol}({name})\n"
                 f"전략유니버스: {self.universe.strategy_counts()}"
             )
+
             return
 
         if event == "D":
@@ -868,13 +861,67 @@ class MainLiveApp:
                 f"전략유니버스: {self.universe.strategy_counts()}"
             )
 
+    def load_external_candidates_and_subscribe(self):
+        if not bool(getattr(config, "ENABLE_EXTERNAL_UNIVERSE", False)):
+            self.logger.info("외부 후보 universe 비활성화 | external source를 읽지 않습니다")
+            return []
+
+        try:
+            candidates = self.universe.load_external_candidates(
+                as_of=datetime.now(timezone.utc)
+            )
+        except ExternalCandidateError as e:
+            self.logger.exception(
+                f"외부 후보 universe 로드 실패 | path={self.universe.external_candidate_path} err={e}"
+            )
+            for label, operation in (
+                ("실시간 등록", self._refresh_real_registration),
+                ("SQLite 저장", self._store_strategy_universe_snapshot),
+                (
+                    "유니버스 요약",
+                    lambda: self._log_strategy_universe_summary(
+                        "외부 후보 제외 후 유니버스"
+                    ),
+                ),
+            ):
+                try:
+                    operation()
+                except Exception as cleanup_error:
+                    self.logger.warning(
+                        f"외부 후보 실패 후 {label} 실패 | err={cleanup_error}"
+                    )
+            self._send_telegram_throttled(
+                "external_universe_load_failed",
+                f"외부 후보 universe 로드 실패\n에러: {e}\n외부 후보를 반영하지 않습니다.",
+            )
+            return []
+
+        strategy_counts = {
+            strategy: len(self.universe.strategy_source_codes(strategy, "external"))
+            for strategy in self.universe.strategy_names
+        }
+        self.logger.info(
+            f"외부 후보 universe 로드 완료 | count={len(candidates)} "
+            f"external_strategy_counts={strategy_counts}"
+        )
+        self._refresh_real_registration()
+        self._store_strategy_universe_snapshot()
+        self._log_strategy_universe_summary("외부 후보 반영 후 유니버스")
+        return candidates
+
     def log_run_mode(self):
         self.logger.info("프로그램 시작")
         run_source = "일봉 후보 snapshot 실행" if not bool(getattr(config, "ENABLE_CONDITION_SEARCH", True)) else "snapshot + 조건검색 실행"
         self.logger.info(
             f"{run_source} | condition_name={CONDITION_NAME} | "
             f"condition_search_start={CONDITION_SEARCH_START_HHMM} | "
-            f"snapshot_file={self.snapshot_path.name}"
+            f"snapshot_file={self.snapshot_path.name} | "
+            f"external_universe={'enabled' if bool(getattr(config, 'ENABLE_EXTERNAL_UNIVERSE', False)) else 'disabled'}"
+            + (
+                f" external_file={Path(getattr(config, 'EXTERNAL_CANDIDATE_FILE', '')).name}"
+                if bool(getattr(config, "ENABLE_EXTERNAL_UNIVERSE", False))
+                else ""
+            )
         )
         self.logger.info(
             f"실행 모드 | RUN_MODE={getattr(config, 'RUN_MODE', 'paper')} "
@@ -960,9 +1007,23 @@ class MainLiveApp:
         if self.shutting_down:
             return
         self.shutting_down = True
+        # Close the engine action gate before any reconciliation.  Callbacks
+        # can race this method, so the main-level flag is not sufficient.
+        try:
+            self.engine.request_shutdown()
+        except Exception as e:
+            self.logger.warning(f"엔진 종료 게이트 설정 실패 | {e}")
 
         self.logger.info("종료 신호 수신")
         self._log_open_positions_before_shutdown()
+        # These are deliberately independent.  A failed pending query must
+        # not suppress the account query (or vice versa), and none of these
+        # paths is allowed to erase an unresolved risk event.
+        for name, call in self._shutdown_reconciliation_calls():
+            try:
+                call()
+            except Exception as e:
+                self.logger.warning(f"종료 전 {name} 실패 | {e}")
 
         try:
             self.broker.stop_condition(CONDITION_NAME)
@@ -1000,6 +1061,25 @@ class MainLiveApp:
             self._send_telegram("자동매매 종료")
         os._exit(0)
 
+    def _shutdown_reconciliation_calls(self):
+        reconciliation = [
+            ("risk observation", lambda: self.engine.observe_risk_events(reason="shutdown")),
+        ]
+        shutdown_phase = self._market_phase()
+        if shutdown_phase == "market_session":
+            reconciliation.extend(
+                [
+                    ("pending sync", lambda: self.engine.sync_pending_orders(password=ACCOUNT_PASSWORD)),
+                    ("account sync", lambda: self.engine.sync_account(password=ACCOUNT_PASSWORD)),
+                ]
+            )
+        else:
+            self.logger.info(
+                f"종료 전 계좌/TR 동기화 생략 | phase={shutdown_phase} "
+                "장 종료 또는 장외 시간에는 조회하지 않습니다"
+            )
+        return reconciliation
+
     def auto_shutdown(self):
         if self.shutting_down:
             return
@@ -1029,9 +1109,19 @@ class MainLiveApp:
             self.shutdown()
 
     def on_heartbeat(self):
+        # This must precede every observation/reconciliation path: at the
+        # shutdown boundary that path is allowed to observe, never act.
         self.auto_shutdown()
         if self.shutting_down:
             return
+        # Risk reconciliation/status observation is independent of market phase
+        # and stale-tick recovery; it never manufactures a price-based stop.
+        try:
+            self.engine.observe_risk_events(reason="heartbeat")
+            self.engine.manage_pending_orders()
+        except Exception as e:
+            self.logger.warning(f"하트비트 리스크 관찰 실패 | {e}")
+
         if self.booting:
             return
 
@@ -1053,7 +1143,7 @@ class MainLiveApp:
 
         if now_hhmm < STALE_REALDATA_CHECK_HHMM:
             return
-        if now_hhmm >= STALE_REALDATA_DISABLE_AFTER_HHMM:
+        if now_hhmm >= AUTO_SHUTDOWN_HHMM:
             return
 
         watch_codes = self._all_watch_codes()
@@ -1147,6 +1237,7 @@ class MainLiveApp:
         self.engine.health_check()
 
         self.load_snapshot_and_subscribe()
+        self.load_external_candidates_and_subscribe()
         self.booting = False
         self.maybe_start_condition_search()
 

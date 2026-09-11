@@ -379,6 +379,11 @@ STRATEGY_UNIVERSE_CONFIG = {
 # 전략 설정
 # =========================
 ENABLE_CONDITION_SEARCH = False
+ENABLE_EXTERNAL_UNIVERSE = (
+    str(os.getenv("ENABLE_EXTERNAL_UNIVERSE", "")).strip().lower()
+    in {"1", "true", "yes", "on"}
+)
+EXTERNAL_CANDIDATE_FILE = "external_candidates.json"
 
 STRATEGY_CONFIG = {
     "watchlist": [],

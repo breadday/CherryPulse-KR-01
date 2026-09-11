@@ -1,5 +1,7 @@
 #core/risk_manager.py
- 
+
+from typing import Tuple
+
 from core.models import Signal, Side
 from core.portfolio import Portfolio
 
@@ -15,7 +17,7 @@ class RiskManager:
         self.max_order_value = max_order_value
         self.daily_loss_limit = daily_loss_limit
 
-    def can_trade(self, signal: Signal, portfolio: Portfolio) -> tuple[bool, str]:
+    def can_trade(self, signal: Signal, portfolio: Portfolio) -> Tuple[bool, str]:
         if portfolio.realized_pnl <= self.daily_loss_limit:
             return False, "일일 손실 제한 초과"
 

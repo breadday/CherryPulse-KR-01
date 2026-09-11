@@ -67,6 +67,9 @@ class Order:
     avg_fill_price: float = 0.0
     reason: str = ""
     ts: datetime = field(default_factory=datetime.now)
+    purpose: str = ""
+    risk_event_id: str = ""
+    broker_order_id: str = ""
 
 
 @dataclass

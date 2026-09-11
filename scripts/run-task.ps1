@@ -33,40 +33,78 @@ function Get-StatusPath([string]$Line) {
   if ([string]::IsNullOrWhiteSpace($Line) -or $Line.Length -lt 4) {
     return $null
   }
-  $path = $Line.Substring(3).Trim()
+  $path = $Line.Substring(3).Trim().Trim('"')
   if ($path -match " -> ") {
-    $path = ($path -split " -> ")[-1]
+    return @($path -split " -> " | ForEach-Object { $_.Trim('"') })
   }
-  return $path
+  return @($path)
 }
 
-function Get-FileHash([string]$Path) {
+function Canonical([string]$Path) { return (($Path -replace '\\', '/') -replace '^\./', '').Trim() }
+
+function Write-AtomicJson([string]$Path, $Value) {
+  $temporary = "$Path.$([guid]::NewGuid().ToString('N')).tmp"
+  try {
+    $json = $Value | ConvertTo-Json -Depth 8
+    [System.IO.File]::WriteAllText($temporary, "$json$([Environment]::NewLine)", $utf8)
+    Move-Item -LiteralPath $temporary -Destination $Path -Force
+  } catch {
+    if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
+    throw "Unable to write metadata atomically: $Path. $($_.Exception.Message)"
+  }
+}
+
+function Write-AtomicText([string]$Path, [string]$Text) {
+  $temporary = "$Path.$([guid]::NewGuid().ToString('N')).tmp"
+  try {
+    [System.IO.File]::WriteAllText($temporary, "$Text$([Environment]::NewLine)", $utf8)
+    Move-Item -LiteralPath $temporary -Destination $Path -Force
+  } catch {
+    if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
+    throw "Unable to write manifest atomically: $Path. $($_.Exception.Message)"
+  }
+}
+
+function Is-SecretOrForbidden([string]$Path) {
+  $p = Canonical $Path
+  return $p -match '(^|/)\.env($|\.)' -or $p -eq 'broker/kiwoom_broker.py' -or $p -eq 'broker/kiwoom.py'
+}
+
+function Is-ReviewCandidate([string]$Path) {
+  $p = Canonical $Path
+  $taskIdPattern = [regex]::Escape($TaskId)
+  if ($p -match '(^|/)\.env($|\.)' -or $p -match '(^|/)broker/(kiwoom_broker|kiwoom)\.py$') { return $false }
+  if ($p -match '(^|/)docs/agent-handoff/.*\.log$') { return $false }
+  if ($p -in @(
+      'docs/agent-handoff/README.md',
+      'scripts/run-task.ps1',
+      'scripts/safety-check.ps1',
+      '.opencode/agents/reviewer.md'
+    )) { return $true }
+  if ($p -match "^docs/agent-handoff/$taskIdPattern-(SPEC|SCOPE-MANIFEST|IMPLEMENTATION|TEST)\.md$") { return $true }
+  return $p -match '^tests?/.*\.(py|ps1|json|md)$'
+}
+
+function Get-TaskFileHash([string]$Path) {
   if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
     return "<missing>"
   }
   return (& git hash-object -- $Path).Trim()
 }
 
-function Expose-UntrackedForReview {
-  $untracked = @(& git ls-files --others --exclude-standard)
-  foreach ($path in $untracked) {
-    if ($path -match "(^|/)\.env($|\.)") {
-      throw "Refusing to expose a secret-like untracked file: $path"
-    }
-    if ($path -match "^docs/agent-handoff/.*\.log$") {
-      continue
-    }
-    & git add --intent-to-add -- $path
-    if ($LASTEXITCODE -ne 0) {
-      throw "Unable to expose untracked file for review: $path"
-    }
+function Expose-UntrackedForReview([string[]]$Paths) {
+  # Do not alter the index. The exact paths, including untracked test content,
+  # are supplied to the reviewer explicitly in its prompt.
+  foreach ($path in $Paths) {
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Review path is unreadable: $path" }
   }
 }
 
 function Write-ScopeManifest(
   [string]$ManifestPath,
   [string]$BaseHead,
-  [hashtable]$BaselineHashes
+  [hashtable]$BaselineHashes,
+  [string[]]$BaselinePaths
 ) {
   $candidate = @(
     (& git diff --name-only $BaseHead)
@@ -74,43 +112,68 @@ function Write-ScopeManifest(
     (& git ls-files --others --exclude-standard)
   ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique
 
-  $reviewPaths = @()
+  $reviewPaths = @(); $excludedPaths = @()
+  $baselineMetadataPath = Canonical "docs/agent-handoff/$TaskId-BASELINE.json"
+  $reviewArtifactPath = Canonical "docs/agent-handoff/$TaskId-REVIEW.md"
   foreach ($path in $candidate) {
-    if ($path -match "^docs/agent-handoff/.*\.log$") {
-      continue
+    $path = Canonical $path
+    if ($path -eq $baselineMetadataPath) { continue }
+    if ($path -eq $reviewArtifactPath) { $excludedPaths += $path; continue }
+    if ($BaselineHashes.ContainsKey($path) -and
+        $BaselineHashes[$path] -eq (Get-TaskFileHash $path)) { $excludedPaths += $path; continue }
+    if (Is-SecretOrForbidden $path) { throw "Forbidden or secret path detected in TASK scope: $path" }
+    if (-not (Is-ReviewCandidate $path)) {
+      if ($path -match '(^|/)docs/agent-handoff/.*\.log$' -or $path -match '^docs/agent-handoff/TASK-\d+-') { $excludedPaths += $path; continue }
+      throw "New path is outside the TASK review allowlist: $path"
     }
 
-    $currentHash = Get-FileHash $path
+    $currentHash = Get-TaskFileHash $path
     if ($BaselineHashes.ContainsKey($path) -and
         $BaselineHashes[$path] -eq $currentHash) {
-      continue
+      $excludedPaths += $path; continue
     }
 
     $reviewPaths += $path
   }
 
-  $lines = @(
-    "# $TaskId review scope manifest"
-    ""
-    "- task_id: $TaskId"
-    "- base_head: $BaseHead"
-    "- generated_at: $([DateTime]::UtcNow.ToString("o"))"
-    ""
+  $untrackedLike = @{}
+  foreach ($path in (& git ls-files --others --exclude-standard)) {
+    if (-not [string]::IsNullOrWhiteSpace($path)) { $untrackedLike[(Canonical $path)] = $true }
+  }
+  foreach ($line in (& git status --porcelain=v1 --untracked-files=all)) {
+    if ($line.Length -ge 4 -and $line.Substring(0, 2) -eq ' A') {
+      foreach ($path in (Get-StatusPath $line)) { $untrackedLike[(Canonical $path)] = $true }
+    }
+  }
+  $untrackedTests = @($reviewPaths | Where-Object {
+      $_ -match '(^|/)tests/' -and $untrackedLike.ContainsKey((Canonical $_))
+    })
+  $reviewPaths = @($reviewPaths | Sort-Object -Unique)
+  $excludedPaths = @($excludedPaths | Sort-Object -Unique)
+  $manifestLines = @(
+    "# $TaskId review scope manifest",
+    "",
+    "- task_id: $TaskId",
+    "- base_head: $BaseHead",
+    "- generated_at: $([DateTime]::UtcNow.ToString('o'))",
+    "",
     "## Baseline paths excluded from this task"
-    if ($BaselineHashes.Count -eq 0) { "- (none)" }
-    else { $BaselineHashes.Keys | Sort-Object | ForEach-Object { "- $_" } }
-    ""
-    "## reviewPaths"
-    if ($reviewPaths.Count -eq 0) { "- (none)" }
-    else { $reviewPaths | ForEach-Object { "- $_" } }
-    ""
-    "## Review rule"
-    "- Review only the current TASK delta in reviewPaths."
-    "- Prior baseline paths are context, not new deliverables."
+  )
+  $manifestLines += @($excludedPaths | ForEach-Object { "- $_" })
+  $manifestLines += @("", "## reviewPaths")
+  $manifestLines += @($reviewPaths | ForEach-Object { "- $_" })
+  $manifestLines += @("", "## untrackedTests")
+  $manifestLines += @($untrackedTests | ForEach-Object { "- $_" })
+  $manifestLines += @(
+    "",
+    "## Review rule",
+    "- Review only the current TASK delta in reviewPaths.",
+    "- Prior baseline paths are context, not current TASK deliverables.",
     "- Handoff .log files are evidence artifacts and are excluded from code diff scope."
   )
-  $lines | Set-Content -LiteralPath $ManifestPath -Encoding utf8
-  return $reviewPaths
+  $manifest = $manifestLines -join "`n"
+  Write-AtomicText $ManifestPath $manifest
+  return @($reviewPaths | Sort-Object -Unique)
 }
 
 Require-Command "git"
@@ -125,34 +188,52 @@ $handoff = Join-Path $RepoRoot "docs/agent-handoff"
 New-Item -ItemType Directory -Force -Path $handoff | Out-Null
 
 $baseHead = (& git rev-parse HEAD).Trim()
-$baselineStatus = @(& git status --short --untracked-files=all)
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($baseHead)) { throw "Unable to record baseline HEAD." }
+$baselineStatus = @(& git status --porcelain=v1 --untracked-files=all)
+if ($LASTEXITCODE -ne 0) { throw "Unable to record baseline status." }
 $baselinePaths = @($baselineStatus | ForEach-Object { Get-StatusPath $_ } | Where-Object { $_ })
 $baselineHashes = @{}
 foreach ($path in $baselinePaths) {
-  $baselineHashes[$path] = Get-FileHash $path
+  $baselineHashes[(Canonical $path)] = Get-TaskFileHash $path
 }
 
+$baselinePath = Join-Path $handoff "$TaskId-BASELINE.json"
+if (Test-Path -LiteralPath $baselinePath -PathType Leaf) {
+  throw "Baseline metadata already exists; refusing to overwrite: $baselinePath"
+}
+$baselineMetadata = [ordered]@{ taskId=$TaskId; baselineHead=$baseHead; baselineStatus=@($baselineStatus); baselinePaths=@($baselinePaths | ForEach-Object { Canonical $_ } | Sort-Object -Unique); baselineHashes=$baselineHashes; branch=$branch; recordedAt=[DateTime]::UtcNow.ToString('o') }
+Write-AtomicJson $baselinePath $baselineMetadata
 $manifestPath = Join-Path $handoff "$TaskId-SCOPE-MANIFEST.md"
-@(
-  "# $TaskId baseline"
-  ""
-  "- task_id: $TaskId"
-  "- base_head: $baseHead"
-  "- created_at: $([DateTime]::UtcNow.ToString("o"))"
-  ""
-  "## Baseline paths"
-  if ($baselinePaths.Count -eq 0) { "- (none)" }
-  else { $baselinePaths | Sort-Object | ForEach-Object { "- $_" } }
-) | Set-Content -LiteralPath $manifestPath -Encoding utf8
 
-& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "scripts/safety-check.ps1") -Mode pre
+function Run-SafetyCheck([ValidateSet("pre", "post")][string]$Mode) {
+  & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "scripts/safety-check.ps1") -Mode $Mode -BaselinePath $baselinePath -ScopePath $manifestPath
+  if ($LASTEXITCODE -ne 0) {
+    $label = if ($Mode -eq "pre") { "Pre" } else { "Post" }
+    throw "$label safety check failed."
+  }
+}
+
+# Establish an initial scope before the first safety check. Later stages
+# regenerate it, so this is only a pre-stage consistency check.
+@(Write-ScopeManifest -ManifestPath $manifestPath -BaseHead $baseHead -BaselineHashes $baselineHashes -BaselinePaths $baselineMetadata.baselinePaths) | Out-Null
+
+Run-SafetyCheck "pre"
 
 function Run-Stage([string]$Agent, [string]$Prompt, [string]$OutputPath) {
   $logPath = Join-Path $handoff "$TaskId-$Agent.log"
   Write-Host "=== $Agent ==="
-  & opencode run --agent $Agent --auto $Prompt 2>&1 |
-    Tee-Object -FilePath $logPath -Encoding utf8
-  if ($LASTEXITCODE -ne 0) {
+  $savedErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = "Continue"
+    $stageOutput = @(& opencode run --agent $Agent --auto $Prompt 2>&1)
+    $stageExitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $savedErrorActionPreference
+  }
+  $stageOutput | ForEach-Object { Write-Host $_ }
+  $logLines = @($stageOutput | ForEach-Object { "$_" })
+  [System.IO.File]::WriteAllLines($logPath, [string[]]$logLines, $utf8)
+  if ($stageExitCode -ne 0) {
     throw "OpenCode stage failed: $Agent. See $logPath"
   }
   if (-not (Test-Path $OutputPath)) {
@@ -192,8 +273,8 @@ Run the relevant tests and write the test report to:
 $testPath
 "@ $testPath
 
-Expose-UntrackedForReview
-$reviewPaths = @(Write-ScopeManifest -ManifestPath $manifestPath -BaseHead $baseHead -BaselineHashes $baselineHashes)
+$reviewPaths = @(Write-ScopeManifest -ManifestPath $manifestPath -BaseHead $baseHead -BaselineHashes $baselineHashes -BaselinePaths $baselineMetadata.baselinePaths)
+Expose-UntrackedForReview $reviewPaths
 
 if ($reviewPaths.Count -gt 0) {
   & git diff --check -- $reviewPaths
@@ -202,8 +283,9 @@ if ($reviewPaths.Count -gt 0) {
   }
 }
 
-& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "scripts/safety-check.ps1") -Mode post
+Run-SafetyCheck "post"
 
+$manifestHashBeforeReview = Get-TaskFileHash $manifestPath
 Run-Stage "reviewer" @"
 Task ID: $TaskId
 Read:
@@ -213,25 +295,39 @@ $testPath
 $manifestPath
 
 Review only the current TASK paths listed under reviewPaths in the scope manifest.
-Use the baseline paths as context, but do not treat prior baseline changes as this TASK deliverables.
-Use:
-- git diff main
-- git status --short --untracked-files=all
-- the scope manifest
+Use baseline HEAD/metadata as context, but do not treat prior baseline changes as this TASK deliverables.
+Use only these exact reviewPaths as the current TASK evidence:
+$($reviewPaths -join "`n")
+Use path-scoped git diff and git diff --check only; do not use a branch-wide diff or whole-repository status as PASS/failure evidence.
+Read every untracked source/test file in reviewPaths, including its content.
 
 Untracked source and test files in reviewPaths are part of the review. Handoff .log files are evidence only. Check scope, tests, and trading safety. Write the verdict to:
 $reviewPath
 "@ $reviewPath
 
+if ((Get-TaskFileHash $manifestPath) -ne $manifestHashBeforeReview) {
+  throw "Scope manifest changed during review. No publish was attempted."
+}
 $review = Get-Content -Raw -Encoding utf8 $reviewPath
-if ($review -notmatch "(?m)^PASS\b") {
+$verdicts = [regex]::Matches($review, '(?mi)^\s*#*\s*(PASS|CHANGES_REQUESTED|BLOCKED)\b')
+if ($verdicts.Count -ne 1) {
+  throw "Review did not contain exactly one verdict. No publish was attempted."
+}
+if ($verdicts[0].Groups[1].Value.ToUpperInvariant() -ne "PASS") {
   throw "Review did not PASS. No publish was attempted."
 }
 
+$reviewPathsAfter = @(Write-ScopeManifest -ManifestPath $manifestPath -BaseHead $baseHead -BaselineHashes $baselineHashes -BaselinePaths $baselineMetadata.baselinePaths)
+if ((@($reviewPathsAfter) -join "`n") -ne (@($reviewPaths) -join "`n")) { throw "Review scope changed after reviewer; no publish was attempted." }
+Run-SafetyCheck "post"
+
 if ($AutoPublish) {
-  & git add --all
+  $publishPaths = @($reviewPathsAfter)
+  $publishPaths += Canonical "docs/agent-handoff/$TaskId-REVIEW.md"
+  $publishPaths = @($publishPaths | Sort-Object -Unique)
+  & git add -- $publishPaths
   if ($LASTEXITCODE -ne 0) { throw "git add failed" }
-  & git commit -m "automation($TaskId): $Goal"
+  & git commit --only -m "automation($TaskId): $Goal" -- $publishPaths
   if ($LASTEXITCODE -ne 0) { throw "git commit failed" }
   & git push --set-upstream origin $branch
   if ($LASTEXITCODE -ne 0) { throw "git push failed" }
