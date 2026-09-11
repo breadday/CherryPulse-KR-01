@@ -12,11 +12,16 @@ env/
 .env
 .env.*
 !.env.example
+_backups/
 
 # Runtime outputs
 logs/
 results/
 runtime/
+
+# Local agent handoff evidence
+docs/agent-handoff/*.log
+docs/agent-handoff/TASK-*-BASELINE.json
 
 # Local runtime snapshots/state
 condition_snapshot.json

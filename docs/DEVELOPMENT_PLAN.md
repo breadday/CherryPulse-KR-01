@@ -1,5 +1,7 @@
 # CherryPulse-KR-01 개발 계획
 
+> 최신 실제 현황은 [`PROJECT_STATUS_2026-09-11.md`](PROJECT_STATUS_2026-09-11.md)를 기준으로 한다. 이 문서는 장기 개선 순서와 완료 기준을 유지한다.
+
 - 작성일: 2026-09-10
 - 기준 브랜치: `main`
 - 계획 반영 브랜치: `automation/opencode-herdr-pipeline`
@@ -286,14 +288,15 @@ docs/agent-handoff/TASK-xxx-REVIEW.md
 
 ## 7. 지금 바로 실행할 다음 작업
 
-첫 실행 명령은 다음과 같다.
+현재 우선순위는 새 전략 추가가 아니라 비밀값 정리, live 이중 잠금, 로그인 timeout, 모의투자 운영 증거 축적이다. 테스트와 snapshot 검증은 이미 기본 회귀 경로에 들어갔다.
+
+일일 검증 명령은 다음과 같다.
 
 ```powershell
-.\scripts\run-task.ps1 `
-  -TaskId TASK-001 `
-  -Goal "TASK-001-REQUEST.md와 DEVELOPMENT_PLAN.md를 기준으로 RiskGuard 독립화 설계와 구현"
+py -3.8-32 validate_daily_snapshot.py
+py -3.8-32 -B -m pytest -q
 ```
 
-첫 실행에서는 `-AutoPublish`를 사용하지 않는다. 결과 파일을 확인한 뒤 PASS가 확인되면 자동 push와 Draft PR 생성 여부를 결정한다.
+실계좌 전환이나 `-AutoPublish`는 별도 승인 없이는 진행하지 않는다.
 
 > 목표는 수익을 보장하는 시스템이 아니다. 먼저 손절 누락, 중복 주문, 상태 유실이라는 치명적 실패를 제거하고, 그 다음 전략 수익성을 검증한다.
