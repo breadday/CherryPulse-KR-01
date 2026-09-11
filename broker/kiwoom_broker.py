@@ -1,5 +1,7 @@
 # broker/kiwoom_broker.py
 
+from __future__ import annotations
+
 from collections import defaultdict, deque
 from PyQt5.QtCore import QObject, QEventLoop, QTimer
 from PyQt5.QAxContainer import QAxWidget
@@ -292,8 +294,15 @@ class KiwoomBroker(QObject):
         self.logger.info(f"CommConnect 호출 완료 | ret={ret}")
 
         self.logger.info("로그인 이벤트 대기 시작")
-        self.login_loop.exec_()
+        login_timed_out = self._exec_loop_with_timeout(
+            "login_loop",
+            "로그인",
+            getattr(config, "KIWOOM_LOGIN_TIMEOUT_SEC", 20),
+        )
         self.logger.info("로그인 이벤트 대기 종료")
+
+        if login_timed_out:
+            raise RuntimeError("로그인 대기 시간 초과")
 
         if self.is_shutting_down:
             self.logger.info("종료 중 → connect 종료")
@@ -320,7 +329,7 @@ class KiwoomBroker(QObject):
     def get_code_name(self, code: str) -> str:
         try:
             name = self.ocx.dynamicCall("GetMasterCodeName(QString)", str(code).strip())
-            return str(name).strip()
+            return self._repair_kiwoom_text(name)
         except Exception:
             return ""
 
@@ -1117,10 +1126,11 @@ class KiwoomBroker(QObject):
     # 서버 메시지
     # -------------------------
     def _on_receive_msg(self, screen_no, rqname, trcode, msg):
-        self.logger.info(f"서버메시지 | {msg}")
+        clean_msg = self._repair_kiwoom_text(msg)
+        self.logger.info(f"서버메시지 | {clean_msg}")
 
         if self.on_msg_callback:
-            self.on_msg_callback(msg)
+            self.on_msg_callback(clean_msg)
 
 
     # -------------------------

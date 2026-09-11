@@ -141,6 +141,7 @@ STRATEGY_PROTECTION_ENABLED = True
 # Kiwoom 이벤트가 누락되면 QEventLoop가 하루 종일 멈출 수 있어 timeout 후 재시도/복구 흐름으로 빠져나오게 합니다.
 KIWOOM_TR_TIMEOUT_SEC = 20
 KIWOOM_CONDITION_TIMEOUT_SEC = 20
+KIWOOM_LOGIN_TIMEOUT_SEC = 20
 # 실시간 틱마다 일봉 TR을 반복 호출하면 Kiwoom 응답 지연 시 매매 판단이 무너집니다.
 # 일봉 후보는 사전 snapshot을 기본으로 쓰고, 장중 TR 재조회는 긴 간격으로만 재시도합니다.
 SKIP_DAILY_CANDLE_FETCH_BEFORE_MARKET = True
