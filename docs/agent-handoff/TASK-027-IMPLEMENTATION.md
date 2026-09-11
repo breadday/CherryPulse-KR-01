@@ -8,6 +8,7 @@
 - `paper` 모드의 계좌 목록 fallback 동작은 유지한다.
 - `GetServerGubun`을 확인해 기대 서버와 다른 환경의 계좌 사용을 차단한다.
 - `KIWOOM_EXPECTED_SERVER` 기본값은 `paper`다.
+- 기대 서버가 `live`인 경우 정확한 승인 문자열 없이는 `CommConnect()`를 호출하지 않는다.
 - 계좌번호 안전 경계와 현재 운영 상태를 문서화했다.
 
 ## 안전성

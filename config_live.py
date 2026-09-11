@@ -25,6 +25,7 @@ DRY_RUN = PAPER_TRADING          # True : 모의 / False : 실주문
 ACCOUNT_NO = os.getenv("ACCOUNT_NO", "").strip()
 ACCOUNT_PASSWORD = os.getenv("ACCOUNT_PASSWORD", "0000")
 KIWOOM_EXPECTED_SERVER = str(os.getenv("KIWOOM_EXPECTED_SERVER", "paper")).strip().lower()
+KIWOOM_LIVE_CONFIRMATION = os.getenv("KIWOOM_LIVE_CONFIRMATION", "").strip()
 SQLITE_DB_PATH = os.getenv(
     "SQLITE_DB_PATH",
     os.path.join(

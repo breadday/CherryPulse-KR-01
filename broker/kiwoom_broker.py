@@ -295,8 +295,15 @@ class KiwoomBroker(QObject):
                 f"서버 환경 불일치 | expected={expected} actual={actual}"
             )
 
+    def _validate_live_confirmation(self) -> None:
+        expected = str(getattr(config, "KIWOOM_EXPECTED_SERVER", "paper")).strip().lower()
+        confirmation = str(getattr(config, "KIWOOM_LIVE_CONFIRMATION", "")).strip()
+        if expected == "live" and confirmation != "I_UNDERSTAND_LIVE_TRADING":
+            raise RuntimeError("실서버 사용 승인값이 필요합니다.")
+
     def connect(self):
         self.logger.info("키움 로그인 시도")
+        self._validate_live_confirmation()
 
         configured_account = str(self.account_no or "").strip()
         if getattr(config, "ALLOW_LIVE_ORDERS", config.LIVE_MODE) and not configured_account:

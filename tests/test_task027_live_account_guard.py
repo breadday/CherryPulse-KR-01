@@ -70,3 +70,24 @@ def test_server_guard_rejects_unexpected_server(monkeypatch):
 
     with pytest.raises(RuntimeError, match="서버 환경 불일치"):
         module.KiwoomBroker._validate_server_environment(_broker(module, None), "0")
+
+
+def test_live_server_requires_explicit_confirmation(monkeypatch):
+    module = _load_broker(monkeypatch)
+    monkeypatch.setattr(module.config, "KIWOOM_EXPECTED_SERVER", "live")
+    monkeypatch.setattr(module.config, "KIWOOM_LIVE_CONFIRMATION", "")
+
+    with pytest.raises(RuntimeError, match="승인값"):
+        module.KiwoomBroker._validate_live_confirmation(_broker(module, None))
+
+
+def test_live_server_accepts_exact_confirmation(monkeypatch):
+    module = _load_broker(monkeypatch)
+    monkeypatch.setattr(module.config, "KIWOOM_EXPECTED_SERVER", "live")
+    monkeypatch.setattr(
+        module.config,
+        "KIWOOM_LIVE_CONFIRMATION",
+        "I_UNDERSTAND_LIVE_TRADING",
+    )
+
+    module.KiwoomBroker._validate_live_confirmation(_broker(module, None))

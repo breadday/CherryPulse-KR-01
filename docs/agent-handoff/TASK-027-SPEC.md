@@ -13,6 +13,7 @@
 - 모의투자에서 계좌번호가 비어 있는 경우 기존 로그인 계좌 fallback은 유지한다.
 - `GetLoginInfo("GetServerGubun")`이 기대 서버와 다르면 계좌 조회 전에 차단한다.
 - 기대 서버 설정은 `KIWOOM_EXPECTED_SERVER`이며 기본값은 `paper`다.
+- 기대 서버가 `live`이면 `KIWOOM_LIVE_CONFIRMATION=I_UNDERSTAND_LIVE_TRADING`을 요구한다.
 
 ## 범위
 
