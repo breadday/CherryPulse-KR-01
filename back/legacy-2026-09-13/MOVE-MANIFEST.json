@@ -1,0 +1,608 @@
+[
+  {
+    "source": "backtest\\__init__.py",
+    "destination": "back\\legacy-2026-09-13\\backtest\\__init__.py",
+    "bytes": 22,
+    "sha256": "EE43392383FB0DF698B8AF4B4779A1DB76DD9314C788948F9A6EF843CC8D6A47"
+  },
+  {
+    "source": "backtest\\adapters.py",
+    "destination": "back\\legacy-2026-09-13\\backtest\\adapters.py",
+    "bytes": 379,
+    "sha256": "F782BE709AB62E58A00BE3150245C546F4FC9B628B47DFE4D84F3B2B0EB4E0A0"
+  },
+  {
+    "source": "backtest\\csv_feed.py",
+    "destination": "back\\legacy-2026-09-13\\backtest\\csv_feed.py",
+    "bytes": 1532,
+    "sha256": "5971B6B0C868A3EE9E908B73EEFFB0D2A4B0D733025631375C07BD7AD37B0A3F"
+  },
+  {
+    "source": "backtest\\metrics.py",
+    "destination": "back\\legacy-2026-09-13\\backtest\\metrics.py",
+    "bytes": 1784,
+    "sha256": "DB7C66E07DDCFEF3DB96651F79FF21C20513AF99F4E7861AE1B6E6D5CAC7E9C2"
+  },
+  {
+    "source": "backtest\\result_writer.py",
+    "destination": "back\\legacy-2026-09-13\\backtest\\result_writer.py",
+    "bytes": 2665,
+    "sha256": "E017C1A810F228118FE7A987DF9B610518A6EE940ED6CA96F991FA59D0F927F9"
+  },
+  {
+    "source": "backtest\\runner.py",
+    "destination": "back\\legacy-2026-09-13\\backtest\\runner.py",
+    "bytes": 8585,
+    "sha256": "E9000B7EF038E3F5F29F0CEFB58C156560A8F49E5297920206FBC6AABDBEDCDB"
+  },
+  {
+    "source": "backtest\\__pycache__\\__init__.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\backtest\\__pycache__\\__init__.cpython-310.pyc",
+    "bytes": 155,
+    "sha256": "66E963CED39AFB18C44DDA8EAC5BDABD20B29A9C94C41FD36A2DA677DB1D3DB5"
+  },
+  {
+    "source": "backtest\\__pycache__\\csv_feed.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\backtest\\__pycache__\\csv_feed.cpython-310.pyc",
+    "bytes": 1192,
+    "sha256": "978F529CC2A5C6547D61B1B87EAFD1E75E6AF6E4B982F291EA35E7C773003D23"
+  },
+  {
+    "source": "backtest\\__pycache__\\metrics.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\backtest\\__pycache__\\metrics.cpython-310.pyc",
+    "bytes": 1790,
+    "sha256": "CD71FBC3B5F28225ECCF959732295CDDD460DA1C81AB18749A1F30D946F87D01"
+  },
+  {
+    "source": "backtest\\__pycache__\\result_writer.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\backtest\\__pycache__\\result_writer.cpython-310.pyc",
+    "bytes": 2109,
+    "sha256": "4F51CA1B1BE0A3E85ACC5FBC9E7CF5792C625D3234C275650C199F806554ACEC"
+  },
+  {
+    "source": "backtest\\__pycache__\\runner.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\backtest\\__pycache__\\runner.cpython-310.pyc",
+    "bytes": 6376,
+    "sha256": "8BABF182FCA6BA77EA48C577D488391CCB70CF94DCBF0518B8051514E2CBCBEA"
+  },
+  {
+    "source": "broker\\base.py",
+    "destination": "back\\legacy-2026-09-13\\broker\\base.py",
+    "bytes": 283,
+    "sha256": "39BD3F8A77793BDF3170D5CDF8CCBECC80F08760E1B0CE7533F0D949D2E337D6"
+  },
+  {
+    "source": "broker\\kiwoom_broker.py",
+    "destination": "back\\legacy-2026-09-13\\broker\\kiwoom_broker.py",
+    "bytes": 55298,
+    "sha256": "683450DEE73582EEF48C38D13BD99F48D2788B8BB093C4F284AD8B1E5A8BFA16"
+  },
+  {
+    "source": "broker\\kiwoom_stub.py",
+    "destination": "back\\legacy-2026-09-13\\broker\\kiwoom_stub.py",
+    "bytes": 1821,
+    "sha256": "6AAA79FCDFC3FC577FC33186E5F0CCC9EE426C1BC192FCE9057F074B410FAA77"
+  },
+  {
+    "source": "broker\\__pycache__\\base.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\broker\\__pycache__\\base.cpython-310.pyc",
+    "bytes": 801,
+    "sha256": "105200D2BE43F833C4885ECD83B367790EA52506450F2530EA3B95D55FAC24AA"
+  },
+  {
+    "source": "broker\\__pycache__\\kiwoom_broker.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\broker\\__pycache__\\kiwoom_broker.cpython-310.pyc",
+    "bytes": 36177,
+    "sha256": "68437FB312B92D446D2B59B86BB67958DE20DDCDB5142C8135AC9D35CF85125B"
+  },
+  {
+    "source": "broker\\__pycache__\\kiwoom_stub.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\broker\\__pycache__\\kiwoom_stub.cpython-310.pyc",
+    "bytes": 2907,
+    "sha256": "8B64E85F8FA202C62C470BD07066D808FCD29365B64CEBA2FCD47351987FCA41"
+  },
+  {
+    "source": "core\\fill_processor.py",
+    "destination": "back\\legacy-2026-09-13\\core\\fill_processor.py",
+    "bytes": 1495,
+    "sha256": "D3CDB70D4BDFB9E24D6A5669C706D163C868F0DEF3578CE88F86BFD553C599E5"
+  },
+  {
+    "source": "core\\models.py",
+    "destination": "back\\legacy-2026-09-13\\core\\models.py",
+    "bytes": 1577,
+    "sha256": "24589157C3EF460A805EBAB0D28230B2528AB905037333E42236E5BB823A6069"
+  },
+  {
+    "source": "core\\order_manager.py",
+    "destination": "back\\legacy-2026-09-13\\core\\order_manager.py",
+    "bytes": 4177,
+    "sha256": "BAD9183C96A9195A6BAE16B897E0905C152522188602104A0DD130381131C172"
+  },
+  {
+    "source": "core\\order_registry.py",
+    "destination": "back\\legacy-2026-09-13\\core\\order_registry.py",
+    "bytes": 3330,
+    "sha256": "4B070EE30B364B90103DFAAACE70B6DD34977159A72C14E3080C495329FCACF9"
+  },
+  {
+    "source": "core\\portfolio.py",
+    "destination": "back\\legacy-2026-09-13\\core\\portfolio.py",
+    "bytes": 1644,
+    "sha256": "13FEC794BEACAA8B6F2FFE4272A1BE073F5EBBF15D700B24F2CE27F6E82EC76E"
+  },
+  {
+    "source": "core\\position_manager.py",
+    "destination": "back\\legacy-2026-09-13\\core\\position_manager.py",
+    "bytes": 2843,
+    "sha256": "1B13700B2323DC44566C7A679FD5042C87710B31C3F3C3F8E08BF41BEDEFB3B7"
+  },
+  {
+    "source": "core\\risk_manager.py",
+    "destination": "back\\legacy-2026-09-13\\core\\risk_manager.py",
+    "bytes": 1332,
+    "sha256": "D0760810D209807BFAC33B481002F7D682EC5B4386F5645714AA2F35F16AD377"
+  },
+  {
+    "source": "core\\__pycache__\\models.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\core\\__pycache__\\models.cpython-310.pyc",
+    "bytes": 2517,
+    "sha256": "5B028B61DAE7CC109E3DA066B87B6DEFE3D11673CC74297881F874A59D499C78"
+  },
+  {
+    "source": "core\\__pycache__\\order_manager.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\core\\__pycache__\\order_manager.cpython-310.pyc",
+    "bytes": 3613,
+    "sha256": "F78F79AB86E710DA18D32062598C638307F2767689B0415106ABB3DAEDBCAAB3"
+  },
+  {
+    "source": "core\\__pycache__\\portfolio.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\core\\__pycache__\\portfolio.cpython-310.pyc",
+    "bytes": 2220,
+    "sha256": "2E54F095342E1237E318FC0A45359B656D694D572B5D0BF567D331CE1CFD7922"
+  },
+  {
+    "source": "core\\__pycache__\\risk_manager.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\core\\__pycache__\\risk_manager.cpython-310.pyc",
+    "bytes": 1417,
+    "sha256": "B86C344B8DB9E3FF3FEBDFDF3077836E0BDDD9B24F49E240CEE7568BC68B4F2D"
+  },
+  {
+    "source": "infra\\sqlite_store.py",
+    "destination": "back\\legacy-2026-09-13\\infra\\sqlite_store.py",
+    "bytes": 38273,
+    "sha256": "140EF8649EF427A6174B479AD03B24D8F0B3AADA6A29A76ABC3B6C8F5A83B382"
+  },
+  {
+    "source": "infra\\telegram_notifier.py",
+    "destination": "back\\legacy-2026-09-13\\infra\\telegram_notifier.py",
+    "bytes": 9623,
+    "sha256": "94BC29C48236970E8F3B561146E9A88AF3E3E4777C9D8A9CAFC1F2946F854385"
+  },
+  {
+    "source": "infra\\__pycache__\\telegram_notifier.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\infra\\__pycache__\\telegram_notifier.cpython-310.pyc",
+    "bytes": 8029,
+    "sha256": "3B80455D09DB31A48A92CD243D35A8C42E59050D164180BF7180F062CCFC49E1"
+  },
+  {
+    "source": "selectors\\__init__.py",
+    "destination": "back\\legacy-2026-09-13\\selectors\\__init__.py",
+    "bytes": 356,
+    "sha256": "1413DFD5BC1489A109206E3D41552BE2C97FB4FBA71371E084332156C003F2A1"
+  },
+  {
+    "source": "selectors\\base_selector.py",
+    "destination": "back\\legacy-2026-09-13\\selectors\\base_selector.py",
+    "bytes": 1841,
+    "sha256": "7247CE638EA04A4A36322D5F7B9FC2E36B0040F6385105C8D54A0A8DEE9C4A78"
+  },
+  {
+    "source": "selectors\\bottom_reversal_selector.py",
+    "destination": "back\\legacy-2026-09-13\\selectors\\bottom_reversal_selector.py",
+    "bytes": 2647,
+    "sha256": "225AE0B8E69609C48D76247A3CE0866ED162162959D16A8B90FD33FD0502D680"
+  },
+  {
+    "source": "selectors\\close_buy_selector.py",
+    "destination": "back\\legacy-2026-09-13\\selectors\\close_buy_selector.py",
+    "bytes": 2796,
+    "sha256": "A0FDC2D0033D9699094137174A00B110E211C262EAD393037EBFAF8602CC46AD"
+  },
+  {
+    "source": "selectors\\leader_selector.py",
+    "destination": "back\\legacy-2026-09-13\\selectors\\leader_selector.py",
+    "bytes": 2873,
+    "sha256": "4322053036667D136ECD92C925F8720C54ABB0178951BA7AF7873E454F45DE08"
+  },
+  {
+    "source": "selectors\\momentum_selector.py",
+    "destination": "back\\legacy-2026-09-13\\selectors\\momentum_selector.py",
+    "bytes": 2219,
+    "sha256": "ED0C4F30EC49CE7FEDB0EA3C225D0E48D22D3A3D4BC1CAAC9FE92F7B166C0E41"
+  },
+  {
+    "source": "selectors\\snapshot_selector.py",
+    "destination": "back\\legacy-2026-09-13\\selectors\\snapshot_selector.py",
+    "bytes": 1907,
+    "sha256": "EA6F0A303FCA496DD1B827D22EA71D9A28BDE47B0274774ABFB1C0AC0B9064C1"
+  },
+  {
+    "source": "selectors\\vcp_box_selector.py",
+    "destination": "back\\legacy-2026-09-13\\selectors\\vcp_box_selector.py",
+    "bytes": 2461,
+    "sha256": "081570F1B73D3C9B9B0CC670801F8493DE1E70544FF802CD60D9638CAA60EE1E"
+  },
+  {
+    "source": "strategies\\__init__.py",
+    "destination": "back\\legacy-2026-09-13\\strategies\\__init__.py",
+    "bytes": 369,
+    "sha256": "A7AA1B924EDFB49CBB58B0FB2AD09D0DE2A7A9546809FD9100A9DE35261C4B0C"
+  },
+  {
+    "source": "strategies\\base_strategy.py",
+    "destination": "back\\legacy-2026-09-13\\strategies\\base_strategy.py",
+    "bytes": 940,
+    "sha256": "58E91D0E1863C1FE344C2FCAD28BD19F609488D25D5A62DBD3BD1C068B863F02"
+  },
+  {
+    "source": "strategies\\bottom_reversal_strategy.py",
+    "destination": "back\\legacy-2026-09-13\\strategies\\bottom_reversal_strategy.py",
+    "bytes": 24269,
+    "sha256": "08EDE25036308708C27CC7CC1C144BCE677F4E65F5FD34760A31B28388AD588B"
+  },
+  {
+    "source": "strategies\\close_buy_strategy.py",
+    "destination": "back\\legacy-2026-09-13\\strategies\\close_buy_strategy.py",
+    "bytes": 9631,
+    "sha256": "D8E5E26E3232173AF9152E1C3A783BFF897CA12265B08955627E99DB8F91D391"
+  },
+  {
+    "source": "strategies\\composite_strategy.py",
+    "destination": "back\\legacy-2026-09-13\\strategies\\composite_strategy.py",
+    "bytes": 6911,
+    "sha256": "01458A21BF80EAE466BB64FC8B0A31444F6EE8DB6E2C1137CD00FC3501C12729"
+  },
+  {
+    "source": "strategies\\leader_pullback_strategy.py",
+    "destination": "back\\legacy-2026-09-13\\strategies\\leader_pullback_strategy.py",
+    "bytes": 9137,
+    "sha256": "0D7708C0478B202164DADDD4D15C2C65F3F891C80B7D5112CBC64C0D23E095A9"
+  },
+  {
+    "source": "strategies\\momentum_strategy.py",
+    "destination": "back\\legacy-2026-09-13\\strategies\\momentum_strategy.py",
+    "bytes": 4681,
+    "sha256": "C624014B3293B005075AAB67B9A4614939A6C4CE269BD49F77B0B7EE75208B2B"
+  },
+  {
+    "source": "strategies\\vcp_box_strategy.py",
+    "destination": "back\\legacy-2026-09-13\\strategies\\vcp_box_strategy.py",
+    "bytes": 6696,
+    "sha256": "7B06F1012B0582078063B2C3ECF9F1DD8DFEE44A2FBA6E2D240D58DCC6D3EC55"
+  },
+  {
+    "source": "strategy\\entry_rules.py",
+    "destination": "back\\legacy-2026-09-13\\strategy\\entry_rules.py",
+    "bytes": 639,
+    "sha256": "6AFF8850DAF206E436EE24C72229FA0F86B3D4DE43E96E54ADB90AA2D7C70527"
+  },
+  {
+    "source": "strategy\\exit_rules.py",
+    "destination": "back\\legacy-2026-09-13\\strategy\\exit_rules.py",
+    "bytes": 2336,
+    "sha256": "0C7BD39BFF0383D55075F004A706EAA54A1E9D2C0A3673E3F8D0173F7292F180"
+  },
+  {
+    "source": "strategy\\momentum_intraday.py",
+    "destination": "back\\legacy-2026-09-13\\strategy\\momentum_intraday.py",
+    "bytes": 203,
+    "sha256": "EA870A66F8EF18252ECCC99A674F96690ECA5B74D4AE17EF692DB0E597E9F3E5"
+  },
+  {
+    "source": "strategy\\__pycache__\\momentum_intraday.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\strategy\\__pycache__\\momentum_intraday.cpython-310.pyc",
+    "bytes": 421,
+    "sha256": "166931414D7E30CE159887AB6C4FAED1F9D358DCD40E244DE45B3F2BE2C69654"
+  },
+  {
+    "source": "utils\\logger.py",
+    "destination": "back\\legacy-2026-09-13\\utils\\logger.py",
+    "bytes": 1054,
+    "sha256": "06B680B10EB987D6B5162A5E55F7AC8AD2BC333514B0431F5A7AEB476E2F6C04"
+  },
+  {
+    "source": "utils\\news_theme_score.py",
+    "destination": "back\\legacy-2026-09-13\\utils\\news_theme_score.py",
+    "bytes": 6329,
+    "sha256": "CD352CCD8461C10F5FA1AC794CC9AB05E4E65D29D9C392892D358BA027805BED"
+  },
+  {
+    "source": "utils\\score_filter.py",
+    "destination": "back\\legacy-2026-09-13\\utils\\score_filter.py",
+    "bytes": 2024,
+    "sha256": "F78AFC6C5660CC91114DDF6FC29824B49C9143F522D899098271D17347014346"
+  },
+  {
+    "source": "utils\\telegram.py",
+    "destination": "back\\legacy-2026-09-13\\utils\\telegram.py",
+    "bytes": 500,
+    "sha256": "5808862563263A9EFCE61FCB69A26D7922B895E8EEF843C55E749BD6288A3980"
+  },
+  {
+    "source": "utils\\__pycache__\\logger.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\utils\\__pycache__\\logger.cpython-310.pyc",
+    "bytes": 1010,
+    "sha256": "C4D328AA21AD0727A3FC47E99BD1940FB9D84A44FFE77F68F70684C99248CABD"
+  },
+  {
+    "source": "utils\\__pycache__\\news_theme_score.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\utils\\__pycache__\\news_theme_score.cpython-310.pyc",
+    "bytes": 4809,
+    "sha256": "3186DAA29BD2F2588C7BE675AEF90D3498BC834259D45AB5735BC956E36F986E"
+  },
+  {
+    "source": "utils\\__pycache__\\score_filter.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\utils\\__pycache__\\score_filter.cpython-310.pyc",
+    "bytes": 1302,
+    "sha256": "D89AAEBDB5CFD63E3FC71E679AB5D7907E47E9E8E10C3AF7944A9C0375465A66"
+  },
+  {
+    "source": "utils\\__pycache__\\telegram.cpython-310.pyc",
+    "destination": "back\\legacy-2026-09-13\\utils\\__pycache__\\telegram.cpython-310.pyc",
+    "bytes": 885,
+    "sha256": "98F9ACCC499FEF1D3765B0393487B6FE5D098031B20216B9B15E5E0E32FA961C"
+  },
+  {
+    "source": "ARCHITECTURE.md",
+    "destination": "back\\legacy-2026-09-13\\ARCHITECTURE.md",
+    "bytes": 1148,
+    "sha256": "376028A70586E486A9739EE99EBDEA6034CAFFDC2476109CE4D112048A5625F5"
+  },
+  {
+    "source": "RESPONSIBILITIES.md",
+    "destination": "back\\legacy-2026-09-13\\RESPONSIBILITIES.md",
+    "bytes": 447,
+    "sha256": "AD759B2B8077BD76832027886DA60656CF749479C80CBD66AFB330626A600241"
+  },
+  {
+    "source": "readme.txt",
+    "destination": "back\\legacy-2026-09-13\\readme.txt",
+    "bytes": 1853,
+    "sha256": "78356C5B5AE410B0646242F3D517792DAA9A166394C71F8A87CD09148358E177"
+  },
+  {
+    "source": "다중 전략.md",
+    "destination": "back\\legacy-2026-09-13\\다중 전략.md",
+    "bytes": 8780,
+    "sha256": "FF54886F1B2A3049F3CADD36322F47648ADFE4E001CBA4BF8AC1EB1ED4991C8C"
+  },
+  {
+    "source": "requirements.txt",
+    "destination": "back\\legacy-2026-09-13\\requirements.txt",
+    "bytes": 22,
+    "sha256": "FA0307B892B95AE6B15A07F858655BFCD39A399FB84BF3E3B08D25E90292A92E"
+  },
+  {
+    "source": ".env.example",
+    "destination": "back\\legacy-2026-09-13\\.env.example",
+    "bytes": 503,
+    "sha256": "F026556FDE0B1C5F2F178EA00282CE48E02F86E3E469AD868E8E2B977EFF5A04"
+  },
+  {
+    "source": "condition_list_dump.json",
+    "destination": "back\\legacy-2026-09-13\\condition_list_dump.json",
+    "bytes": 2914,
+    "sha256": "95D36C9633E8DA68801A38CC5333A30F55A9D392C9B875C33AECCE5A4C77E832"
+  },
+  {
+    "source": "inspect_select_db.txt",
+    "destination": "back\\legacy-2026-09-13\\inspect_select_db.txt",
+    "bytes": 2477,
+    "sha256": "2B3DFCCB7FFC45EAFE97C9396E35EF6D12077D372F85C31CE845490393C3ABEE"
+  },
+  {
+    "source": "docs\\PROJECT_STATUS_2026-09-09.md",
+    "destination": "back\\legacy-2026-09-13\\docs\\PROJECT_STATUS_2026-09-09.md",
+    "bytes": 12227,
+    "sha256": "DCD7028C3129B8BA54DA29EAE1CD90938527144CCB198C5ADC381D68ACBB87D9"
+  },
+  {
+    "source": "docs\\SOURCE_ANALYSIS.md",
+    "destination": "back\\legacy-2026-09-13\\docs\\SOURCE_ANALYSIS.md",
+    "bytes": 17928,
+    "sha256": "BA3154F9A484FB8B2BCB326DDF51266BB26BA92252B30C591BCEA810F313AFD4"
+  },
+  {
+    "source": "_test_force_exit_helper.py",
+    "destination": "back\\legacy-2026-09-13\\_test_force_exit_helper.py",
+    "bytes": 262,
+    "sha256": "50667818F332CD9217619AF95A8BC514CE8234C6531BAD1CBD23E07F03D8E661"
+  },
+  {
+    "source": "a_run_am_main_live_0900.bat",
+    "destination": "back\\legacy-2026-09-13\\a_run_am_main_live_0900.bat",
+    "bytes": 160,
+    "sha256": "A53512C0AA3B05EB3873088D79148A384293F68BEBBCDCCCE72E0F7BD21F38D6"
+  },
+  {
+    "source": "a_run_am_selector_7am.bat",
+    "destination": "back\\legacy-2026-09-13\\a_run_am_selector_7am.bat",
+    "bytes": 247,
+    "sha256": "3319CDFD1D55E64B7E149D718EE9A4E2FE9EA074322AEA977A53D4894355B71B"
+  },
+  {
+    "source": "analyze_strategy_improvement.py",
+    "destination": "back\\legacy-2026-09-13\\analyze_strategy_improvement.py",
+    "bytes": 13154,
+    "sha256": "26C11BA2398874557426978FD044B6A94E57927D80CE3EF93B7A9CDAB3E98FF4"
+  },
+  {
+    "source": "analyze_strategy_performance.py",
+    "destination": "back\\legacy-2026-09-13\\analyze_strategy_performance.py",
+    "bytes": 21775,
+    "sha256": "06951D8EEBE70462F7A76ECF8B47D56206B6411D926CE52829DC2E5B4C221B90"
+  },
+  {
+    "source": "auto_session_manager.py",
+    "destination": "back\\legacy-2026-09-13\\auto_session_manager.py",
+    "bytes": 18851,
+    "sha256": "CCDF3DB55DBDA7D5873DCF5E487850CD04EF0260916006C026336B5B34C38601"
+  },
+  {
+    "source": "backup_project.bat",
+    "destination": "back\\legacy-2026-09-13\\backup_project.bat",
+    "bytes": 84,
+    "sha256": "585978CBA80252DBB0E0E36F35079443AE9DBD32DAF4BBF2251FE2F54A93424C"
+  },
+  {
+    "source": "backup_project.ps1",
+    "destination": "back\\legacy-2026-09-13\\backup_project.ps1",
+    "bytes": 1440,
+    "sha256": "E2F07B3C22FFC07B8E1651D917DD596DE87BDBBE9688EB23BCECAB9E7BC23C92"
+  },
+  {
+    "source": "build_daily_strategy_snapshot.py",
+    "destination": "back\\legacy-2026-09-13\\build_daily_strategy_snapshot.py",
+    "bytes": 10760,
+    "sha256": "B15F60A7C9C560E2B608793BD35242558439B946E358B1765293491046C29682"
+  },
+  {
+    "source": "compare_four_strategies.py",
+    "destination": "back\\legacy-2026-09-13\\compare_four_strategies.py",
+    "bytes": 21208,
+    "sha256": "567E5BAD6057ED19E587EE04033D784953E09BA9AC3ACAABBC09DED058D566DE"
+  },
+  {
+    "source": "config_live.py",
+    "destination": "back\\legacy-2026-09-13\\config_live.py",
+    "bytes": 20081,
+    "sha256": "422855998AAA1CBE04A7D24B04602FD8F9BEBA0CD9D0596DA0CAED5202860232"
+  },
+  {
+    "source": "download_daily_candles.py",
+    "destination": "back\\legacy-2026-09-13\\download_daily_candles.py",
+    "bytes": 7082,
+    "sha256": "AB9261BBA62111C901388E06ED4A14CF2573726461881272EA7CBA651DFEAF07"
+  },
+  {
+    "source": "dump_condition_list.py",
+    "destination": "back\\legacy-2026-09-13\\dump_condition_list.py",
+    "bytes": 1111,
+    "sha256": "BFCBE189FF0F666DDDB3D7154A18A346358184C64D676B3DE531FAC9D1EB2FCC"
+  },
+  {
+    "source": "engine.py",
+    "destination": "back\\legacy-2026-09-13\\engine.py",
+    "bytes": 148707,
+    "sha256": "B816330E4E0419450784324175CE772CBC3760BCE40BB3EFE3F73D217EA44D4C"
+  },
+  {
+    "source": "inspect_runtime_db.py",
+    "destination": "back\\legacy-2026-09-13\\inspect_runtime_db.py",
+    "bytes": 7727,
+    "sha256": "0F1F89A7662C880E781BB5872D17B935353C7D104A05A9325C73B43068CCF05A"
+  },
+  {
+    "source": "main_live.py",
+    "destination": "back\\legacy-2026-09-13\\main_live.py",
+    "bytes": 46162,
+    "sha256": "CCD308B54EE2346171CA7AD8EA253606D5820355DAE8B2EB403091B9DC2B1DF1"
+  },
+  {
+    "source": "monitor_runtime_risk.py",
+    "destination": "back\\legacy-2026-09-13\\monitor_runtime_risk.py",
+    "bytes": 18828,
+    "sha256": "380189B67B8130F40B3EF75BA5CF0F711F2FA68F8D7D7700DBC8F4B7FF6CAF03"
+  },
+  {
+    "source": "optimize_bottom_reversal_quant.py",
+    "destination": "back\\legacy-2026-09-13\\optimize_bottom_reversal_quant.py",
+    "bytes": 6348,
+    "sha256": "2FF792D6E973917622FC2B09C91F5D2FC5E8A528D2B0284DF0114483A749DC7C"
+  },
+  {
+    "source": "quant_bottom_reversal_backtest.py",
+    "destination": "back\\legacy-2026-09-13\\quant_bottom_reversal_backtest.py",
+    "bytes": 10675,
+    "sha256": "ACFC86449C0E2061A1470D89A4F97983816136E89CD569B7F5002F96471BEF79"
+  },
+  {
+    "source": "run_build_daily_strategy_snapshot.bat",
+    "destination": "back\\legacy-2026-09-13\\run_build_daily_strategy_snapshot.bat",
+    "bytes": 626,
+    "sha256": "A1576084F9D9CB093CDE0F0BB81F66B1831C67EEB9A1E7990E0EF10EF473AA4B"
+  },
+  {
+    "source": "run_daily_prepare_and_main_live.bat",
+    "destination": "back\\legacy-2026-09-13\\run_daily_prepare_and_main_live.bat",
+    "bytes": 1604,
+    "sha256": "E185A96D9B099DA2583D73365EF48D18D1AD656880A8231B9FDDAABDF6E82096"
+  },
+  {
+    "source": "run_main_live.bat",
+    "destination": "back\\legacy-2026-09-13\\run_main_live.bat",
+    "bytes": 435,
+    "sha256": "5E5C4C3E04BBCEDB828003FE43EF240D2EBA66C20B5FF2EFDDC2D7D4109A7E81"
+  },
+  {
+    "source": "run_prepare_daily_snapshot.bat",
+    "destination": "back\\legacy-2026-09-13\\run_prepare_daily_snapshot.bat",
+    "bytes": 1313,
+    "sha256": "08C142CA32C321F52F4801D1755FC6EFBF2F5936020DB0EDF6AA26999DAA4068"
+  },
+  {
+    "source": "run_save_condition_snapshot.bat",
+    "destination": "back\\legacy-2026-09-13\\run_save_condition_snapshot.bat",
+    "bytes": 336,
+    "sha256": "D8C3982D27AA40A57B73AF7B8F0FF7D431C6BA2BC9BFB33D9375918FDB3EB4CE"
+  },
+  {
+    "source": "run_session_manager_test.bat",
+    "destination": "back\\legacy-2026-09-13\\run_session_manager_test.bat",
+    "bytes": 447,
+    "sha256": "4A862E8466615A161648082023C9D3E9BCDC6D4727F8591AB9BA1C95C707C4CA"
+  },
+  {
+    "source": "run_verify_harness.bat",
+    "destination": "back\\legacy-2026-09-13\\run_verify_harness.bat",
+    "bytes": 1005,
+    "sha256": "147E3B52491C9D0D34933FC93C1C8221BE41CD92040EB31620215C9AAA0E6543"
+  },
+  {
+    "source": "save_condition_snapshot.py",
+    "destination": "back\\legacy-2026-09-13\\save_condition_snapshot.py",
+    "bytes": 2274,
+    "sha256": "E847BFEF131C13B1F8C95B5E59836B209728132E4DFA12EC65C4BFDF9E8B11A4"
+  },
+  {
+    "source": "universe_manager.py",
+    "destination": "back\\legacy-2026-09-13\\universe_manager.py",
+    "bytes": 8255,
+    "sha256": "8D5C25B9E7A0F19EAD781674422223124D11654D0B2EBB4DD229C5780A67D5D4"
+  },
+  {
+    "source": "validate_daily_snapshot.py",
+    "destination": "back\\legacy-2026-09-13\\validate_daily_snapshot.py",
+    "bytes": 4220,
+    "sha256": "68F07D665673C409EA081939F5FE611B2654ECDD041E5D883E58FB0CB718CCE8"
+  },
+  {
+    "source": "data\\csv_loader.py",
+    "destination": "back\\legacy-2026-09-13\\data\\csv_loader.py",
+    "bytes": 7079,
+    "sha256": "0F086498CED6DDB5D4D93A2EBC0DF0AE820A467831A7E8AB8879B1D98BE8D885"
+  },
+  {
+    "source": "data\\market_stream.py",
+    "destination": "back\\legacy-2026-09-13\\data\\market_stream.py",
+    "bytes": 539,
+    "sha256": "2802AF8368C3B9DFC597544E7F3F2C6251857DECDFBAC91325B351B6FD09F1D0"
+  },
+  {
+    "source": "data\\news_provider.py",
+    "destination": "back\\legacy-2026-09-13\\data\\news_provider.py",
+    "bytes": 7067,
+    "sha256": "E1DFCC708BBFD135FDFD74996871A6D216BE73DFB380C79ECF836B9B6B1D2F6C"
+  }
+]

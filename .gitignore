@@ -23,3 +23,7 @@ condition_snapshot.json
 monitor_state.json
 *.pid
 *.sqlite3
+
+# Project-local environment tooling and cache
+.tools/
+.uv-cache/

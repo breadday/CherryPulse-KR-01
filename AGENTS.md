@@ -1,17 +1,19 @@
-# AGENTS.md
+# CherryPulse-KR-01 개발 지침
 
-이 프로젝트에서 AI 에이전트는 아래 문서를 먼저 읽고 작업한다.
+개발 기준은 다음 문서 순서로 읽는다.
 
-1. `docs/harness/DESIGN_PRINCIPLES.md`
-2. `docs/harness/FILE_RESPONSIBILITY.md`
-3. `docs/harness/CHANGE_CHECKLIST.md`
-4. `docs/harness/AI_WORKFLOW.md`
+1. docs/CherryPulse-KR-01-Development-Direction.md
+2. docs/CherryPulse-KR-01-Rebuild-Plan.md
+3. docs/REBUILD-02-CONTRACTS.md
+4. docs/REBUILD-02-TEST-MATRIX.md
+5. docs/REBUILD-02-OPEN-QUESTIONS.md
 
-## 핵심 원칙
-
-- 현재 기본 방향은 일봉 후보 기반 스윙 매매다.
-- `RUN_MODE=live`와 키움 모의투자 계좌를 사용해 실계좌 실매매와 같은 흐름으로 검증한다.
-- 계좌가 실계좌로 바뀌면 실제 주문이 발생할 수 있으므로 주문 경로는 항상 엄격하게 다룬다.
-- 조건검색과 틱 단타는 기본 비활성이다.
-- 전략별 후보와 성과는 독립적으로 관리한다.
-- 코드 변경 후 문법 검사와 관련 검증을 실행한다.
+- 사용자가 외부에서 찾은 종목을 등록하고 매수·매도 패턴을 연결하는 보드 기반 시스템으로 개발한다.
+- 내부 종목 발굴·추천·전략 점수·성과 검증·후보 승인·일봉 후보 자동 편입을 새 기능으로 복원하지 않는다.
+- back/은 기존 방식의 보관 자료다. 활성 모듈로 import하거나 기존 배치를 실행하지 않는다.
+- 저장소 전용 스킬이나 과거 기록의 스윙·백테스트 승격 지침이 충돌하면 최신 개발방향과 사용자 요청을 우선한다.
+- 손절·체결·중복 주문 방지·수량 대조·재시작 복구의 소프트웨어 검증은 유지한다.
+- 실제 주문·배포는 명시적 요청 없이 실행하지 않는다. 모의 계좌도 실제 주문 API를 호출할 수 있다.
+- .env·계좌·토큰·운영 DB를 출력하거나 보관 문서에 복사하지 않는다.
+- 사용자 변경을 보존하고 커밋·푸시는 별도 요청 시에만 한다.
+- 문서 검산, 엔진 테스트, 증권사 확인, 배포 확인을 구별해 보고한다.

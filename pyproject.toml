@@ -1,0 +1,50 @@
+[project]
+name = "cherrypulse-kr"
+version = "0.1.0"
+description = "Board-based pattern trading: Windows execution environment"
+requires-python = ">=3.10.8,<3.11"
+dependencies = [
+  "pydantic==2.13.5",
+  "PyQt5==5.15.11",
+  "PyQt5-Qt5==5.15.2",
+  "PyQt5-sip==12.18.0",
+  "typing-extensions==4.16.0",
+]
+
+[tool.uv]
+package = false
+required-version = "==0.12.13"
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+default = true
+
+[tool.ruff]
+target-version = "py310"
+extend-exclude = ["back", ".tools", ".uv-cache"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["COM812", "ISC001", "D203", "D213", "CPY001", "EM101"] # Error codes are structured LedgerError fields.
+
+[tool.basedpyright]
+typeCheckingMode = "all"
+include = ["execution", "tests"]
+pythonVersion = "3.10"
+pythonPlatform = "Windows"
+exclude = ["back", ".tools", ".uv-cache", ".venv"]
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "ruff==0.16.7",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+filterwarnings = ["error"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "PLR2004", "D", "ARG", "INP001"]
