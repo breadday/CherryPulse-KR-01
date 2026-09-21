@@ -4,6 +4,8 @@
 
 현재 **내부 SQLite 원장과 가상 실행 검사**를 구현했습니다. 요청 중복 방지, 예약, 부분체결, 취소 UNKNOWN, 지연 체결, 실패·거절, Windows 계좌 잠금, 재시작 차단과 전송 직전 매수 중지를 검사합니다. 실제 증권사 어댑터와 웹 보드는 아직 구현하지 않았습니다.
 
+- [자동화 개발 계획](docs/AUTOMATION-DEVELOPMENT-PLAN.md)
+- [STEP 00 보안·개발 기준선](docs/AUTOMATION-STEP-00-BASELINE.md)
 - [개발방향](docs/CherryPulse-KR-01-Development-Direction.md)
 - [전면 개편 계획](docs/CherryPulse-KR-01-Rebuild-Plan.md)
 - [조회 완전성 근거·다음 작업](docs/REBUILD-04-QUERY-EVIDENCE.md)

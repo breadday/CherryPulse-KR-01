@@ -1,0 +1,19 @@
+# Normalize shared Windows/Linux working trees.
+* text=auto eol=lf
+
+# Windows launch and administration scripts.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Local secret file: never render credential values in diffs.
+/.env -diff
+
+# Binary assets.
+*.zip binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
