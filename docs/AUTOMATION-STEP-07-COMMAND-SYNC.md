@@ -38,11 +38,11 @@
 
 ### RED
 
-신규 `sync.commands` 모듈이 없을 때 테스트 수집 단계에서 `ModuleNotFoundError: No module named 'sync'`로 실패했다. 만료 테스트 fixture도 envelope 만료 규칙과 충돌해 수정 전 실패했다.
+신규 `sync.commands` 모듈이 없을 때 테스트 수집 단계에서 `ModuleNotFoundError: No module named 'sync'`로 실패했다. 이후 원자성·버전 전진·malformed 입력·clock timezone·만료 후 중복 재전송 결함에 대해 회귀 테스트를 추가했다.
 
 ### GREEN
 
-로컬 명령 경계를 추가한 뒤 특정 테스트 4개와 전체 Python 회귀 147개가 통과했다. 명령 수락은 history에만 기록되며 외부 부작용은 없다.
+로컬 명령 경계를 추가한 뒤 최종 특정 테스트 9개와 전체 Python 회귀 152개가 통과했다. 명령 수락은 history에만 기록되며 외부 부작용은 없다.
 
 ## 자동검사 결과
 
