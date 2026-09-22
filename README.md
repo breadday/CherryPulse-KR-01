@@ -2,11 +2,12 @@
 
 사용자가 등록한 종목에 매수·매도 패턴을 연결하고, Windows 엔진이 조건 감시·주문·체결·손절을 처리하며 웹 보드에서 상태를 확인하는 시스템으로 개편 중입니다.
 
-현재 **내부 SQLite 원장과 가상 실행 검사**, 그리고 **Vue mock 트레이딩 보드 1차 화면**을 구현했습니다. 요청 중복 방지, 예약, 부분체결, 취소 UNKNOWN, 지연 체결, 실패·거절, Windows 계좌 잠금, 재시작 차단과 전송 직전 매수 중지를 검사합니다. 웹 보드는 예시 데이터만 표시하며 실제 증권사 어댑터와 연결되지 않았습니다.
+현재 **내부 SQLite 원장과 가상 실행 검사**, **Vue mock 트레이딩 보드 1차 화면**, 그리고 **Python·TypeScript 공통 계약 1차 구현**을 완료했습니다. 요청 중복 방지, 예약, 부분체결, 취소 UNKNOWN, 지연 체결, 실패·거절, Windows 계좌 잠금, 재시작 차단과 전송 직전 매수 중지를 검사합니다. 웹 보드와 공통 fixture는 예시 데이터만 사용하며 실제 증권사 어댑터와 연결되지 않았습니다.
 
 - [자동화 개발 계획](docs/AUTOMATION-DEVELOPMENT-PLAN.md)
 - [STEP 00 보안·개발 기준선](docs/AUTOMATION-STEP-00-BASELINE.md)
 - [STEP 01 Vue Mock 트레이딩 보드](docs/AUTOMATION-STEP-01-WEB-BOARD.md)
+- [STEP 02 공통 계약과 API 경계](docs/AUTOMATION-STEP-02-CONTRACTS.md)
 - [개발방향](docs/CherryPulse-KR-01-Development-Direction.md)
 - [전면 개편 계획](docs/CherryPulse-KR-01-Rebuild-Plan.md)
 - [조회 완전성 근거·다음 작업](docs/REBUILD-04-QUERY-EVIDENCE.md)

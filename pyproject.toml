@@ -29,7 +29,7 @@ ignore = ["COM812", "ISC001", "D203", "D213", "CPY001", "EM101"] # Error codes a
 
 [tool.basedpyright]
 typeCheckingMode = "all"
-include = ["execution", "tests"]
+include = ["execution", "contracts", "tests"]
 pythonVersion = "3.10"
 pythonPlatform = "Windows"
 exclude = ["back", ".tools", ".uv-cache", ".venv"]
