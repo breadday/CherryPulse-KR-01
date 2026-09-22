@@ -9,6 +9,7 @@
 - [STEP 01 Vue Mock 트레이딩 보드](docs/AUTOMATION-STEP-01-WEB-BOARD.md)
 - [STEP 02 공통 계약과 API 경계](docs/AUTOMATION-STEP-02-CONTRACTS.md)
 - [STEP 03 손절 우선 실행 흐름](docs/AUTOMATION-STEP-03-STOP-LOSS.md)
+- [STEP 04 매수·일반 매도 패턴](docs/AUTOMATION-STEP-04-PATTERNS.md)
 - [개발방향](docs/CherryPulse-KR-01-Development-Direction.md)
 - [전면 개편 계획](docs/CherryPulse-KR-01-Rebuild-Plan.md)
 - [조회 완전성 근거·다음 작업](docs/REBUILD-04-QUERY-EVIDENCE.md)
