@@ -1,11 +1,21 @@
 """Normalized virtual evidence; no claim about real brokerage event semantics."""
 
+from decimal import Decimal
 from typing import Annotated, Final, Literal
 from uuid import UUID
 
-from pydantic import Field, TypeAdapter
+from pydantic import Field, TypeAdapter, model_validator
+from typing_extensions import Self
 
-from execution.models import Boundary, Delta, Key, PositiveQty, Quantity
+from execution.models import (
+    Boundary,
+    Delta,
+    Key,
+    LedgerError,
+    PositiveQty,
+    Price,
+    Quantity,
+)
 from execution.query_evidence import QueryEvidence
 
 
@@ -36,6 +46,27 @@ class Fill(Observation):
 
     kind: Literal["FILL"] = "FILL"
     qty: PositiveQty
+
+
+class StopLossTriggered(Evidence):
+    """Confirmed virtual stop-loss evaluation that activates liquidation."""
+
+    kind: Literal["STOP_LOSS_TRIGGERED"] = "STOP_LOSS_TRIGGERED"
+    symbol: Key
+    config_version: PositiveQty
+    observed_price: Price
+    threshold_price: Price
+
+    @model_validator(mode="after")
+    def validate_trigger(self) -> Self:
+        """Require a positive observed price at or below the configured threshold."""
+        observed = Decimal(self.observed_price)
+        threshold = Decimal(self.threshold_price)
+        if observed <= 0 or threshold <= 0:
+            raise LedgerError("STOP_LOSS_PRICE_MUST_BE_POSITIVE")
+        if observed > threshold:
+            raise LedgerError("STOP_LOSS_NOT_TRIGGERED")
+        return self
 
 
 class Amended(Observation):
@@ -132,6 +163,7 @@ class EffectRejected(Evidence):
 Fact = Annotated[
     Ack
     | Fill
+    | StopLossTriggered
     | Amended
     | Cancelled
     | Transport

@@ -51,6 +51,11 @@ class Ledger:
         """Bind the local journal to a validated simulator scope."""
         self.storage: Storage = Storage(path, lease)
         self.clock: Callable[[], datetime] = clock
+        self._fact_handlers: list[Callable[[Fact], None]] = []
+
+    def on_fact_ingested(self, handler: Callable[[Fact], None]) -> None:
+        """Register an in-process handler that runs after a new fact commits."""
+        self._fact_handlers.append(handler)
 
     def snapshot(self) -> Journal:
         """Read a consistent view, including all facts after restart."""
@@ -157,22 +162,30 @@ class Ledger:
         return self.ingest(FACT.validate_json(payload))
 
     def ingest(self, fact: Fact) -> bool:
-        """Commit deduplication, quantity effects and outbox as one operation."""
+        """Commit a fact once, then retry registered handlers on exact replay."""
+        created = True
         with self.storage.transaction() as connection:
             journal = self.storage.read(connection)
-            for existing in journal.facts:
-                if existing.event_id == fact.event_id:
-                    if existing != fact:
-                        raise LedgerError("CONFLICT_EVENT_ID_MISMATCH")
-                    return False
-            check_fact(journal, fact)
-            self.storage.append(
-                connection,
-                Entry(
-                    "fact", str(fact.event_id), fact.model_dump_json(exclude_none=True)
-                ),
+            existing = next(
+                (item for item in journal.facts if item.event_id == fact.event_id), None
             )
-            return True
+            if existing is not None:
+                if existing != fact:
+                    raise LedgerError("CONFLICT_EVENT_ID_MISMATCH")
+                created = False
+            else:
+                check_fact(journal, fact)
+                self.storage.append(
+                    connection,
+                    Entry(
+                        "fact",
+                        str(fact.event_id),
+                        fact.model_dump_json(exclude_none=True),
+                    ),
+                )
+        for handler in tuple(self._fact_handlers):
+            handler(fact)
+        return created
 
     def discard(self, request_id: UUID, *, reason: str, expected_revision: int) -> bool:
         """Retire a reviewed uncalled intention without cancelling a broker order."""

@@ -13,6 +13,7 @@ from execution.facts import (
     QuarantinedFill,
     QuarantineReleased,
     Reconciled,
+    StopLossTriggered,
 )
 from execution.models import Amend, Cancel, LedgerError, New
 from execution.outcomes import effect_settled, request_state, status
@@ -210,8 +211,12 @@ def portfolio(journal: Journal, symbol: str) -> Portfolio:
                 case _:
                     assert_never(request.command)
     controls = [c for c in journal.controls if c.symbol == symbol]
-    stopped = bool(controls and controls[-1].entry_stopped)
-    liquidating = bool(controls and controls[-1].liquidating)
+    stop_loss_triggered = any(
+        isinstance(fact, StopLossTriggered) and fact.symbol == symbol
+        for fact in journal.facts
+    )
+    stopped = bool(controls and controls[-1].entry_stopped) or stop_loss_triggered
+    liquidating = bool(controls and controls[-1].liquidating) or stop_loss_triggered
     return Portfolio(
         managed,
         reserved,

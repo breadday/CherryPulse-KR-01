@@ -17,8 +17,10 @@ from execution.facts import (
     Reconciled,
     Rejected,
     SendFailed,
+    StopLossTriggered,
     Transport,
 )
+from execution.freshness import applied_version
 from execution.linkage import check_release
 from execution.models import Amend, Cancel, LedgerError, New, OrderCommand, Request
 from execution.outcomes import effect_confirmed, effect_settled, status
@@ -125,11 +127,19 @@ def _check_effect(journal: Journal, fact: Amended | Cancelled) -> None:
         raise LedgerError("EFFECT_ALREADY_CONFIRMED")
 
 
+def _check_stop_loss_trigger(journal: Journal, fact: StopLossTriggered) -> None:
+    """Reject a trigger evaluated against a superseded configuration."""
+    if fact.config_version != applied_version(journal, fact.symbol):
+        raise LedgerError("STALE_CONFIG_VERSION")
+
+
 def check_fact(journal: Journal, fact: Fact) -> None:
     """Require exact correlation, preserving contradictory quantity evidence."""
     match fact:
         case Fill():
             _ = order(journal, fact.order_id)
+        case StopLossTriggered():
+            _check_stop_loss_trigger(journal, fact)
         case Ack() | Transport():
             _ = _request(journal, fact.request_id)
         case Amended() | Cancelled():

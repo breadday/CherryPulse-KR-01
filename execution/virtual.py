@@ -1,13 +1,13 @@
 """Single virtual dispatcher, with durable claim-before-send and no network."""
 
-from uuid import UUID, uuid4
+from uuid import UUID, uuid4, uuid5
 
 from typing_extensions import assert_never
 
-from execution.facts import Ack, Fact, Transport
+from execution.facts import Ack, Fact, SendFailed, StopLossTriggered, Transport
 from execution.freshness import applied_version, check_freshness
 from execution.ledger import Ledger
-from execution.models import Amend, Cancel, New, Request
+from execution.models import Amend, Cancel, LedgerError, New, Request
 from execution.outcomes import request_state, status
 from execution.projection import portfolio
 from execution.storage import Entry
@@ -20,6 +20,7 @@ class VirtualDispatcher:
         """Use the supplied journal without opening any brokerage connection."""
         self.ledger: Ledger = ledger
         self.calls: list[Request] = []
+        self.ledger.on_fact_ingested(self._drain_liquidation)
 
     def send(self, request_id: UUID) -> bool:
         """Claim an uncalled intention atomically, then simulate submission."""
@@ -97,16 +98,50 @@ class VirtualDispatcher:
     def process(self, fact: Fact) -> None:
         """Apply a virtual fact, then drain safely available liquidation obligations."""
         _ = self.ledger.ingest(fact)
-        journal = self.ledger.snapshot()
-        for symbol in sorted({control.symbol for control in journal.controls}):
-            position = self.ledger.portfolio(symbol)
-            failed_sell = any(
-                r.command.symbol == symbol
-                and r.command.side == "SELL"
-                and (status(journal, r).failed or status(journal, r).rejected)
-                for r in journal.requests
+
+    def _send_liquidation(self, request: Request) -> None:
+        """Send one persisted liquidation or retire a proven stale unsent intent."""
+        try:
+            sent = self.send(request.request_id)
+        except LedgerError as error:
+            if error.code != "STALE_CONFIG_VERSION":
+                raise
+            _ = self.ledger.ingest(
+                SendFailed(
+                    event_id=uuid5(request.request_id, "stale-config-before-send"),
+                    request_id=request.request_id,
+                    proof="NOT_INVOKED",
+                    reason="STALE_CONFIG_BEFORE_SEND",
+                )
             )
-            if position.liquidating and position.available > 0 and not failed_sell:
+            return
+        if sent:
+            self.acknowledge(request)
+
+    def _drain_liquidation(self, _fact: Fact) -> None:
+        """Drain safely available liquidation after every newly committed fact."""
+        journal = self.ledger.snapshot()
+        symbols = {control.symbol for control in journal.controls} | {
+            item.symbol for item in journal.facts if isinstance(item, StopLossTriggered)
+        }
+        for symbol in sorted(symbols):
+            position = self.ledger.portfolio(symbol)
+            pending = [
+                request
+                for request in journal.requests
+                if isinstance(request.command, New)
+                and request.command.side == "SELL"
+                and request.command.symbol == symbol
+                and request.command.key.startswith("liquidation:")
+                and request_state(journal, request) == "INTENT_PERSISTED"
+            ]
+            if pending:
+                if position.reconciliation_required or position.sell_uncertain:
+                    continue
+                for request in pending:
+                    self._send_liquidation(request)
+                continue
+            if position.liquidating and position.available > 0:
                 command = New(
                     key=f"liquidation:{symbol}:{len(journal.facts)}",
                     symbol=symbol,
@@ -118,5 +153,4 @@ class VirtualDispatcher:
                     validity="DAY",
                 )
                 request = self.ledger.submit(command).request
-                if self.send(request.request_id):
-                    self.acknowledge(request)
+                self._send_liquidation(request)
