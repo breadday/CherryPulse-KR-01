@@ -1,11 +1,33 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import TradingBoard from './components/TradingBoard.vue'
 import { useTradingBoardStore } from './stores/tradingBoard'
 
 const store = useTradingBoardStore()
-const { totalItems } = storeToRefs(store)
+const { totalItems, syncSummary } = storeToRefs(store)
+let syncClockTimer: number | undefined
+
+onMounted(() => {
+  syncClockTimer = window.setInterval(store.refreshSyncClock, 1000)
+})
+
+onUnmounted(() => {
+  if (syncClockTimer !== undefined) window.clearInterval(syncClockTimer)
+})
+
+const connectionLabels = {
+  ONLINE: '온라인',
+  OFFLINE: '오프라인',
+  DEGRADED: '지연',
+} as const
+
+const freshnessLabels = {
+  FRESH: '최신',
+  DELAYED: '지연 수신',
+  STALE: '오래됨',
+} as const
 </script>
 
 <template>
@@ -43,6 +65,10 @@ const { totalItems } = storeToRefs(store)
         <div class="topbar__status">
           <span>등록 종목 {{ totalItems }}</span>
           <span>실주문 비활성</span>
+          <span data-testid="sync-status"
+            >동기화 {{ connectionLabels[syncSummary.connection] }} ·
+            {{ freshnessLabels[syncSummary.freshness] }}</span
+          >
         </div>
       </header>
 

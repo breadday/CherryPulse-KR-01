@@ -1,16 +1,23 @@
 import { createPinia } from 'pinia'
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import App from '../App.vue'
 
+let mountedApp: ReturnType<typeof mount> | undefined
+
+afterEach(() => {
+  mountedApp?.unmount()
+  mountedApp = undefined
+})
+
 describe('App', () => {
   it('renders the six execution-state columns with explicit mock data', () => {
-    const wrapper = mount(App, {
+    const wrapper = (mountedApp = mount(App, {
       global: {
         plugins: [createPinia()],
       },
-    })
+    }))
 
     const mockBanner = wrapper.get('[data-testid="mock-mode-banner"]')
     expect(mockBanner.text()).toContain('Mock 데이터')
@@ -32,5 +39,6 @@ describe('App', () => {
     expect(wrapper.text()).toContain('삼성전자')
     expect(wrapper.text()).toContain('엔진 오프라인')
     expect(wrapper.text()).toContain('실주문 비활성')
+    expect(wrapper.get('[data-testid="sync-status"]').text()).toContain('오프라인')
   })
 })

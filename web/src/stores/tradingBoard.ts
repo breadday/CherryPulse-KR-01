@@ -3,10 +3,12 @@ import { defineStore } from 'pinia'
 
 import { mockBoardColumns, mockTradingItems } from '../data/mockTrading'
 import type { TradingItem, TradingStatus } from '../domain/trading'
+import { createSyncState, summarizeSync } from '../sync/state'
 
 export const useTradingBoardStore = defineStore('tradingBoard', () => {
   const columns = ref(mockBoardColumns.map((column) => ({ ...column })))
   const items = ref(mockTradingItems.map((item) => ({ ...item })))
+  const syncState = ref(createSyncState())
 
   const itemsByStatus = computed<Record<TradingStatus, TradingItem[]>>(() => ({
     registered: items.value.filter((item) => item.status === 'registered'),
@@ -18,6 +20,11 @@ export const useTradingBoardStore = defineStore('tradingBoard', () => {
   }))
 
   const totalItems = computed(() => items.value.length)
+  const syncClock = ref(Date.now())
+  const syncSummary = computed(() => summarizeSync(syncState.value, syncClock.value))
+  const refreshSyncClock = () => {
+    syncClock.value = Date.now()
+  }
 
-  return { columns, items, itemsByStatus, totalItems }
+  return { columns, items, itemsByStatus, totalItems, syncState, syncSummary, refreshSyncClock }
 })
