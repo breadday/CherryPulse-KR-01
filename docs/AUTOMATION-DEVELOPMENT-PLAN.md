@@ -87,6 +87,15 @@
 - 만료·중복·충돌 명령 처리
 - 외부 transport·인증은 별도 승인 후 수행
 
+### STEP 08 — Windows 모의환경 어댑터
+
+현재 상태: 실제 키움 연결 전 Windows/PAPER 선언, 조회 전용 quote, 결정적 ACK·REJECT·UNKNOWN·부분체결 경계를 구현 중이다. [구현 기록](AUTOMATION-STEP-08-WINDOWS-ADAPTER.md)을 따른다.
+
+- Windows/PAPER 실행 경계
+- 조회 전용 quote와 submit 관측
+- UNKNOWN 자동 재전송 차단
+- 실제 키움·계좌·네트워크 연결 없음
+
 ## 단계별 기록 규칙
 
 각 단계는 `docs/AUTOMATION-STEP-XX-*.md`에 다음을 기록한다.

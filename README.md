@@ -13,6 +13,7 @@
 - [STEP 05 동기화와 실제 보드](docs/AUTOMATION-STEP-05-SYNC.md)
 - [STEP 06 모의환경 검증 경계](docs/AUTOMATION-STEP-06-PAPER.md)
 - [STEP 07 명령 동기화 경계](docs/AUTOMATION-STEP-07-COMMAND-SYNC.md)
+- [STEP 08 Windows 모의환경 어댑터](docs/AUTOMATION-STEP-08-WINDOWS-ADAPTER.md)
 - [개발방향](docs/CherryPulse-KR-01-Development-Direction.md)
 - [전면 개편 계획](docs/CherryPulse-KR-01-Rebuild-Plan.md)
 - [조회 완전성 근거·다음 작업](docs/REBUILD-04-QUERY-EVIDENCE.md)
