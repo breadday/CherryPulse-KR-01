@@ -89,7 +89,7 @@
 
 ### STEP 08 — Windows 모의환경 어댑터
 
-현재 상태: 실제 키움 연결 전 Windows/PAPER 선언, 조회 전용 quote, 결정적 ACK·REJECT·UNKNOWN·부분체결 경계를 구현 중이다. [구현 기록](AUTOMATION-STEP-08-WINDOWS-ADAPTER.md)을 따른다.
+현재 상태: 실제 키움 연결 전 Windows/PAPER 선언, 조회 전용 quote, 결정적 ACK·REJECT·UNKNOWN·부분체결 경계를 구현·검증 완료했다. [구현 기록](AUTOMATION-STEP-08-WINDOWS-ADAPTER.md)을 따른다.
 
 - Windows/PAPER 실행 경계
 - 조회 전용 quote와 submit 관측
