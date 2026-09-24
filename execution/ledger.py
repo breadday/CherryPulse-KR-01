@@ -51,6 +51,7 @@ from execution.projection import (
     order,
     portfolio,
 )
+from execution.stop_obligations import StopObligationView, stop_obligation_views
 from execution.storage import Entry, Journal, Storage
 from execution.validation import check_command, check_fact
 
@@ -625,6 +626,10 @@ class Ledger:
     def portfolio(self, symbol: str) -> Portfolio:
         """Return managed shares and outstanding reservation exposure."""
         return portfolio(self.snapshot(), symbol)
+
+    def virtual_stop_obligations(self, symbol: str) -> tuple[StopObligationView, ...]:
+        """Return immutable stop sell progress without issuing or retrying orders."""
+        return stop_obligation_views(self.snapshot(), symbol)
 
     def transport(self, request_id: UUID) -> str:
         """Return the persisted request transport projection."""

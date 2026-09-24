@@ -383,6 +383,10 @@ def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(  # noqa: 
         "SELL_EVIDENCE_UNRESOLVED",
         0,
     )
+    assert all(
+        view.state == "BLOCKED_EVIDENCE"
+        for view in restored.virtual_stop_obligations("005930")
+    )
 
 
 def test_cost_stop_latch_requires_price_then_preserves_residual_after_sale(
@@ -525,6 +529,10 @@ def test_stop_obligation_remains_one_request_during_partial_sell(
     )
     restored = Ledger(path, lease)
     assert restored.snapshot().stop_sell_obligations == obligation
+    view = restored.virtual_stop_obligations("005930")
+    assert len(view) == 1
+    assert (view[0].initial_qty, view[0].filled_qty, view[0].unfilled_qty) == (4, 2, 2)
+    assert view[0].state == "PENDING"
     assert restored.virtual_latched_stop_candidate("005930").unreserved_qty == 0
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
 

@@ -1,5 +1,17 @@
 # D03 가상 손절 보호 진행 기록
 
+## 후속 검증: 의무 상태 조회
+
+`Ledger.virtual_stop_obligations(symbol)`은 의무별 원래 수량, 확인된 매도
+체결량, 남은 수량, 현재 예약량과 상태를 원장 사실에서 읽는다. 부분체결
+중에는 `PENDING`, 모두 확인되면 `FULFILLED`, 증거 충돌·재대조·매도
+`UNKNOWN`에서는 `BLOCKED_EVIDENCE`, 거절·명시적 전송 실패·취소는
+`REVIEW_REQUIRED`로 표시한다. 이 조회는 새 매도 주문이나 자동 재시도를
+생성하지 않는다. Linux 임시 fixture에서 관련 pytest **10 passed**,
+Ruff와 `git diff --check` 통과. Windows 3.10 32비트 전체 회귀·키움
+자료 검증은 수행하지 않았다. 의무 상태를 운영 주문 정책과 연결하는 작업은
+아직 남았다.
+
 ## 후속 검증: 요청별 청산 의무 기록
 
 가상 손절 매도 요청을 원장에 새로 수락할 때 `StopSellObligation`을 같은 SQLite
