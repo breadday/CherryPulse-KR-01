@@ -1,5 +1,6 @@
 """Durable, inert stop rule binding in the virtual ledger."""
 
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
@@ -7,6 +8,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
+from contracts.stop_evaluation import ObserveAt, Quote
 from execution.facts import Fill
 from execution.ledger import Ledger
 from execution.models import Allocation, LedgerError, New, VirtualStopBinding
@@ -199,6 +201,22 @@ def test_multiple_priced_buy_orders_share_one_basis_until_sell(
     basis = Ledger(path, lease).confirmed_stop_cost_basis("005930")
     assert basis is not None
     assert (basis.qty, basis.average_cost, basis.rule_version) == (3, Decimal(9900), 2)
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    timing = ObserveAt(now=now, max_quote_age_seconds=2)
+    restored = Ledger(path, lease)
+    observation = restored.observe_virtual_cost_stop(
+        "005930", Quote(symbol="005930", price="9700", received_at=now), timing
+    )
+    assert (observation.status, observation.threshold_price) == (
+        "TRIGGERED",
+        Decimal(9702),
+    )
+    stale = restored.observe_virtual_cost_stop(
+        "005930",
+        Quote(symbol="005930", price="9700", received_at=now - timedelta(seconds=3)),
+        timing,
+    )
+    assert stale.reason == "QUOTE_NOT_FRESH"
     sell = book.submit(
         New(
             key="sell-after-buys",
@@ -222,6 +240,8 @@ def test_multiple_priced_buy_orders_share_one_basis_until_sell(
         )
     )
     assert Ledger(path, lease).confirmed_stop_cost_basis("005930") is None
+    blocked = Ledger(path, lease).observe_virtual_cost_stop("005930", None, timing)
+    assert blocked.reason == "COST_EVIDENCE_INCOMPLETE"
 
 
 def test_preexisting_holdings_cannot_acquire_inferred_cost(

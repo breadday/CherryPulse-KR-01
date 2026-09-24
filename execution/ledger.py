@@ -10,6 +10,14 @@ from uuid import UUID, uuid4, uuid5
 
 from typing_extensions import assert_never
 
+from contracts.settings import StopRule
+from contracts.stop_evaluation import (
+    ManagedPosition,
+    ObserveAt,
+    Quote,
+    StopObservation,
+    evaluate_stop,
+)
 from execution.facts import FACT, Discrepancy, Fact, Fill, QuarantinedFill, SendFailed
 from execution.freshness import applied_version, check_freshness, utc_now
 from execution.models import (
@@ -295,6 +303,39 @@ class Ledger:
     def confirmed_stop_cost_basis(self, symbol: str) -> StopCostBasis | None:
         """Read a conservative cost basis for assigned and unsold buy fills."""
         return confirmed_stop_cost_basis(self.snapshot(), symbol)
+
+    def observe_virtual_cost_stop(
+        self, symbol: str, quote: Quote | None, timing: ObserveAt
+    ) -> StopObservation:
+        """Evaluate an assigned percentage rule without creating an order."""
+        journal = self.snapshot()
+        basis = confirmed_stop_cost_basis(journal, symbol)
+        if basis is None:
+            return StopObservation(
+                status="UNAVAILABLE", reason="COST_EVIDENCE_INCOMPLETE"
+            )
+        binding = next(
+            (
+                b
+                for b in journal.stop_bindings
+                if b.symbol == symbol and b.version == basis.rule_version
+            ),
+            None,
+        )
+        if binding is None or binding.rule_kind != "AVERAGE_COST_DROP":
+            return StopObservation(
+                status="UNAVAILABLE", reason="COST_RULE_NOT_ASSIGNED"
+            )
+        return evaluate_stop(
+            ManagedPosition(
+                symbol=symbol,
+                confirmed_qty=basis.qty,
+                average_cost=str(basis.average_cost),
+            ),
+            quote,
+            StopRule(kind=binding.rule_kind, threshold=binding.threshold),
+            timing,
+        )
 
     def portfolio(self, symbol: str) -> Portfolio:
         """Return managed shares and outstanding reservation exposure."""
