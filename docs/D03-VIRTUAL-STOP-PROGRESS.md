@@ -1,5 +1,22 @@
 # D03 가상 손절 보호 진행 기록
 
+## 후속 검증: 요청별 청산 의무 기록
+
+가상 손절 매도 요청을 원장에 새로 수락할 때 `StopSellObligation`을 같은 SQLite
+트랜잭션에 한 건 기록한다. 요청 ID, 주문 ID, 종목, 보호 수량, 발동 규칙 버전을
+고정하며 동일 요청 재처리에서는 새 의무를 만들지 않는다. 기존 부분체결로
+예약 중인 수량에는 추가 의무를 만들지 않고, 늦은 매수 체결로 새로 생긴
+보호 수량만 별도 요청·의무로 기록한다. 매도 부분체결 뒤에도 원래 의무의
+요청 ID와 최초 보호 수량은 보존된다. 기존 원장 테이블의 범용 journal에
+새 이벤트 종류를 기록하므로 이 작업에서 운영 DB를 이전하지 않았다.
+
+변경 파일: `execution/models.py`, `execution/storage.py`, `execution/ledger.py`,
+`tests/test_virtual_stop_binding.py`. Linux Python 3.12의 임시 Windows 잠금
+대체 fixture에서 관련 pytest **10 passed**, Ruff와 `git diff --check` 통과.
+이는 Windows 계좌 잠금이나 전체 회귀 검사가 아니다. 청산 의무의 동적
+잔량·완료·취소·거절 상태와 증권사 조회 근거 연결은 후속 단계이며 실제
+주문 가능 상태를 뜻하지 않는다.
+
 ## 2026-09-24 후속 변경: 가상 매도 요청의 손절 발동 연결
 
 `New.stop_latch_version`을 선택적 양의 정수로 추가했다. 가상 손절 dispatcher는

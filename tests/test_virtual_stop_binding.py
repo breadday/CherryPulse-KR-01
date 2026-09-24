@@ -222,7 +222,7 @@ def test_fixed_price_stop_accounts_for_partial_sell_without_cost(
     )
 
 
-def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(
+def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(  # noqa: PLR0915
     tmp_path: Path, lease: AccountLease
 ) -> None:
     path = tmp_path / "ledger.sqlite3"
@@ -316,6 +316,16 @@ def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(
     assert isinstance(first_sell.command, New)
     assert first_sell.command.qty == 4
     assert first_sell.command.stop_latch_version == latch.rule_version
+    first_obligation = book.snapshot().stop_sell_obligations
+    assert len(first_obligation) == 1
+    assert (
+        first_obligation[0].request_id,
+        first_obligation[0].order_id,
+        first_obligation[0].qty,
+        first_obligation[0].rule_version,
+    ) == (first_sell.request_id, first_sell.order_id, 4, latch.rule_version)
+    assert not book.submit(first_sell.command).created
+    assert book.snapshot().stop_sell_obligations == first_obligation
     assert not dispatcher.send(first_sell.request_id, stop_session="CLOSED")
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
     with pytest.raises(LedgerError, match="ENTRY_STOP_LATCHED"):
@@ -348,6 +358,10 @@ def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(
     assert late_sell.command.qty == 3
     assert late_sell.command.stop_latch_version == latch.rule_version
     assert Ledger(path, lease).snapshot().requests[-1].command == late_sell.command
+    assert [
+        (item.request_id, item.qty)
+        for item in Ledger(path, lease).snapshot().stop_sell_obligations
+    ] == [(first_sell.request_id, 4), (late_sell.request_id, 3)]
     assert restored.virtual_latched_stop_candidate("005930").unreserved_qty == 0
     cancel = restored.submit(
         Cancel(
@@ -453,6 +467,66 @@ def test_cost_stop_latch_requires_price_then_preserves_residual_after_sale(
     assert (
         Ledger(path, lease).virtual_latched_stop_candidate("005930").unreserved_qty == 2
     )
+
+
+def test_stop_obligation_remains_one_request_during_partial_sell(
+    tmp_path: Path, lease: AccountLease
+) -> None:
+    path = tmp_path / "ledger.sqlite3"
+    book = Ledger(path, lease)
+    book.approve_virtual_reconciliation(0)
+    book.apply_virtual_stop_config(
+        VirtualStopBinding(
+            symbol="005930", version=2, rule_kind="PRICE_AT_OR_BELOW", threshold="9800"
+        ),
+        expected_version=1,
+    )
+    buy = book.submit(
+        New(
+            key="protected-buy",
+            symbol="005930",
+            side="BUY",
+            config_version=2,
+            qty=4,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=4,
+            remaining=0,
+            evidence_version=1,
+        )
+    )
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    assert book.latch_virtual_price_stop(
+        "005930",
+        Quote(symbol="005930", price="9700", received_at=now),
+        ObserveAt(now=now, max_quote_age_seconds=2),
+    ) is not None
+    dispatcher = VirtualDispatcher(book)
+    sell = dispatcher.drain_virtual_stop("005930", session="REGULAR")
+    assert sell is not None
+    obligation = book.snapshot().stop_sell_obligations
+    assert len(obligation) == 1
+    assert (obligation[0].request_id, obligation[0].qty) == (sell.request_id, 4)
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=sell.order_id,
+            qty=2,
+            remaining=2,
+            evidence_version=1,
+        )
+    )
+    restored = Ledger(path, lease)
+    assert restored.snapshot().stop_sell_obligations == obligation
+    assert restored.virtual_latched_stop_candidate("005930").unreserved_qty == 0
+    assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
 
 
 def test_confirmed_order_cost_requires_every_exact_fill_price(

@@ -186,6 +186,16 @@ class StopLatch(Boundary):
     quote_received_at: AwareDatetime
 
 
+class StopSellObligation(Boundary):
+    """One immutable protected share slice paired with one sell request."""
+
+    request_id: UUID
+    order_id: UUID
+    symbol: Key
+    qty: PositiveQty
+    rule_version: PositiveQty
+
+
 class Allocation(Boundary):
     """Explicit starting managed ownership, never inferred from a balance query."""
 

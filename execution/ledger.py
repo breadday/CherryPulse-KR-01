@@ -36,6 +36,7 @@ from execution.models import (
     Request,
     StopLatch,
     StopRuleAssignment,
+    StopSellObligation,
     VirtualStopBinding,
 )
 from execution.outcomes import request_state, status
@@ -239,6 +240,22 @@ class Ledger:
                     "request", command.key, request.model_dump_json(exclude_none=True)
                 ),
             )
+            if isinstance(command, New) and command.stop_latch_version is not None:
+                obligation = StopSellObligation(
+                    request_id=request.request_id,
+                    order_id=request.order_id,
+                    symbol=command.symbol,
+                    qty=command.qty,
+                    rule_version=command.stop_latch_version,
+                )
+                self.storage.append(
+                    connection,
+                    Entry(
+                        "stop_sell_obligation",
+                        str(request.request_id),
+                        obligation.model_dump_json(),
+                    ),
+                )
             return Submission(request, created=True)
 
     def ingest_json(self, payload: str) -> bool:

@@ -19,6 +19,7 @@ from execution.models import (
     Request,
     StopLatch,
     StopRuleAssignment,
+    StopSellObligation,
     VirtualStopBinding,
 )
 from execution.ownership import AccountLease
@@ -32,6 +33,7 @@ EntryKind = Literal[
     "stop_binding",
     "stop_assignment",
     "stop_latch",
+    "stop_sell_obligation",
 ]
 ROWS: Final = TypeAdapter(list[tuple[EntryKind, str, str]])
 COUNTS: Final = TypeAdapter(list[tuple[int]])
@@ -61,6 +63,7 @@ class Journal:
     stop_bindings: tuple[VirtualStopBinding, ...] = ()
     stop_assignments: tuple[StopRuleAssignment, ...] = ()
     stop_latches: tuple[StopLatch, ...] = ()
+    stop_sell_obligations: tuple[StopSellObligation, ...] = ()
 
     @property
     def revision(self) -> int:
@@ -74,6 +77,7 @@ class Journal:
             + len(self.stop_bindings)
             + len(self.stop_assignments)
             + len(self.stop_latches)
+            + len(self.stop_sell_obligations)
         )
 
 
@@ -135,7 +139,7 @@ class Storage:
             _ = connection.execute("BEGIN IMMEDIATE")
             yield connection
 
-    def read(self, connection: sqlite3.Connection) -> Journal:
+    def read(self, connection: sqlite3.Connection) -> Journal:  # noqa: C901
         """Parse stored JSON at the database trust boundary."""
         rows = ROWS.validate_python(
             connection.execute(
@@ -151,6 +155,7 @@ class Storage:
         stop_bindings: list[VirtualStopBinding] = []
         stop_assignments: list[StopRuleAssignment] = []
         stop_latches: list[StopLatch] = []
+        stop_sell_obligations: list[StopSellObligation] = []
         for kind, _, payload in rows:
             match kind:
                 case "request":
@@ -173,6 +178,10 @@ class Storage:
                     )
                 case "stop_latch":
                     stop_latches.append(StopLatch.model_validate_json(payload))
+                case "stop_sell_obligation":
+                    stop_sell_obligations.append(
+                        StopSellObligation.model_validate_json(payload)
+                    )
                 case _:
                     assert_never(kind)
         return Journal(
@@ -184,6 +193,7 @@ class Storage:
             tuple(stop_bindings),
             tuple(stop_assignments),
             tuple(stop_latches),
+            tuple(stop_sell_obligations),
         )
 
     def append(self, connection: sqlite3.Connection, entry: Entry) -> None:

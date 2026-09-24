@@ -23,6 +23,12 @@
 
 후속 로컬 변경으로 `New.stop_latch_version`을 통한 발동 기록과 가상 매도 요청의 연결을 추가했다. Linux 임시 fixture에서 D03 관련 pytest 9개, Ruff, `git diff --check`가 통과했다. 상세한 검증 범위는 `docs/D03-VIRTUAL-STOP-PROGRESS.md`에 있다. 이 연결은 독립 청산 의무 원장과 1:1 수량 추적을 완성하지 않는다. 다음 작업에서는 기존 매도 예약·부분체결·추가 매수 체결·취소 `UNKNOWN`의 의무 수량과 요청을 명시적으로 대조하고, 재시작 시 같은 의무의 중복 전송을 차단한다. `UNKNOWN` 요청은 조회 근거 없이 실패로 바꾸거나 재전송하지 않는다.
 
+추가 단계에서는 요청별 `StopSellObligation`을 주문 요청과 한 트랜잭션에
+기록하고 재시작·중복 요청·매도 부분체결 뒤에도 원래 연결이 유지되는지
+검증했다. Linux 임시 fixture의 관련 pytest **10 passed**, Ruff 통과.
+의무의 동적 잔량/완료 상태, 취소·거절·`UNKNOWN` 대조, 자동 시세 감시와
+검증된 거래 세션은 아직 완료되지 않았다.
+
 ## 완료 조건과 차단 경계
 
 - D01~D10의 세부 완료 기준은 `docs/NEXT-DEVELOPMENT-PLAN.md`와 `docs/DEVELOPMENT-GOAL.md`를 따른다. 문서 검사, Linux 가상 검사, Windows 검사, 키움 실증을 구별한다.
