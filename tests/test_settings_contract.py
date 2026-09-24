@@ -138,3 +138,19 @@ def test_inbox_rejects_changed_identity_and_unauthorized_replay(tmp_path: Path) 
         )
     unauthorized = actor().model_copy(update={"permissions": frozenset()})
     assert inbox.receive(request, unauthorized, now).reason == "CONFIG_UNAUTHORIZED"
+
+
+def test_inbox_rejects_command_id_reused_for_another_symbol(tmp_path: Path) -> None:
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    request = command(now)
+    inbox = ConfigInbox(tmp_path / "desired-settings.sqlite3")
+    assert inbox.receive(request, actor(), now).state == "ACCEPTED"
+    other = request.model_copy(
+        update={
+            "idempotency_key": "another-symbol",
+            "settings": request.settings.model_copy(update={"symbol": "000660"}),
+        }
+    )
+    with pytest.raises(CommandConflictError, match="CONFLICT_CONFIG_COMMAND_IDENTITY"):
+        _ = inbox.receive(other, actor(), now)
+    assert inbox.receive(request, actor(), now).state == "ACCEPTED"

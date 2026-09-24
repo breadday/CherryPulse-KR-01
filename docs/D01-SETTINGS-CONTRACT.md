@@ -1,5 +1,15 @@
 # D01 설정·패턴·명령 계약 진행 기록
 
+## 2026-09-24 추가 검증
+
+같은 계좌·환경에서 다른 종목의 명령 ID를 재사용하면 SQLite 고유 제약 오류 대신
+`CONFLICT_CONFIG_COMMAND_IDENTITY`를 반환하도록 수신 조회 범위를 수정했다.
+기존 명령의 재전달 결정은 그대로 유지한다. 변경 파일은 `contracts/inbox.py`,
+`tests/test_settings_contract.py`다. Linux Python 3.12의 분리된 임시 검사
+디렉터리에서 D01 검사 9개 통과, Ruff 통과, `git diff --check` 통과.
+Windows 3.10 32비트 전체 검사, 외부 인증, 수신 결정과 실행 원장 적용의
+원자적 연결은 수행하지 않았다. 실제 키움 API, 운영 DB, 배포는 건드리지 않았다.
+
 - 기준: [남은 개발 작업 계획](NEXT-DEVELOPMENT-PLAN.md), `main`의 `f41cd5e` 기반 작업 공간
 - 상태: **부분 구현**. 원하는 설정의 안전한 수신·보관 모델까지 구현했고, 엔진 적용과 외부 인증 연결은 미완료다.
 

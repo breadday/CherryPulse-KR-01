@@ -53,19 +53,21 @@ class ConfigInbox:
                     state="REJECTED", reason="CONFIG_UNAUTHORIZED", digest=fingerprint
                 )
             rows = connection.execute(
-                """SELECT idempotency_key, command_id, payload, decision, reason, digest
+                """SELECT symbol, idempotency_key, command_id, payload,
+                          decision, reason, digest
                    FROM config_commands WHERE account_id=? AND environment=?
-                   AND symbol=? AND (idempotency_key=? OR command_id=?)""",
+                   AND ((symbol=? AND idempotency_key=?) OR command_id=?)""",
                 (*scope, command.idempotency_key, str(command.command_id)),
             ).fetchall()
             if rows:
-                if len(rows) != 1 or rows[0][:3] != (
+                if len(rows) != 1 or rows[0][:4] != (
+                    settings.symbol,
                     command.idempotency_key,
                     str(command.command_id),
                     command.model_dump_json(),
                 ):
                     raise CommandConflictError("CONFLICT_CONFIG_COMMAND_IDENTITY")
-                return Decision(state=rows[0][3], reason=rows[0][4], digest=rows[0][5])
+                return Decision(state=rows[0][4], reason=rows[0][5], digest=rows[0][6])
             row = connection.execute(
                 """SELECT MAX(accepted_version) FROM config_commands
                    WHERE account_id=? AND environment=? AND symbol=?""",
