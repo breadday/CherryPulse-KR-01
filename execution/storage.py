@@ -17,6 +17,7 @@ from execution.models import (
     Control,
     LedgerError,
     Request,
+    StopLatch,
     StopRuleAssignment,
     VirtualStopBinding,
 )
@@ -30,6 +31,7 @@ EntryKind = Literal[
     "config",
     "stop_binding",
     "stop_assignment",
+    "stop_latch",
 ]
 ROWS: Final = TypeAdapter(list[tuple[EntryKind, str, str]])
 COUNTS: Final = TypeAdapter(list[tuple[int]])
@@ -58,6 +60,7 @@ class Journal:
     configs: tuple[AppliedConfig, ...] = ()
     stop_bindings: tuple[VirtualStopBinding, ...] = ()
     stop_assignments: tuple[StopRuleAssignment, ...] = ()
+    stop_latches: tuple[StopLatch, ...] = ()
 
     @property
     def revision(self) -> int:
@@ -70,6 +73,7 @@ class Journal:
             + len(self.configs)
             + len(self.stop_bindings)
             + len(self.stop_assignments)
+            + len(self.stop_latches)
         )
 
 
@@ -146,6 +150,7 @@ class Storage:
         configs: list[AppliedConfig] = []
         stop_bindings: list[VirtualStopBinding] = []
         stop_assignments: list[StopRuleAssignment] = []
+        stop_latches: list[StopLatch] = []
         for kind, _, payload in rows:
             match kind:
                 case "request":
@@ -166,6 +171,8 @@ class Storage:
                     stop_assignments.append(
                         StopRuleAssignment.model_validate_json(payload)
                     )
+                case "stop_latch":
+                    stop_latches.append(StopLatch.model_validate_json(payload))
                 case _:
                     assert_never(kind)
         return Journal(
@@ -176,6 +183,7 @@ class Storage:
             tuple(configs),
             tuple(stop_bindings),
             tuple(stop_assignments),
+            tuple(stop_latches),
         )
 
     def append(self, connection: sqlite3.Connection, entry: Entry) -> None:

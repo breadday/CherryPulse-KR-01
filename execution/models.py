@@ -171,6 +171,16 @@ class StopRuleAssignment(Boundary):
     rule_version: PositiveQty
 
 
+class StopLatch(Boundary):
+    """Durable virtual stop signal; no authorization to send an order."""
+
+    symbol: Key
+    rule_version: PositiveQty
+    rule_kind: Literal["PRICE_AT_OR_BELOW", "AVERAGE_COST_DROP"]
+    quote_price: Price
+    quote_received_at: AwareDatetime
+
+
 class Allocation(Boundary):
     """Explicit starting managed ownership, never inferred from a balance query."""
 

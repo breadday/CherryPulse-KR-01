@@ -34,6 +34,7 @@ from execution.models import (
     New,
     OrderCommand,
     Request,
+    StopLatch,
     StopRuleAssignment,
     VirtualStopBinding,
 )
@@ -183,6 +184,14 @@ class Ledger:
                     return Submission(existing, created=False)
             self.storage.lease.require_ready()
             check_freshness(journal, command, self.clock())
+            if (
+                isinstance(command, New)
+                and command.side == "BUY"
+                and any(
+                    latch.symbol == command.symbol for latch in journal.stop_latches
+                )
+            ):
+                raise LedgerError("ENTRY_STOP_LATCHED")
             check_command(journal, command)
             match command:
                 case New():
@@ -429,6 +438,152 @@ class Ledger:
                 reconciliation_required=position.reconciliation_required,
                 sell_uncertain=position.sell_uncertain,
             ),
+        )
+
+    def latch_virtual_price_stop(
+        self, symbol: str, quote: Quote | None, timing: ObserveAt
+    ) -> StopLatch | None:
+        """Atomically retain one triggered fixed stop; never submit an order."""
+        with self.storage.transaction() as connection:
+            self.storage.lease.require_ready()
+            journal = self.storage.read(connection)
+            existing = next(
+                (latch for latch in journal.stop_latches if latch.symbol == symbol),
+                None,
+            )
+            if existing is not None:
+                return existing if existing.rule_kind == "PRICE_AT_OR_BELOW" else None
+            position = portfolio(journal, symbol)
+            holdings = confirmed_stop_holdings(journal, symbol)
+            if (
+                quote is None
+                or holdings is None
+                or position.reconciliation_required
+                or position.sell_uncertain
+                or position.available == 0
+            ):
+                return None
+            binding = next(
+                (
+                    b
+                    for b in journal.stop_bindings
+                    if b.symbol == symbol and b.version == holdings.rule_version
+                ),
+                None,
+            )
+            if binding is None or binding.rule_kind != "PRICE_AT_OR_BELOW":
+                return None
+            observation = evaluate_stop(
+                ManagedPosition(symbol=symbol, confirmed_qty=holdings.qty),
+                quote,
+                StopRule(kind=binding.rule_kind, threshold=binding.threshold),
+                timing,
+            )
+            if observation.status != "TRIGGERED":
+                return None
+            latch = StopLatch(
+                symbol=symbol,
+                rule_version=binding.version,
+                rule_kind=binding.rule_kind,
+                quote_price=str(quote.price),
+                quote_received_at=quote.received_at,
+            )
+            self.storage.append(
+                connection,
+                Entry("stop_latch", symbol, latch.model_dump_json()),
+            )
+            return latch
+
+    def latch_virtual_cost_stop(
+        self, symbol: str, quote: Quote | None, timing: ObserveAt
+    ) -> StopLatch | None:
+        """Retain a proven cost stop without inferring missing fill prices."""
+        with self.storage.transaction() as connection:
+            self.storage.lease.require_ready()
+            journal = self.storage.read(connection)
+            existing = next(
+                (latch for latch in journal.stop_latches if latch.symbol == symbol),
+                None,
+            )
+            if existing is not None:
+                return existing if existing.rule_kind == "AVERAGE_COST_DROP" else None
+            position = portfolio(journal, symbol)
+            basis = confirmed_stop_cost_basis(journal, symbol)
+            if (
+                quote is None
+                or basis is None
+                or position.reconciliation_required
+                or position.sell_uncertain
+                or position.available == 0
+            ):
+                return None
+            binding = next(
+                (
+                    b
+                    for b in journal.stop_bindings
+                    if b.symbol == symbol and b.version == basis.rule_version
+                ),
+                None,
+            )
+            if binding is None or binding.rule_kind != "AVERAGE_COST_DROP":
+                return None
+            observation = evaluate_stop(
+                ManagedPosition(
+                    symbol=symbol,
+                    confirmed_qty=basis.qty,
+                    average_cost=str(basis.average_cost),
+                ),
+                quote,
+                StopRule(kind=binding.rule_kind, threshold=binding.threshold),
+                timing,
+            )
+            if observation.status != "TRIGGERED":
+                return None
+            latch = StopLatch(
+                symbol=symbol,
+                rule_version=binding.version,
+                rule_kind=binding.rule_kind,
+                quote_price=str(quote.price),
+                quote_received_at=quote.received_at,
+            )
+            self.storage.append(
+                connection, Entry("stop_latch", symbol, latch.model_dump_json())
+            )
+            return latch
+
+    def virtual_latched_stop_candidate(self, symbol: str) -> ProtectionDecision:
+        """Project a retained stop over later fills without using a stale quote."""
+        journal = self.snapshot()
+        latch = next(
+            (item for item in journal.stop_latches if item.symbol == symbol), None
+        )
+        if latch is None:
+            return ProtectionDecision(status="NONE", reason="STOP_NOT_LATCHED")
+        if not self.storage.lease.ready:
+            return ProtectionDecision(
+                status="BLOCKED", reason="SESSION_RECONCILIATION_REQUIRED"
+            )
+        position = portfolio(journal, symbol)
+        if position.reconciliation_required or position.sell_uncertain:
+            return ProtectionDecision(
+                status="BLOCKED", reason="SELL_EVIDENCE_UNRESOLVED"
+            )
+        if position.available == 0:
+            return ProtectionDecision(
+                status="NONE",
+                reason="NO_MANAGED_POSITION"
+                if position.managed == 0
+                else "SHARES_ALREADY_RESERVED_OR_SOLD",
+            )
+        holdings = confirmed_stop_holdings(journal, symbol)
+        if holdings is None or holdings.rule_version != latch.rule_version:
+            return ProtectionDecision(
+                status="BLOCKED", reason="RULE_EVIDENCE_INCOMPLETE"
+            )
+        return ProtectionDecision(
+            status="CANDIDATE",
+            reason="LATCHED_UNRESERVED_SHARES",
+            unreserved_qty=position.available,
         )
 
     def portfolio(self, symbol: str) -> Portfolio:

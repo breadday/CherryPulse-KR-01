@@ -11,8 +11,9 @@ from pydantic import ValidationError
 from contracts.stop_evaluation import ObserveAt, Quote
 from execution.facts import Fill, Transport
 from execution.ledger import Ledger
-from execution.models import Allocation, LedgerError, New, VirtualStopBinding
+from execution.models import Allocation, Cancel, LedgerError, New, VirtualStopBinding
 from execution.ownership import AccountLease
+from execution.virtual import VirtualDispatcher
 
 
 def test_stop_rule_replays_after_restart_and_version_mismatch_is_inert(
@@ -206,6 +207,206 @@ def test_fixed_price_stop_accounts_for_partial_sell_without_cost(
     assert (uncertain.status, uncertain.reason) == (
         "BLOCKED",
         "SELL_EVIDENCE_UNRESOLVED",
+    )
+
+
+def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(
+    tmp_path: Path, lease: AccountLease
+) -> None:
+    path = tmp_path / "ledger.sqlite3"
+    book = Ledger(path, lease)
+    book.approve_virtual_reconciliation(0)
+    book.apply_virtual_stop_config(
+        VirtualStopBinding(
+            symbol="005930",
+            version=2,
+            rule_kind="PRICE_AT_OR_BELOW",
+            threshold="9800",
+        ),
+        expected_version=1,
+    )
+    buy = book.submit(
+        New(
+            key="partially-filled",
+            symbol="005930",
+            side="BUY",
+            config_version=2,
+            qty=7,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    pending = book.submit(
+        New(
+            key="pending-other-buy",
+            symbol="005930",
+            side="BUY",
+            config_version=2,
+            qty=1,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=4,
+            remaining=3,
+            evidence_version=1,
+        )
+    )
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    timing = ObserveAt(now=now, max_quote_age_seconds=2)
+    quote = Quote(symbol="005930", price="9700", received_at=now)
+    latch = book.latch_virtual_price_stop("005930", quote, timing)
+    assert latch is not None
+    assert book.latch_virtual_price_stop("005930", quote, timing) == latch
+    assert len(book.snapshot().stop_latches) == 1
+    assert book.virtual_latched_stop_candidate("005930").unreserved_qty == 4
+    dispatcher = VirtualDispatcher(book)
+    assert not dispatcher.send(pending.request_id)
+    assert dispatcher.drain_virtual_stop("005930", session="CLOSED") is None
+    first_sell = dispatcher.drain_virtual_stop("005930", session="REGULAR")
+    assert first_sell is not None
+    assert isinstance(first_sell.command, New)
+    assert first_sell.command.qty == 4
+    assert not dispatcher.send(first_sell.request_id, stop_session="CLOSED")
+    assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
+    with pytest.raises(LedgerError, match="ENTRY_STOP_LATCHED"):
+        _ = book.submit(
+            New(
+                key="new-entry-blocked",
+                symbol="005930",
+                side="BUY",
+                config_version=2,
+                qty=1,
+                order_type="MARKET",
+                session="REGULAR",
+                validity="DAY",
+            )
+        )
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=3,
+            remaining=0,
+            evidence_version=2,
+        )
+    )
+    restored = Ledger(path, lease)
+    assert restored.virtual_latched_stop_candidate("005930").unreserved_qty == 3
+    late_sell = dispatcher.drain_virtual_stop("005930", session="REGULAR")
+    assert late_sell is not None
+    assert isinstance(late_sell.command, New)
+    assert late_sell.command.qty == 3
+    assert restored.virtual_latched_stop_candidate("005930").unreserved_qty == 0
+    cancel = restored.submit(
+        Cancel(
+            key="unknown-stop-cancel",
+            symbol="005930",
+            side="SELL",
+            config_version=2,
+            target=late_sell.order_id,
+            link_version=restored.order(late_sell.order_id).link_version,
+            cancel_qty=3,
+        )
+    ).request
+    assert restored.ingest(
+        Transport(event_id=uuid4(), request_id=cancel.request_id, state="UNKNOWN")
+    )
+    blocked = Ledger(path, lease).virtual_latched_stop_candidate("005930")
+    assert (blocked.status, blocked.reason, blocked.unreserved_qty) == (
+        "BLOCKED",
+        "SELL_EVIDENCE_UNRESOLVED",
+        0,
+    )
+
+
+def test_cost_stop_latch_requires_price_then_preserves_residual_after_sale(
+    tmp_path: Path, lease: AccountLease
+) -> None:
+    path = tmp_path / "ledger.sqlite3"
+    book = Ledger(path, lease)
+    book.approve_virtual_reconciliation(0)
+    book.apply_virtual_stop_config(
+        VirtualStopBinding(
+            symbol="005930",
+            version=2,
+            rule_kind="AVERAGE_COST_DROP",
+            threshold="0.02",
+        ),
+        expected_version=1,
+    )
+    buy = book.submit(
+        New(
+            key="priced-stop-buy",
+            symbol="005930",
+            side="BUY",
+            config_version=2,
+            qty=3,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    timing = ObserveAt(now=now, max_quote_age_seconds=2)
+    quote = Quote(symbol="005930", price="9700", received_at=now)
+    assert book.latch_virtual_cost_stop("005930", quote, timing) is None
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=1,
+            remaining=2,
+            evidence_version=1,
+            price="10000",
+        )
+    )
+    latch = book.latch_virtual_cost_stop("005930", quote, timing)
+    assert latch is not None
+    assert book.virtual_latched_stop_candidate("005930").unreserved_qty == 1
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=2,
+            remaining=0,
+            evidence_version=2,
+            price="10000",
+        )
+    )
+    assert (
+        Ledger(path, lease).virtual_latched_stop_candidate("005930").unreserved_qty == 3
+    )
+    sell = book.submit(
+        New(
+            key="cost-stop-sell",
+            symbol="005930",
+            side="SELL",
+            config_version=2,
+            qty=1,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=sell.order_id,
+            qty=1,
+            remaining=0,
+            evidence_version=1,
+        )
+    )
+    assert book.confirmed_stop_cost_basis("005930") is None
+    assert (
+        Ledger(path, lease).virtual_latched_stop_candidate("005930").unreserved_qty == 2
     )
 
 
