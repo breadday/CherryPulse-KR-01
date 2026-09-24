@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from contracts.stop_evaluation import ObserveAt, Quote
-from execution.facts import Fill, Transport
+from execution.facts import Fill, SendFailed, Transport
 from execution.ledger import Ledger
 from execution.models import Allocation, Cancel, LedgerError, New, VirtualStopBinding
 from execution.ownership import AccountLease
@@ -533,8 +533,78 @@ def test_stop_obligation_remains_one_request_during_partial_sell(
     assert len(view) == 1
     assert (view[0].initial_qty, view[0].filled_qty, view[0].unfilled_qty) == (4, 2, 2)
     assert view[0].state == "PENDING"
+    assert view[0].next_action == "QUERY_BROKER"
     assert restored.virtual_latched_stop_candidate("005930").unreserved_qty == 0
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
+
+
+def test_proven_unsent_stop_requires_review_without_auto_retry(
+    tmp_path: Path, lease: AccountLease
+) -> None:
+    path = tmp_path / "ledger.sqlite3"
+    book = Ledger(path, lease)
+    book.approve_virtual_reconciliation(0)
+    book.apply_virtual_stop_config(
+        VirtualStopBinding(
+            symbol="005930", version=2, rule_kind="PRICE_AT_OR_BELOW", threshold="9800"
+        ),
+        expected_version=1,
+    )
+    buy = book.submit(
+        New(
+            key="buy-before-failure",
+            symbol="005930",
+            side="BUY",
+            config_version=2,
+            qty=2,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(), order_id=buy.order_id, qty=2,
+            remaining=0, evidence_version=1,
+        )
+    )
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    latch = book.latch_virtual_price_stop(
+        "005930",
+        Quote(symbol="005930", price="9700", received_at=now),
+        ObserveAt(now=now, max_quote_age_seconds=2),
+    )
+    assert latch is not None
+    sell = book.submit(
+        New(
+            key="virtual-stop:005930:failure",
+            symbol="005930",
+            side="SELL",
+            config_version=2,
+            qty=2,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+            stop_latch_version=latch.rule_version,
+        )
+    ).request
+    assert book.ingest(
+        SendFailed(
+            event_id=uuid4(), request_id=sell.request_id,
+            proof="NOT_INVOKED", reason="virtual-reject",
+        )
+    )
+    restored = Ledger(path, lease)
+    view = restored.virtual_stop_obligations("005930")
+    assert len(view) == 1
+    assert (view[0].state, view[0].next_action, view[0].unfilled_qty) == (
+        "REVIEW_REQUIRED", "REVIEW_AND_ALERT", 2,
+    )
+    assert (
+        VirtualDispatcher(restored).drain_virtual_stop("005930", session="REGULAR")
+        is None
+    )
+    assert len(restored.snapshot().stop_sell_obligations) == 1
 
 
 def test_confirmed_order_cost_requires_every_exact_fill_price(

@@ -22,6 +22,15 @@ class StopObligationView:
     reserved_qty: int
     state: Literal["FULFILLED", "BLOCKED_EVIDENCE", "REVIEW_REQUIRED", "PENDING"]
 
+    @property
+    def next_action(self) -> Literal["NONE", "QUERY_BROKER", "REVIEW_AND_ALERT"]:
+        """Expose an operator action, never a permission to resend."""
+        if self.state == "FULFILLED":
+            return "NONE"
+        if self.state == "REVIEW_REQUIRED":
+            return "REVIEW_AND_ALERT"
+        return "QUERY_BROKER"
+
 
 def stop_obligation_views(
     journal: Journal, symbol: str
