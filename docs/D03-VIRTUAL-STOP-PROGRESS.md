@@ -1,5 +1,25 @@
 # D03 가상 손절 보호 진행 기록
 
+## 2026-09-24 후속 변경: 가상 매도 요청의 손절 발동 연결
+
+`New.stop_latch_version`을 선택적 양의 정수로 추가했다. 가상 손절 dispatcher는
+시장가 매도 요청에 실제 원장에 저장된 손절 발동의 규칙 버전을 기록한다.
+`Ledger.submit`은 같은 종목·규칙 버전의 발동 기록이 없으면
+`STOP_LATCH_LINK_NOT_FOUND`로 요청 전체를 거절한다. 매수와 지정가 주문에
+손절 발동 버전을 붙이는 것도 거절한다. `virtual-stop:` 요청 키에 연결
+버전이 빠지거나, 연결 버전에 손절 요청 키가 없을 때도 거절한다. 따라서 재시작 후 `Request`의 종목,
+수량, 주문 ID, `stop_latch_version`을 발동 사실과 대조할 수 있다. 기존의
+버전 표시가 없는 요청은 마이그레이션 없이 그대로 읽지만, 연결 근거가
+있는 신규 손절 요청으로 소급 해석하지 않는다.
+
+변경 파일: `execution/models.py`, `execution/ledger.py`, `execution/virtual.py`,
+`tests/test_virtual_stop_binding.py`. Linux Python 3.12에서 Windows 계좌 잠금
+대신 임시 fixture를 쓴 관련 pytest **9 passed**, Ruff 및 `git diff --check`
+통과. Windows 잠금과 전체 회귀는 아직 미실행이다. 이 연결은 가상 손절
+매도 요청과 발동 기록의 **추적 근거**이며, 독립된 청산 의무의 생성·완료
+원장이나 자동 시세 감시·실제 거래 세션 증거는 아니다. 각 추가 매수 체결에
+대한 별도 청산 의무와 요청 간 1:1 대조는 후속 구현이 필요하다.
+
 - 기준: `main`의 D01 계약과 `docs/NEXT-DEVELOPMENT-PLAN.md`
 - 상태: **부분 구현**. 규칙 저장·부분체결 연결·가상 보호 후보 계산, 고정 가격·원가 비율 손절 발동 기록, 정규장 가상 시장가 매도 예약과 dispatcher 인계를 검증했다. 자동 시세 수신·실제 세션 판정·증권사 주문 연결은 미완료다.
 

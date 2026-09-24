@@ -59,6 +59,18 @@ def test_stop_rule_rejects_invalid_and_approximate_thresholds() -> None:
             rule_kind="PRICE_AT_OR_BELOW",
             threshold=9800.0,  # type: ignore[arg-type]
         )
+    with pytest.raises(ValidationError, match="STOP_LINK_REQUIRES_MARKET_SELL"):
+        _ = New(
+            key="invalid-stop-buy",
+            symbol="005930",
+            side="BUY",
+            config_version=1,
+            qty=1,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+            stop_latch_version=1,
+        )
 
 
 def test_buy_partial_fills_assign_order_rule_once_and_restore_after_restart(
@@ -265,6 +277,36 @@ def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(
     assert latch is not None
     assert book.latch_virtual_price_stop("005930", quote, timing) == latch
     assert len(book.snapshot().stop_latches) == 1
+    before_requests = len(book.snapshot().requests)
+    with pytest.raises(LedgerError, match="STOP_LATCH_LINK_NOT_FOUND"):
+        _ = book.submit(
+            New(
+                key="virtual-stop:005930:wrong-link",
+                symbol="005930",
+                side="SELL",
+                config_version=2,
+                qty=1,
+                order_type="MARKET",
+                session="REGULAR",
+                validity="DAY",
+                stop_latch_version=3,
+            )
+        )
+    assert len(book.snapshot().requests) == before_requests
+    with pytest.raises(LedgerError, match="STOP_LATCH_LINK_REQUIRED"):
+        _ = book.submit(
+            New(
+                key="virtual-stop:005930:unlinked",
+                symbol="005930",
+                side="SELL",
+                config_version=2,
+                qty=1,
+                order_type="MARKET",
+                session="REGULAR",
+                validity="DAY",
+            )
+        )
+    assert len(book.snapshot().requests) == before_requests
     assert book.virtual_latched_stop_candidate("005930").unreserved_qty == 4
     dispatcher = VirtualDispatcher(book)
     assert not dispatcher.send(pending.request_id)
@@ -273,6 +315,7 @@ def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(
     assert first_sell is not None
     assert isinstance(first_sell.command, New)
     assert first_sell.command.qty == 4
+    assert first_sell.command.stop_latch_version == latch.rule_version
     assert not dispatcher.send(first_sell.request_id, stop_session="CLOSED")
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
     with pytest.raises(LedgerError, match="ENTRY_STOP_LATCHED"):
@@ -303,6 +346,8 @@ def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(
     assert late_sell is not None
     assert isinstance(late_sell.command, New)
     assert late_sell.command.qty == 3
+    assert late_sell.command.stop_latch_version == latch.rule_version
+    assert Ledger(path, lease).snapshot().requests[-1].command == late_sell.command
     assert restored.virtual_latched_stop_candidate("005930").unreserved_qty == 0
     cancel = restored.submit(
         Cancel(

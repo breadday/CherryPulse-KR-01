@@ -62,6 +62,24 @@ class Submission:
     created: bool
 
 
+def _check_virtual_stop_link(journal: Journal, command: OrderCommand) -> None:
+    """Require durable latch evidence for explicitly tagged virtual stop sells."""
+    if not isinstance(command, New):
+        return
+    if command.key.startswith("virtual-stop:") and command.stop_latch_version is None:
+        raise LedgerError("STOP_LATCH_LINK_REQUIRED")
+    if command.stop_latch_version is None:
+        return
+    if not command.key.startswith("virtual-stop:"):
+        raise LedgerError("STOP_LATCH_KEY_REQUIRED")
+    if not any(
+        latch.symbol == command.symbol
+        and latch.rule_version == command.stop_latch_version
+        for latch in journal.stop_latches
+    ):
+        raise LedgerError("STOP_LATCH_LINK_NOT_FOUND")
+
+
 class Ledger:
     """Each mutation is one durable transaction; no broker I/O is available."""
 
@@ -192,6 +210,7 @@ class Ledger:
                 )
             ):
                 raise LedgerError("ENTRY_STOP_LATCHED")
+            _check_virtual_stop_link(journal, command)
             check_command(journal, command)
             match command:
                 case New():

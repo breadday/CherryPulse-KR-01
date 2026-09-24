@@ -56,6 +56,7 @@ class New(Command):
     price: Price | None = None
     session: Literal["REGULAR"]
     validity: Literal["DAY"]
+    stop_latch_version: PositiveQty | None = None
 
     @field_validator("price")
     @classmethod
@@ -72,6 +73,10 @@ class New(Command):
     @model_validator(mode="after")
     def check_price(self) -> Self:
         """Require a positive limit price and an absent market price."""
+        if self.stop_latch_version is not None and (
+            self.side != "SELL" or self.order_type != "MARKET"
+        ):
+            raise LedgerError("STOP_LINK_REQUIRES_MARKET_SELL")
         match self.order_type:
             case "LIMIT":
                 if self.price is None or Decimal(self.price) <= 0:

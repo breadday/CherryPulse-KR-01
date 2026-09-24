@@ -45,7 +45,11 @@ class VirtualDispatcher:
                     return False
                 if (
                     request.command.key.startswith("virtual-stop:")
-                    and stop_session != "REGULAR"
+                    and (
+                        stop_session != "REGULAR"
+                        or not isinstance(request.command, New)
+                        or request.command.stop_latch_version is None
+                    )
                 ):
                     return False
                 store.lease.require_ready()
@@ -110,6 +114,7 @@ class VirtualDispatcher:
             order_type="MARKET",
             session="REGULAR",
             validity="DAY",
+            stop_latch_version=latch.rule_version,
         )
         try:
             request = self.ledger.submit(command).request
