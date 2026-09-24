@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
 
+from execution.facts import Rejected, SendFailed
 from execution.models import New
 from execution.outcomes import status
 from execution.projection import order, portfolio
@@ -21,6 +22,7 @@ class StopObligationView:
     unfilled_qty: int
     reserved_qty: int
     state: Literal["FULFILLED", "BLOCKED_EVIDENCE", "REVIEW_REQUIRED", "PENDING"]
+    failure_reason: str | None = None
 
     @property
     def next_action(self) -> Literal["NONE", "QUERY_BROKER", "REVIEW_AND_ALERT"]:
@@ -87,6 +89,12 @@ def stop_obligation_views(
             state = "BLOCKED_EVIDENCE"
         else:
             state = "PENDING"
+        reasons = [
+            fact.reason
+            for fact in journal.facts
+            if isinstance(fact, (Rejected, SendFailed))
+            and fact.request_id == obligation.request_id
+        ]
         views.append(
             StopObligationView(
                 obligation.request_id,
@@ -96,6 +104,7 @@ def stop_obligation_views(
                 max(0, obligation.qty - snapshot.filled),
                 snapshot.reserved,
                 state,
+                reasons[-1] if state == "REVIEW_REQUIRED" and reasons else None,
             )
         )
     return tuple(views)

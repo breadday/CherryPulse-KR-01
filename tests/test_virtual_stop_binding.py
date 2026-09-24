@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from contracts.stop_evaluation import ObserveAt, Quote
-from execution.facts import Fill, SendFailed, Transport
+from execution.facts import Fill, Rejected, SendFailed, Transport
 from execution.ledger import Ledger
 from execution.models import Allocation, Cancel, LedgerError, New, VirtualStopBinding
 from execution.ownership import AccountLease
@@ -538,8 +538,9 @@ def test_stop_obligation_remains_one_request_during_partial_sell(
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
 
 
-def test_proven_unsent_stop_requires_review_without_auto_retry(
-    tmp_path: Path, lease: AccountLease
+@pytest.mark.parametrize("rejected", [False, True])
+def test_failed_stop_requires_review_without_auto_retry(
+    tmp_path: Path, lease: AccountLease, *, rejected: bool
 ) -> None:
     path = tmp_path / "ledger.sqlite3"
     book = Ledger(path, lease)
@@ -588,17 +589,30 @@ def test_proven_unsent_stop_requires_review_without_auto_retry(
             stop_latch_version=latch.rule_version,
         )
     ).request
-    assert book.ingest(
-        SendFailed(
+    reason = "broker-rejected" if rejected else "adapter-not-invoked"
+    if rejected:
+        assert book.ingest(
+            Transport(event_id=uuid4(), request_id=sell.request_id, state="SENDING")
+        )
+    failure = (
+        Rejected(event_id=uuid4(), request_id=sell.request_id, reason=reason)
+        if rejected
+        else SendFailed(
             event_id=uuid4(), request_id=sell.request_id,
-            proof="NOT_INVOKED", reason="virtual-reject",
+            proof="NOT_INVOKED", reason=reason,
         )
     )
+    assert book.ingest(failure)
     restored = Ledger(path, lease)
     view = restored.virtual_stop_obligations("005930")
     assert len(view) == 1
-    assert (view[0].state, view[0].next_action, view[0].unfilled_qty) == (
-        "REVIEW_REQUIRED", "REVIEW_AND_ALERT", 2,
+    assert (
+        view[0].state,
+        view[0].next_action,
+        view[0].unfilled_qty,
+        view[0].failure_reason,
+    ) == (
+        "REVIEW_REQUIRED", "REVIEW_AND_ALERT", 2, reason,
     )
     assert (
         VirtualDispatcher(restored).drain_virtual_stop("005930", session="REGULAR")
