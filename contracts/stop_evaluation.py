@@ -147,7 +147,7 @@ class ObserveAt(Contract):
     """Explicit evaluation timing supplied by the trusted local engine."""
 
     now: AwareDatetime
-    max_quote_age_seconds: Annotated[int, Field(strict=True, gt=0)]
+    max_quote_age_seconds: Annotated[int, Field(strict=True, gt=0, le=2)]
 
     @model_validator(mode="after")
     def valid_utc_offset(self) -> Self:
