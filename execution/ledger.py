@@ -3,13 +3,14 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from hashlib import sha256
 from pathlib import Path
 from uuid import UUID, uuid4, uuid5
 
 from typing_extensions import assert_never
 
-from execution.facts import FACT, Discrepancy, Fact, QuarantinedFill, SendFailed
+from execution.facts import FACT, Discrepancy, Fact, Fill, QuarantinedFill, SendFailed
 from execution.freshness import applied_version, check_freshness, utc_now
 from execution.models import (
     COMMAND,
@@ -22,10 +23,20 @@ from execution.models import (
     New,
     OrderCommand,
     Request,
+    StopRuleAssignment,
+    VirtualStopBinding,
 )
 from execution.outcomes import request_state, status
 from execution.ownership import AccountLease
-from execution.projection import Order, Portfolio, order, portfolio
+from execution.projection import (
+    Order,
+    Portfolio,
+    StopCostBasis,
+    buy_order_average_cost,
+    confirmed_stop_cost_basis,
+    order,
+    portfolio,
+)
 from execution.storage import Entry, Journal, Storage
 from execution.validation import check_command, check_fact
 
@@ -106,6 +117,44 @@ class Ledger:
                 Entry("config", str(uuid4()), config.model_dump_json()),
             )
 
+    def apply_virtual_stop_config(
+        self, binding: VirtualStopBinding, *, expected_version: int
+    ) -> None:
+        """Atomically record simulator revision and inert stop rule for replay."""
+        config = AppliedConfig(symbol=binding.symbol, version=binding.version)
+        with self.storage.transaction() as connection:
+            self.storage.lease.require_ready()
+            journal = self.storage.read(connection)
+            if applied_version(journal, binding.symbol) != expected_version:
+                raise LedgerError("STALE_CONFIG_VERSION")
+            if binding.version <= expected_version:
+                raise LedgerError("CONFIG_VERSION_MUST_ADVANCE")
+            self.storage.append(
+                connection,
+                Entry("config", str(uuid4()), config.model_dump_json()),
+            )
+            self.storage.append(
+                connection,
+                Entry(
+                    "stop_binding",
+                    f"{binding.symbol}:{binding.version}",
+                    binding.model_dump_json(),
+                ),
+            )
+
+    def virtual_stop_binding(self, symbol: str) -> VirtualStopBinding | None:
+        """Read the last bound rule without activating monitoring or orders."""
+        journal = self.snapshot()
+        version = applied_version(journal, symbol)
+        return next(
+            (
+                binding
+                for binding in reversed(journal.stop_bindings)
+                if binding.symbol == symbol and binding.version == version
+            ),
+            None,
+        )
+
     def submit_json(self, payload: str) -> Submission:
         """Parse untrusted command JSON before touching the database."""
         return self.submit(COMMAND.validate_json(payload))
@@ -172,6 +221,42 @@ class Ledger:
                     "fact", str(fact.event_id), fact.model_dump_json(exclude_none=True)
                 ),
             )
+            if isinstance(fact, Fill):
+                buy = next(
+                    (
+                        r
+                        for r in journal.requests
+                        if r.order_id == fact.order_id
+                        and isinstance(r.command, New)
+                        and r.command.side == "BUY"
+                    ),
+                    None,
+                )
+                if buy is not None:
+                    binding = next(
+                        (
+                            b
+                            for b in journal.stop_bindings
+                            if b.symbol == buy.command.symbol
+                            and b.version == buy.command.config_version
+                        ),
+                        None,
+                    )
+                    if binding is not None:
+                        assignment = StopRuleAssignment(
+                            fill_event_id=fact.event_id,
+                            symbol=buy.command.symbol,
+                            qty=fact.qty,
+                            rule_version=binding.version,
+                        )
+                        self.storage.append(
+                            connection,
+                            Entry(
+                                "stop_assignment",
+                                str(fact.event_id),
+                                assignment.model_dump_json(),
+                            ),
+                        )
             return True
 
     def discard(self, request_id: UUID, *, reason: str, expected_revision: int) -> bool:
@@ -202,6 +287,14 @@ class Ledger:
     def order(self, order_id: UUID) -> Order:
         """Return evidence-based quantities and independent reconciliation state."""
         return order(self.snapshot(), order_id)
+
+    def buy_order_average_cost(self, order_id: UUID) -> Decimal | None:
+        """Read exact buy cost, or report missing execution prices as unknown."""
+        return buy_order_average_cost(self.snapshot(), order_id)
+
+    def confirmed_stop_cost_basis(self, symbol: str) -> StopCostBasis | None:
+        """Read a conservative cost basis for assigned and unsold buy fills."""
+        return confirmed_stop_cost_basis(self.snapshot(), symbol)
 
     def portfolio(self, symbol: str) -> Portfolio:
         """Return managed shares and outstanding reservation exposure."""

@@ -1,11 +1,12 @@
 """Normalized virtual evidence; no claim about real brokerage event semantics."""
 
+from decimal import Decimal
 from typing import Annotated, Final, Literal
 from uuid import UUID
 
-from pydantic import Field, TypeAdapter
+from pydantic import Field, TypeAdapter, field_validator
 
-from execution.models import Boundary, Delta, Key, PositiveQty, Quantity
+from execution.models import Boundary, Delta, Key, PositiveQty, Price, Quantity
 from execution.query_evidence import QueryEvidence
 
 
@@ -32,10 +33,19 @@ class Observation(Evidence):
 
 
 class Fill(Observation):
-    """Unique execution fact, correlated to an exact logical order."""
+    """Unique execution fact; optional exact price retains legacy compatibility."""
 
     kind: Literal["FILL"] = "FILL"
     qty: PositiveQty
+    price: Price | None = None
+
+    @field_validator("price")
+    @classmethod
+    def positive_price(cls, value: str | None) -> str | None:
+        """Reject unusable cost evidence without guessing from an order price."""
+        if value is not None and Decimal(value) <= 0:
+            raise ValueError("INVALID_FILL_PRICE")
+        return value
 
 
 class Amended(Observation):

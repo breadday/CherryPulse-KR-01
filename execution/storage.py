@@ -11,10 +11,26 @@ from pydantic import TypeAdapter
 from typing_extensions import assert_never
 
 from execution.facts import FACT, Fact
-from execution.models import Allocation, AppliedConfig, Control, LedgerError, Request
+from execution.models import (
+    Allocation,
+    AppliedConfig,
+    Control,
+    LedgerError,
+    Request,
+    StopRuleAssignment,
+    VirtualStopBinding,
+)
 from execution.ownership import AccountLease
 
-EntryKind = Literal["request", "fact", "allocation", "control", "config"]
+EntryKind = Literal[
+    "request",
+    "fact",
+    "allocation",
+    "control",
+    "config",
+    "stop_binding",
+    "stop_assignment",
+]
 ROWS: Final = TypeAdapter(list[tuple[EntryKind, str, str]])
 COUNTS: Final = TypeAdapter(list[tuple[int]])
 SCHEMA_VERSION: Final = 1
@@ -40,6 +56,8 @@ class Journal:
     allocations: tuple[Allocation, ...]
     controls: tuple[Control, ...]
     configs: tuple[AppliedConfig, ...] = ()
+    stop_bindings: tuple[VirtualStopBinding, ...] = ()
+    stop_assignments: tuple[StopRuleAssignment, ...] = ()
 
     @property
     def revision(self) -> int:
@@ -50,6 +68,8 @@ class Journal:
             + len(self.allocations)
             + len(self.controls)
             + len(self.configs)
+            + len(self.stop_bindings)
+            + len(self.stop_assignments)
         )
 
 
@@ -124,6 +144,8 @@ class Storage:
         allocations: list[Allocation] = []
         controls: list[Control] = []
         configs: list[AppliedConfig] = []
+        stop_bindings: list[VirtualStopBinding] = []
+        stop_assignments: list[StopRuleAssignment] = []
         for kind, _, payload in rows:
             match kind:
                 case "request":
@@ -136,6 +158,14 @@ class Storage:
                     controls.append(Control.model_validate_json(payload))
                 case "config":
                     configs.append(AppliedConfig.model_validate_json(payload))
+                case "stop_binding":
+                    stop_bindings.append(
+                        VirtualStopBinding.model_validate_json(payload)
+                    )
+                case "stop_assignment":
+                    stop_assignments.append(
+                        StopRuleAssignment.model_validate_json(payload)
+                    )
                 case _:
                     assert_never(kind)
         return Journal(
@@ -144,6 +174,8 @@ class Storage:
             tuple(allocations),
             tuple(controls),
             tuple(configs),
+            tuple(stop_bindings),
+            tuple(stop_assignments),
         )
 
     def append(self, connection: sqlite3.Connection, entry: Entry) -> None:

@@ -1,6 +1,7 @@
 """Pure quantity projection from unique durable facts."""
 
 from dataclasses import dataclass
+from decimal import Decimal
 from uuid import UUID
 
 from typing_extensions import assert_never
@@ -75,6 +76,81 @@ class Portfolio:
         if self.reconciliation_required or self.sell_uncertain:
             return 0
         return max(0, self.managed - self.reserved)
+
+
+@dataclass(frozen=True, slots=True)
+class StopCostBasis:
+    """Confirmed unsold buy shares with one assigned stop revision."""
+
+    qty: int
+    average_cost: Decimal
+    rule_version: int
+
+
+def confirmed_stop_cost_basis(journal: Journal, symbol: str) -> StopCostBasis | None:
+    """Fail closed when fills, starting holdings or sell history are incomplete."""
+    if any(a.symbol == symbol and a.qty > 0 for a in journal.allocations):
+        return None
+    orders = {
+        r.order_id: r.command
+        for r in journal.requests
+        if isinstance(r.command, New) and r.command.symbol == symbol
+    }
+    fills = [f for f in journal.facts if isinstance(f, Fill) and f.order_id in orders]
+    if not fills or any(
+        orders[f.order_id].side == "SELL" or f.price is None for f in fills
+    ):
+        return None
+    assignments = {a.fill_event_id: a for a in journal.stop_assignments}
+    versions = {
+        assignments[f.event_id].rule_version
+        for f in fills
+        if f.event_id in assignments
+        and assignments[f.event_id].symbol == symbol
+        and assignments[f.event_id].qty == f.qty
+    }
+    if len(versions) != 1 or len(fills) != sum(
+        f.event_id in assignments
+        and assignments[f.event_id].symbol == symbol
+        and assignments[f.event_id].qty == f.qty
+        for f in fills
+    ):
+        return None
+    version = next(iter(versions))
+    if not any(
+        b.symbol == symbol and b.version == version for b in journal.stop_bindings
+    ):
+        return None
+    qty = sum(f.qty for f in fills)
+    position = portfolio(journal, symbol)
+    if position.managed != qty or position.reconciliation_required:
+        return None
+    total = sum(
+        (Decimal(f.price) * f.qty for f in fills if f.price is not None), Decimal(0)
+    )
+    return StopCostBasis(qty=qty, average_cost=total / qty, rule_version=version)
+
+
+def buy_order_average_cost(journal: Journal, order_id: UUID) -> Decimal | None:
+    """Calculate one order's cost only if every confirmed buy fill has a price."""
+    initial = next(
+        (
+            r
+            for r in journal.requests
+            if r.order_id == order_id and isinstance(r.command, New)
+        ),
+        None,
+    )
+    if initial is None or not isinstance(initial.command, New):
+        raise LedgerError("ORDER_NOT_FOUND")
+    if initial.command.side != "BUY":
+        raise LedgerError("BUY_ORDER_REQUIRED")
+    fills = [f for f in journal.facts if isinstance(f, Fill) and f.order_id == order_id]
+    if not fills or any(f.price is None for f in fills):
+        return None
+    return sum(
+        (Decimal(f.price) * f.qty for f in fills if f.price is not None), Decimal(0)
+    ) / sum(f.qty for f in fills)
 
 
 def order(journal: Journal, order_id: UUID) -> Order:

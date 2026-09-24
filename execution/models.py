@@ -145,6 +145,32 @@ class AppliedConfig(Boundary):
     version: PositiveQty
 
 
+class VirtualStopBinding(Boundary):
+    """Inert, durable stop rule paired with an applied simulator revision."""
+
+    symbol: Key
+    version: PositiveQty
+    rule_kind: Literal["PRICE_AT_OR_BELOW", "AVERAGE_COST_DROP"]
+    threshold: Price
+
+    @model_validator(mode="after")
+    def check_threshold(self) -> Self:
+        """Forbid zero and impossible percentage thresholds."""
+        value = Decimal(self.threshold)
+        if value <= 0 or (self.rule_kind == "AVERAGE_COST_DROP" and value >= 1):
+            raise LedgerError("INVALID_STOP_THRESHOLD")
+        return self
+
+
+class StopRuleAssignment(Boundary):
+    """Durable rule identity for a confirmed buy fill, not a sell obligation."""
+
+    fill_event_id: UUID
+    symbol: Key
+    qty: PositiveQty
+    rule_version: PositiveQty
+
+
 class Allocation(Boundary):
     """Explicit starting managed ownership, never inferred from a balance query."""
 
