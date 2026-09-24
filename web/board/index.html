@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CherryPulse · 관심종목 보드</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="board.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">●</span> CherryPulse <span class="brand-sub">관심종목 보드</span></div>
+    <span class="mode">로컬 초안</span>
+  </header>
+  <main class="layout">
+    <section class="intro" aria-labelledby="board-heading">
+      <div>
+        <p class="eyebrow">종목과 보호 규칙</p>
+        <h1 id="board-heading">관심종목 관리</h1>
+        <p>직접 고른 종목에 손절 패턴을 연결해 두세요. 저장한 초안은 이 브라우저에만 남습니다.</p>
+      </div>
+      <div class="engine-state"><span class="state-dot" aria-hidden="true"></span><strong>엔진 미연결</strong><span>감시·주문 비활성</span></div>
+    </section>
+    <div id="notice" role="status" aria-live="polite"></div>
+    <div class="columns">
+      <section class="panel" aria-labelledby="symbols-heading">
+        <div class="panel-heading"><h2 id="symbols-heading">관심종목</h2><span id="symbol-count">0개</span></div>
+        <form id="symbol-form" class="inline-form">
+          <label for="symbol-input">종목코드</label>
+          <div class="form-row"><input id="symbol-input" name="symbol" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="예: 005930" required><button type="submit">종목 추가</button></div>
+        </form>
+        <div id="symbol-list" class="symbol-list"></div>
+      </section>
+      <section class="panel" aria-labelledby="patterns-heading">
+        <div class="panel-heading"><h2 id="patterns-heading">손절 패턴</h2><span>초안</span></div>
+        <form id="pattern-form" class="stack-form">
+          <label for="pattern-name">패턴 이름</label>
+          <input id="pattern-name" name="name" maxlength="100" placeholder="예: 고정 가격 손절" required>
+          <label for="pattern-kind">발동 기준</label>
+          <select id="pattern-kind" name="kind"><option value="PRICE_AT_OR_BELOW">최근 체결가가 설정 가격 이하</option><option value="AVERAGE_COST_DROP">확인된 평균 매수가 대비 하락률</option></select>
+          <label for="pattern-threshold" id="threshold-label">기준 가격 (원)</label>
+          <input id="pattern-threshold" name="threshold" type="number" min="0.000001" step="any" placeholder="예: 9800" required>
+          <p class="hint" id="threshold-hint">실제 시세나 매수가를 조회하지 않습니다.</p>
+          <button type="submit">패턴 저장</button>
+        </form>
+        <div id="pattern-list" class="pattern-list"></div>
+      </section>
+    </div>
+    <p class="footnote">이 화면은 입력·연결 기능을 확인하는 초안입니다. Windows 엔진의 적용 설정은 연결되지 않았으며, 여기서 주문이 생성되지 않습니다.</p>
+  </main>
+</body>
+</html>
