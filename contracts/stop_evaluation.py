@@ -11,16 +11,18 @@ from contracts.settings import Contract, StopRule
 
 
 class ManagedPosition(Contract):
-    """Confirmed managed shares and their confirmed cost basis."""
+    """Confirmed managed shares and optional proven cost basis."""
 
     symbol: Annotated[str, Field(pattern=r"^[0-9]{6}$")]
     confirmed_qty: Annotated[int, Field(strict=True, ge=0)]
-    average_cost: Annotated[Decimal, Field(gt=0)]
+    average_cost: Annotated[Decimal, Field(gt=0)] | None = None
 
     @field_validator("average_cost", mode="before")
     @classmethod
     def exact_cost(cls, value: object) -> object:
         """Require an exact decimal string from confirmed execution facts."""
+        if value is None:
+            return None
         if not isinstance(value, str) or not value or value.strip() != value:
             raise ValueError("DECIMAL_STRING_REQUIRED")
         return value
@@ -28,7 +30,7 @@ class ManagedPosition(Contract):
     @model_validator(mode="after")
     def finite_cost(self) -> Self:
         """Reject NaN and infinity before comparing a stop threshold."""
-        if not self.average_cost.is_finite():
+        if self.average_cost is not None and not self.average_cost.is_finite():
             raise ValueError("INVALID_AVERAGE_COST")
         return self
 
@@ -171,11 +173,12 @@ def evaluate_stop(
     age = timing.now - quote.received_at
     if age < timedelta(0) or age > timedelta(seconds=timing.max_quote_age_seconds):
         return StopObservation(status="UNAVAILABLE", reason="QUOTE_NOT_FRESH")
-    threshold = (
-        rule.threshold
-        if rule.kind == "PRICE_AT_OR_BELOW"
-        else position.average_cost * (Decimal(1) - rule.threshold)
-    )
+    if rule.kind == "PRICE_AT_OR_BELOW":
+        threshold = rule.threshold
+    elif position.average_cost is None:
+        return StopObservation(status="UNAVAILABLE", reason="AVERAGE_COST_MISSING")
+    else:
+        threshold = position.average_cost * (Decimal(1) - rule.threshold)
     return StopObservation(
         status="TRIGGERED" if quote.price <= threshold else "NOT_TRIGGERED",
         reason="PRICE_AT_OR_BELOW_THRESHOLD"

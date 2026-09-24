@@ -14,9 +14,12 @@ from contracts.settings import StopRule
 from contracts.stop_evaluation import (
     ManagedPosition,
     ObserveAt,
+    ProtectionDecision,
+    ProtectionExposure,
     Quote,
     StopObservation,
     evaluate_stop,
+    protection_candidate,
 )
 from execution.facts import FACT, Discrepancy, Fact, Fill, QuarantinedFill, SendFailed
 from execution.freshness import applied_version, check_freshness, utc_now
@@ -42,6 +45,7 @@ from execution.projection import (
     StopCostBasis,
     buy_order_average_cost,
     confirmed_stop_cost_basis,
+    confirmed_stop_holdings,
     order,
     portfolio,
 )
@@ -308,7 +312,13 @@ class Ledger:
         self, symbol: str, quote: Quote | None, timing: ObserveAt
     ) -> StopObservation:
         """Evaluate an assigned percentage rule without creating an order."""
-        journal = self.snapshot()
+        return self._observe_virtual_cost_stop(self.snapshot(), symbol, quote, timing)
+
+    @staticmethod
+    def _observe_virtual_cost_stop(
+        journal: Journal, symbol: str, quote: Quote | None, timing: ObserveAt
+    ) -> StopObservation:
+        """Evaluate one journal revision without an order-side effect."""
         basis = confirmed_stop_cost_basis(journal, symbol)
         if basis is None:
             return StopObservation(
@@ -335,6 +345,90 @@ class Ledger:
             quote,
             StopRule(kind=binding.rule_kind, threshold=binding.threshold),
             timing,
+        )
+
+    def virtual_cost_stop_candidate(
+        self, symbol: str, quote: Quote | None, timing: ObserveAt
+    ) -> ProtectionDecision:
+        """Read one virtual revision and calculate a non-authorizing sell candidate."""
+        journal = self.snapshot()
+        if not self.storage.lease.ready:
+            return ProtectionDecision(
+                status="BLOCKED", reason="SESSION_RECONCILIATION_REQUIRED"
+            )
+        position = portfolio(journal, symbol)
+        if position.reconciliation_required or position.sell_uncertain:
+            return ProtectionDecision(
+                status="BLOCKED", reason="SELL_EVIDENCE_UNRESOLVED"
+            )
+        basis = confirmed_stop_cost_basis(journal, symbol)
+        if basis is None:
+            return ProtectionDecision(
+                status="BLOCKED", reason="COST_EVIDENCE_INCOMPLETE"
+            )
+        observation = self._observe_virtual_cost_stop(journal, symbol, quote, timing)
+        return protection_candidate(
+            observation,
+            ManagedPosition(
+                symbol=symbol,
+                confirmed_qty=basis.qty,
+                average_cost=str(basis.average_cost),
+            ),
+            ProtectionExposure(
+                managed_qty=position.managed,
+                reserved_sell_qty=position.reserved,
+                reconciliation_required=position.reconciliation_required,
+                sell_uncertain=position.sell_uncertain,
+            ),
+        )
+
+    def virtual_price_stop_candidate(
+        self, symbol: str, quote: Quote | None, timing: ObserveAt
+    ) -> ProtectionDecision:
+        """Observe a fixed price stop from assigned shares without order I/O."""
+        journal = self.snapshot()
+        if not self.storage.lease.ready:
+            return ProtectionDecision(
+                status="BLOCKED", reason="SESSION_RECONCILIATION_REQUIRED"
+            )
+        position = portfolio(journal, symbol)
+        if position.reconciliation_required or position.sell_uncertain:
+            return ProtectionDecision(
+                status="BLOCKED", reason="SELL_EVIDENCE_UNRESOLVED"
+            )
+        holdings = confirmed_stop_holdings(journal, symbol)
+        if holdings is None:
+            return ProtectionDecision(
+                status="BLOCKED", reason="RULE_EVIDENCE_INCOMPLETE"
+            )
+        binding = next(
+            (
+                b
+                for b in journal.stop_bindings
+                if b.symbol == symbol and b.version == holdings.rule_version
+            ),
+            None,
+        )
+        if binding is None or binding.rule_kind != "PRICE_AT_OR_BELOW":
+            return ProtectionDecision(
+                status="BLOCKED", reason="PRICE_RULE_NOT_ASSIGNED"
+            )
+        managed = ManagedPosition(symbol=symbol, confirmed_qty=holdings.qty)
+        observation = evaluate_stop(
+            managed,
+            quote,
+            StopRule(kind=binding.rule_kind, threshold=binding.threshold),
+            timing,
+        )
+        return protection_candidate(
+            observation,
+            managed,
+            ProtectionExposure(
+                managed_qty=position.managed,
+                reserved_sell_qty=position.reserved,
+                reconciliation_required=position.reconciliation_required,
+                sell_uncertain=position.sell_uncertain,
+            ),
         )
 
     def portfolio(self, symbol: str) -> Portfolio:

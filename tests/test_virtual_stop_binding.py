@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from contracts.stop_evaluation import ObserveAt, Quote
-from execution.facts import Fill
+from execution.facts import Fill, Transport
 from execution.ledger import Ledger
 from execution.models import Allocation, LedgerError, New, VirtualStopBinding
 from execution.ownership import AccountLease
@@ -102,6 +102,111 @@ def test_buy_partial_fills_assign_order_rule_once_and_restore_after_restart(
     assert restored.virtual_stop_binding("005930") is None
     assert restored.buy_order_average_cost(buy.order_id) is None
     assert restored.confirmed_stop_cost_basis("005930") is None
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    decision = restored.virtual_price_stop_candidate(
+        "005930",
+        Quote(symbol="005930", price="9700", received_at=now),
+        ObserveAt(now=now, max_quote_age_seconds=2),
+    )
+    assert (decision.status, decision.unreserved_qty) == ("CANDIDATE", 7)
+
+
+def test_fixed_price_stop_accounts_for_partial_sell_without_cost(
+    tmp_path: Path, lease: AccountLease
+) -> None:
+    path = tmp_path / "ledger.sqlite3"
+    book = Ledger(path, lease)
+    book.approve_virtual_reconciliation(0)
+    book.apply_virtual_stop_config(
+        VirtualStopBinding(
+            symbol="005930",
+            version=2,
+            rule_kind="PRICE_AT_OR_BELOW",
+            threshold="9800",
+        ),
+        expected_version=1,
+    )
+    buy = book.submit(
+        New(
+            key="unpriced-buy",
+            symbol="005930",
+            side="BUY",
+            config_version=2,
+            qty=7,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=4,
+            remaining=3,
+            evidence_version=1,
+        )
+    )
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    quote = Quote(symbol="005930", price="9700", received_at=now)
+    timing = ObserveAt(now=now, max_quote_age_seconds=2)
+    assert (
+        book.virtual_price_stop_candidate("005930", quote, timing).unreserved_qty == 4
+    )
+    stale = Quote(symbol="005930", price="9700", received_at=now - timedelta(seconds=3))
+    assert book.virtual_price_stop_candidate("005930", stale, timing).status == "NONE"
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=3,
+            remaining=0,
+            evidence_version=2,
+        )
+    )
+    sell = book.submit(
+        New(
+            key="existing-sell",
+            symbol="005930",
+            side="SELL",
+            config_version=2,
+            qty=2,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    assert (
+        book.virtual_price_stop_candidate("005930", quote, timing).unreserved_qty == 5
+    )
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=sell.order_id,
+            qty=2,
+            remaining=0,
+            evidence_version=1,
+        )
+    )
+    restored = Ledger(path, lease)
+    assert (
+        restored.virtual_price_stop_candidate("005930", quote, timing).unreserved_qty
+        == 5
+    )
+    assert (
+        restored.virtual_cost_stop_candidate("005930", quote, timing).status
+        == "BLOCKED"
+    )
+    assert book.ingest(
+        Transport(event_id=uuid4(), request_id=sell.request_id, state="UNKNOWN")
+    )
+    uncertain = Ledger(path, lease).virtual_price_stop_candidate(
+        "005930", quote, timing
+    )
+    assert (uncertain.status, uncertain.reason) == (
+        "BLOCKED",
+        "SELL_EVIDENCE_UNRESOLVED",
+    )
 
 
 def test_confirmed_order_cost_requires_every_exact_fill_price(
@@ -217,6 +322,9 @@ def test_multiple_priced_buy_orders_share_one_basis_until_sell(
         timing,
     )
     assert stale.reason == "QUOTE_NOT_FRESH"
+    quote = Quote(symbol="005930", price="9700", received_at=now)
+    first_candidate = restored.virtual_cost_stop_candidate("005930", quote, timing)
+    assert (first_candidate.status, first_candidate.unreserved_qty) == ("CANDIDATE", 3)
     sell = book.submit(
         New(
             key="sell-after-buys",
@@ -229,6 +337,22 @@ def test_multiple_priced_buy_orders_share_one_basis_until_sell(
             validity="DAY",
         )
     ).request
+    reserved_candidate = book.virtual_cost_stop_candidate("005930", quote, timing)
+    assert (reserved_candidate.status, reserved_candidate.unreserved_qty) == (
+        "CANDIDATE",
+        2,
+    )
+    assert book.ingest(
+        Transport(event_id=uuid4(), request_id=sell.request_id, state="UNKNOWN")
+    )
+    uncertain_candidate = Ledger(path, lease).virtual_cost_stop_candidate(
+        "005930", quote, timing
+    )
+    assert (
+        uncertain_candidate.status,
+        uncertain_candidate.reason,
+        uncertain_candidate.unreserved_qty,
+    ) == ("BLOCKED", "SELL_EVIDENCE_UNRESOLVED", 0)
     assert book.ingest(
         Fill(
             event_id=uuid4(),

@@ -87,8 +87,16 @@ class StopCostBasis:
     rule_version: int
 
 
-def confirmed_stop_cost_basis(journal: Journal, symbol: str) -> StopCostBasis | None:
-    """Fail closed when fills, starting holdings or sell history are incomplete."""
+@dataclass(frozen=True, slots=True)
+class StopHoldings:
+    """Current positive holdings whose buys share one confirmed rule version."""
+
+    qty: int
+    rule_version: int
+
+
+def confirmed_stop_holdings(journal: Journal, symbol: str) -> StopHoldings | None:
+    """Associate managed shares with one rule even after confirmed partial sells."""
     if any(a.symbol == symbol and a.qty > 0 for a in journal.allocations):
         return None
     orders = {
@@ -96,10 +104,14 @@ def confirmed_stop_cost_basis(journal: Journal, symbol: str) -> StopCostBasis | 
         for r in journal.requests
         if isinstance(r.command, New) and r.command.symbol == symbol
     }
-    fills = [f for f in journal.facts if isinstance(f, Fill) and f.order_id in orders]
-    if not fills or any(
-        orders[f.order_id].side == "SELL" or f.price is None for f in fills
-    ):
+    fills = [
+        f
+        for f in journal.facts
+        if isinstance(f, Fill)
+        and f.order_id in orders
+        and orders[f.order_id].side == "BUY"
+    ]
+    if not fills:
         return None
     assignments = {a.fill_event_id: a for a in journal.stop_assignments}
     versions = {
@@ -121,14 +133,34 @@ def confirmed_stop_cost_basis(journal: Journal, symbol: str) -> StopCostBasis | 
         b.symbol == symbol and b.version == version for b in journal.stop_bindings
     ):
         return None
-    qty = sum(f.qty for f in fills)
     position = portfolio(journal, symbol)
-    if position.managed != qty or position.reconciliation_required:
+    if position.managed <= 0 or position.reconciliation_required:
+        return None
+    return StopHoldings(qty=position.managed, rule_version=version)
+
+
+def confirmed_stop_cost_basis(journal: Journal, symbol: str) -> StopCostBasis | None:
+    """Only use priced buy fills before any sale or starting holding."""
+    holdings = confirmed_stop_holdings(journal, symbol)
+    if holdings is None:
+        return None
+    orders = {
+        r.order_id: r.command
+        for r in journal.requests
+        if isinstance(r.command, New) and r.command.symbol == symbol
+    }
+    fills = [f for f in journal.facts if isinstance(f, Fill) and f.order_id in orders]
+    if any(orders[f.order_id].side == "SELL" or f.price is None for f in fills):
+        return None
+    qty = sum(f.qty for f in fills)
+    if qty != holdings.qty:
         return None
     total = sum(
         (Decimal(f.price) * f.qty for f in fills if f.price is not None), Decimal(0)
     )
-    return StopCostBasis(qty=qty, average_cost=total / qty, rule_version=version)
+    return StopCostBasis(
+        qty=qty, average_cost=total / qty, rule_version=holdings.rule_version
+    )
 
 
 def buy_order_average_cost(journal: Journal, order_id: UUID) -> Decimal | None:

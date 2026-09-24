@@ -65,6 +65,21 @@ def test_no_confirmed_shares_cannot_trigger() -> None:
     assert result.reason == "NO_MANAGED_POSITION"
 
 
+def test_fixed_price_needs_no_cost_but_percentage_needs_confirmed_cost() -> None:
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    position = ManagedPosition(symbol="005930", confirmed_qty=2)
+    quote = Quote(symbol="005930", price="9700", received_at=now)
+    timing = ObserveAt(now=now, max_quote_age_seconds=2)
+    fixed = evaluate_stop(
+        position, quote, StopRule(kind="PRICE_AT_OR_BELOW", threshold="9800"), timing
+    )
+    percent = evaluate_stop(
+        position, quote, StopRule(kind="AVERAGE_COST_DROP", threshold="0.02"), timing
+    )
+    assert fixed.status == "TRIGGERED"
+    assert (percent.status, percent.reason) == ("UNAVAILABLE", "AVERAGE_COST_MISSING")
+
+
 def test_nonfinite_market_inputs_are_rejected() -> None:
     now = datetime(2026, 9, 24, tzinfo=timezone.utc)
     with pytest.raises(ValidationError):
