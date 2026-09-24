@@ -1,5 +1,8 @@
 # CherryPulse-KR-01 개발 이어가기 기록
 
+지정 Windows PC의 주문 없는 검사 및 향후 키움 읽기 전용 증거 수집 준비는
+[키움 로컬 검증 안내](KIWOOM-LOCAL-VERIFICATION-GUIDE.md)에 정리했다.
+
 - 기록일: 2026-09-24
 - 확인한 GitHub `main`: `c38010d` (`Handle cross-symbol config command identity conflicts`)
 - 이 기록의 목적: 대화가 중단되어도 현재 확인된 상태, 다음 작업 및 완료 판단 기준을 복원한다.
