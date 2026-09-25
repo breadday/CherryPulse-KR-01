@@ -21,6 +21,16 @@ function detail(pattern) {
     ? `최근 체결가 ${pattern.threshold}원 이하`
     : `확인된 평균 매수가 대비 ${Number(pattern.threshold) * 100}% 하락`;
 }
+function patternFamily(pattern) { return pattern.patternId || pattern.id; }
+function patternVersion(pattern) {
+  return Number.isInteger(pattern.version) && pattern.version >= 1 ? pattern.version : 1;
+}
+function patternIsActive(pattern) { return pattern.active !== false; }
+function nextPatternVersion(pattern) {
+  return state.patterns
+    .filter((item) => patternFamily(item) === patternFamily(pattern))
+    .reduce((highest, item) => Math.max(highest, patternVersion(item)), 0) + 1;
+}
 function render() {
   const activeCount = state.symbols.filter((item) => item.archived !== true).length;
   const archivedCount = state.symbols.length - activeCount;
@@ -66,7 +76,10 @@ function render() {
     const select = document.createElement("select"); select.setAttribute("aria-label", `${item.code} 손절 패턴`);
     const none = document.createElement("option"); none.value = ""; none.textContent = "연결하지 않음"; select.append(none);
     for (const pattern of state.patterns) {
-      const option = document.createElement("option"); option.value = pattern.id; option.textContent = `${pattern.name} · ${detail(pattern)}`; select.append(option);
+      const option = document.createElement("option"); option.value = pattern.id;
+      option.textContent = `${pattern.name} · v${patternVersion(pattern)}${patternIsActive(pattern) ? "" : " · 비활성"} · ${detail(pattern)}`;
+      option.disabled = !patternIsActive(pattern) && item.patternId !== pattern.id;
+      select.append(option);
     }
     select.value = state.patterns.some((p) => p.id === item.patternId) ? item.patternId : "";
     select.addEventListener("change", () => {
@@ -121,9 +134,60 @@ function render() {
   }
   for (const pattern of state.patterns) {
     const card = document.createElement("article"); card.className = "card";
-    const title = document.createElement("div"); title.className = "pattern-title"; title.textContent = pattern.name;
+    const title = document.createElement("div"); title.className = "pattern-title";
+    title.textContent = `${pattern.name} · v${patternVersion(pattern)}${patternIsActive(pattern) ? "" : " · 비활성"}`;
     const description = document.createElement("p"); description.className = "pattern-detail"; description.textContent = detail(pattern);
-    card.append(title, description); patterns.append(card);
+    const edit = document.createElement("details"); edit.className = "pattern-edit";
+    const summary = document.createElement("summary"); summary.textContent = "새 패턴 버전 만들기";
+    const form = document.createElement("form"); form.className = "stack-form pattern-version-form";
+    const nameId = `version-name-${pattern.id}`;
+    const nameLabel = document.createElement("label"); nameLabel.htmlFor = nameId; nameLabel.textContent = "패턴 이름";
+    const nameInput = document.createElement("input"); nameInput.id = nameId; nameInput.name = "name";
+    nameInput.maxLength = 100; nameInput.required = true; nameInput.value = pattern.name;
+    const kindId = `version-kind-${pattern.id}`;
+    const kindLabel = document.createElement("label"); kindLabel.htmlFor = kindId; kindLabel.textContent = "발동 기준";
+    const kindInput = document.createElement("select"); kindInput.id = kindId; kindInput.name = "kind";
+    for (const [value, text] of [["PRICE_AT_OR_BELOW", "최근 체결가가 설정 가격 이하"], ["AVERAGE_COST_DROP", "확인된 평균 매수가 대비 하락률"]]) {
+      const option = document.createElement("option"); option.value = value; option.textContent = text;
+      kindInput.append(option);
+    }
+    kindInput.value = pattern.kind;
+    const thresholdId = `version-threshold-${pattern.id}`;
+    const thresholdLabel = document.createElement("label"); thresholdLabel.htmlFor = thresholdId;
+    thresholdLabel.textContent = pattern.kind === "AVERAGE_COST_DROP" ? "하락률 (예: 0.02 = 2%)" : "기준 가격 (원)";
+    const thresholdInput = document.createElement("input"); thresholdInput.id = thresholdId;
+    thresholdInput.name = "threshold"; thresholdInput.type = "number"; thresholdInput.min = "0.000001";
+    thresholdInput.step = "any"; thresholdInput.required = true; thresholdInput.value = pattern.threshold;
+    kindInput.addEventListener("change", () => {
+      thresholdLabel.textContent = kindInput.value === "AVERAGE_COST_DROP" ? "하락률 (예: 0.02 = 2%)" : "기준 가격 (원)";
+    });
+    const saveVersion = document.createElement("button"); saveVersion.type = "submit";
+    saveVersion.textContent = `v${nextPatternVersion(pattern)} 초안 저장`;
+    form.append(nameLabel, nameInput, kindLabel, kindInput, thresholdLabel, thresholdInput, saveVersion);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const value = Number(thresholdInput.value);
+      if (!nameInput.value.trim() || !Number.isFinite(value) || value <= 0 || (kindInput.value === "AVERAGE_COST_DROP" && value >= 1)) {
+        notice("패턴 이름과 올바른 양수 기준값을 입력하세요. 하락률은 0과 1 사이여야 합니다."); return;
+      }
+      const version = nextPatternVersion(pattern);
+      state.patterns.push({
+        id: crypto.randomUUID(), patternId: patternFamily(pattern), version, active: true,
+        name: nameInput.value.trim(), kind: kindInput.value, threshold: thresholdInput.value.trim(),
+      });
+      saveAndNotify(`손절 패턴 v${version} 초안을 저장했습니다. 기존 연결은 유지되며 새 버전은 종목에 다시 연결해야 합니다.`);
+      render();
+    });
+    edit.append(summary, form);
+    const toggle = document.createElement("button"); toggle.type = "button";
+    toggle.className = "pattern-toggle";
+    toggle.textContent = patternIsActive(pattern) ? "새 연결에서 비활성화" : "다시 활성화";
+    toggle.addEventListener("click", () => {
+      pattern.active = !patternIsActive(pattern);
+      saveAndNotify(pattern.active ? "패턴 버전을 다시 활성화했습니다. 기존 종목 연결은 유지됩니다." : "패턴 버전을 비활성화했습니다. 기존 연결과 이력은 유지됩니다.");
+      render();
+    });
+    card.append(title, description, edit, toggle); patterns.append(card);
   }
 }
 $("active-filter").addEventListener("click", () => { symbolView = "active"; render(); });
@@ -165,7 +229,8 @@ $("pattern-form").addEventListener("submit", (event) => {
   if (!name || !Number.isFinite(value) || value <= 0 || (kind === "AVERAGE_COST_DROP" && value >= 1)) {
     notice("패턴 이름과 올바른 양수 기준값을 입력하세요. 하락률은 0과 1 사이여야 합니다."); return;
   }
-  state.patterns.push({id: crypto.randomUUID(), name, kind, threshold});
+  const id = crypto.randomUUID();
+  state.patterns.push({id, patternId: id, version: 1, active: true, name, kind, threshold});
   const saved = save(); event.target.reset(); $("pattern-kind").dispatchEvent(new Event("change")); render();
   if (saved) notice("패턴 초안을 저장했습니다. 종목에 연결해도 엔진에는 적용되지 않습니다.");
 });

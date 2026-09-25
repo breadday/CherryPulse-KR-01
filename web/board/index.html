@@ -45,7 +45,7 @@
         <div id="symbol-list" class="symbol-list"></div>
       </section>
       <section class="panel" aria-labelledby="patterns-heading">
-        <div class="panel-heading"><h2 id="patterns-heading">손절 패턴</h2><span>초안</span></div>
+        <div class="panel-heading"><h2 id="patterns-heading">손절 패턴</h2><span>초안 · 버전 관리</span></div>
         <form id="pattern-form" class="stack-form">
           <label for="pattern-name">패턴 이름</label>
           <input id="pattern-name" name="name" maxlength="100" placeholder="예: 고정 가격 손절" required>
@@ -54,8 +54,9 @@
           <label for="pattern-threshold" id="threshold-label">기준 가격 (원)</label>
           <input id="pattern-threshold" name="threshold" type="number" min="0.000001" step="any" placeholder="예: 9800" required>
           <p class="hint" id="threshold-hint">실제 시세나 매수가를 조회하지 않습니다.</p>
-          <button type="submit">패턴 저장</button>
+          <button type="submit">v1 패턴 초안 저장</button>
         </form>
+        <p class="hint">저장한 패턴은 수정 시 새 버전으로 추가됩니다. 비활성화는 새 연결만 막고 기존 종목 연결은 유지합니다. 새 버전은 종목에 다시 연결해야 합니다.</p>
         <div id="pattern-list" class="pattern-list"></div>
       </section>
     </div>
