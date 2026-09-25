@@ -19,9 +19,11 @@ from PyQt5.QtWidgets import QApplication, QInputDialog, QLineEdit
 from adapters.kiwoom_readonly import event_matches_request, pagination_complete
 
 TR_TIMEOUT_SECONDS = 120
+TR_SCREEN_INDEX = 0
+TR_REQUEST_NAME_INDEX = 1
+TR_CODE_INDEX = 2
+TR_RECORD_NAME_INDEX = 3
 TR_PREV_NEXT_INDEX = 4
-TR_NAME_INDEX = 1
-RECORD_NAME_INDEX = 2
 SCREEN_BY_TR = {
     "opw00018": "9101",
     "opt10075": "9102",
@@ -192,13 +194,13 @@ def query_one(control: QAxWidget, tr_code: str, timeout_seconds: int) -> QueryEv
     evidence = QueryEvidence(requested_at=now())
     event_loop = QEventLoop()
     request_name = f"readonly_{tr_code}"
-    screen = SCREEN_BY_TR[tr_code]
+    expected_screen = SCREEN_BY_TR[tr_code]
     response_error: str | None = None
 
     def on_message(*args: object) -> None:
         nonlocal response_error
         if not event_matches_request(
-            args, screen=screen, rq_name=request_name, tr_code=tr_code
+            args, screen=expected_screen, rq_name=request_name, tr_code=tr_code
         ):
             return
         message = str(args[-1]) if args else ""
@@ -215,27 +217,87 @@ def query_one(control: QAxWidget, tr_code: str, timeout_seconds: int) -> QueryEv
 
     def on_data(*args: object) -> None:
         if not event_matches_request(
-            args, screen=screen, rq_name=request_name, tr_code=tr_code
+            args, screen=expected_screen, rq_name=request_name, tr_code=tr_code
         ):
+            screen = (
+                str(args[TR_SCREEN_INDEX]).strip()
+                if len(args) > TR_SCREEN_INDEX
+                else "UNKNOWN"
+            )
+            received_request_name = (
+                str(args[TR_REQUEST_NAME_INDEX]).strip()
+                if len(args) > TR_REQUEST_NAME_INDEX
+                else "UNKNOWN"
+            )
+            received_tr_code = (
+                str(args[TR_CODE_INDEX]).strip()
+                if len(args) > TR_CODE_INDEX
+                else "UNKNOWN"
+            )
+            received_record_name = (
+                str(args[TR_RECORD_NAME_INDEX]).strip()
+                if len(args) > TR_RECORD_NAME_INDEX
+                else request_name
+            )
+            previous_next = (
+                str(args[TR_PREV_NEXT_INDEX]).strip()
+                if len(args) > TR_PREV_NEXT_INDEX
+                else "UNKNOWN"
+            )
+            evidence.pages.append(
+                {
+                    "page_number": len(evidence.pages) + 1,
+                    "received_at": now(),
+                    "screen": screen,
+                    "request_name": received_request_name,
+                    "tr_code": received_tr_code,
+                    "record_name": received_record_name,
+                    "event_match": False,
+                    "prev_next": previous_next,
+                    "row_count": None,
+                    "complete": False,
+                }
+            )
+            evidence.error = "TR_EVENT_MISMATCH"
+            event_loop.quit()
             return
+        screen = (
+            str(args[TR_SCREEN_INDEX]).strip()
+            if len(args) > TR_SCREEN_INDEX
+            else "UNKNOWN"
+        )
+        received_request_name = (
+            str(args[TR_REQUEST_NAME_INDEX]).strip()
+            if len(args) > TR_REQUEST_NAME_INDEX
+            else "UNKNOWN"
+        )
+        received_tr_code = (
+            str(args[TR_CODE_INDEX]).strip() if len(args) > TR_CODE_INDEX else "UNKNOWN"
+        )
+        received_record_name = (
+            str(args[TR_RECORD_NAME_INDEX]).strip()
+            if len(args) > TR_RECORD_NAME_INDEX
+            else request_name
+        )
         previous_next = (
             str(args[TR_PREV_NEXT_INDEX]).strip()
             if len(args) > TR_PREV_NEXT_INDEX
             else "UNKNOWN"
         )
-        tr_name = str(args[TR_NAME_INDEX]) if len(args) > TR_NAME_INDEX else tr_code
-        record_name = (
-            str(args[RECORD_NAME_INDEX])
-            if len(args) > RECORD_NAME_INDEX
-            else request_name
-        )
         row_count = int(
-            control.dynamicCall("GetRepeatCnt(QString, QString)", tr_name, record_name)
+            control.dynamicCall(
+                "GetRepeatCnt(QString, QString)", received_tr_code, received_record_name
+            )
         )
         evidence.pages.append(
             {
                 "page_number": len(evidence.pages) + 1,
                 "received_at": now(),
+                "screen": screen,
+                "request_name": received_request_name,
+                "tr_code": received_tr_code,
+                "record_name": received_record_name,
+                "event_match": True,
                 "prev_next": previous_next,
                 "row_count": row_count,
                 "complete": previous_next in {"", "0"},
@@ -248,7 +310,7 @@ def query_one(control: QAxWidget, tr_code: str, timeout_seconds: int) -> QueryEv
                     request_name,
                     tr_code,
                     2,
-                    screen,
+                    expected_screen,
                 )
             )
             if evidence.request_return != 0:
@@ -256,7 +318,7 @@ def query_one(control: QAxWidget, tr_code: str, timeout_seconds: int) -> QueryEv
                 event_loop.quit()
             return
         evidence.responded_at = now()
-        evidence.error = response_error
+        evidence.error = evidence.error or response_error
         event_loop.quit()
 
     control.OnReceiveMsg.connect(on_message)
@@ -267,7 +329,7 @@ def query_one(control: QAxWidget, tr_code: str, timeout_seconds: int) -> QueryEv
             request_name,
             tr_code,
             0,
-            screen,
+            expected_screen,
         )
     )
     if evidence.request_return != 0:
@@ -278,7 +340,7 @@ def query_one(control: QAxWidget, tr_code: str, timeout_seconds: int) -> QueryEv
     if evidence.responded_at is None:
         evidence.error = evidence.error or "TR_TIMEOUT_OR_INCOMPLETE"
     if response_error:
-        evidence.error = response_error
+        evidence.error = evidence.error or response_error
     return evidence
 
 

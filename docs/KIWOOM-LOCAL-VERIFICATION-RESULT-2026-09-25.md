@@ -1,6 +1,6 @@
 # 키움 로컬 검증 결과 — 2026-09-25
 
-## 후속 안전 경계: 조회 이벤트 연결
+## 최신 main 이벤트 연결 재검증 — 2026-09-25
 
 읽기 전용 수집기의 `OnReceiveMsg`·`OnReceiveTrData`는 이제 화면번호,
 요청명, TR 코드가 진행 중인 단일 요청과 일치하는 이벤트만 기록한다.
@@ -9,31 +9,39 @@
 않고 응답을 기다리거나 시간 초과로 남긴다. 이는 실제 키움 이벤트의
 식별자 수신 형식이 설치 버전에서 일치하는지 검증한 결과는 아니다.
 
-로컬 Linux Python 3.12 분리 환경 관련 pytest **20 passed**, Ruff 검사·
-포맷 검사 및 공백 검사 통과. Windows Python 3.10 32비트 전체 검사와
-키움 실제 이벤트 연결 확인은 최신 커밋을 받은 지정 PC에서 다시 수행해야
-한다. 기존의 Windows **145 passed**는 이번 변경 이전의 결과다.
-
-## 최신 소스 재검증 — 2026-09-25
-
-기준 브랜치 `main`, HEAD `66d3e7393074e031036d1a88635ff9c9da8da6d9`, 작업
-트리는 검사 전 깨끗했다. Python 3.10.8 32비트에서 다음 명령을 현재 HEAD로
-다시 실행했다.
+원격 변경을 통합하기 전 기준은 `main`의 `e9cac65ade37ec494323d5a53b299c47a6db8f45`이며 작업
+트리는 검사 전 깨끗했다. 이벤트 연결 검증을 보강한 뒤 Python 3.10.8 32비트에서
+다음 검사를 다시 실행했다.
 
 | 검사 | 종료 코드 | 결과 |
 |---|---:|---|
 | `py -3.10-32 -c "...version/bits..."` | 0 | Python 3.10.8, 32비트 |
-| `py -3.10-32 -m pytest -q --tb=line --basetemp .tools\\pytest-current` | 0 | 145 passed |
+| `py -3.10-32 -m pytest -q --tb=line --basetemp .tools\\pytest-current` | 0 | 149 passed |
 | `py -3.10-32 -m ruff check .` | 0 | 통과 |
 | `py -3.10-32 -m ruff format --check .` | 0 | 79 files already formatted |
 | `py -3.10-32 -m execution` | 0 | 가상 데모 정상 출력 |
 | `git diff --check` | 0 | 통과 |
 
-실제 조회 재실행은 `py -3.10-32 verify_kiwoom_readonly.py --tr opt10075
---timeout 15`로 시도했다. 로그인 이벤트와 연결 상태는 성공했고 계좌 수만
-표시된 뒤 계좌 선택 대화상자에서 대기하여 도구 제한시간으로 종료됐다. 계좌를
-자동 선택하지 않았으며 `CommRqData`와 실제 TR은 호출되지 않았다. 비밀번호·계좌
-번호·원문 응답은 출력하거나 보관하지 않았다.
+추가한 이벤트 검증은 화면번호·요청명·TR 코드가 요청과 다르면
+`TR_EVENT_MISMATCH`로 격리하고 `GetRepeatCnt` 또는 다음 페이지 요청을 하지
+않도록 한다. 불일치 각 항목과 일치 경로를 테스트했다.
+
+실제 조회는 `py -3.10-32 verify_kiwoom_readonly.py --tr opt10075 --timeout 120`로
+실행했다. 사용자가 계좌를 직접 선택했고, `CommRqData` 반환값은 0이었다. 민감한
+입력값과 증권사 원문 메시지는 저장·기록하지 않고 종류만 `QUERY`로 남겼다.
+
+```text
+tr opt10075
+alias READONLY-ACCOUNT-1
+page=1 screen=9102 request_name=readonly_opt10075 tr_code=opt10075
+event_match=True record_name=<empty> prev_next=<empty> row_count=0 complete=True
+page_complete=True content_validity=NOT_VALIDATED error=BROKER_MESSAGE_PRESENT
+```
+
+화면번호·요청명·TR 코드가 모두 일치했으며 실제 다중 페이지는 발생하지 않았다.
+행 수 0은 미체결 0건이나 취소 완료를 확정하지 않으며 원장에 편입하지 않았다.
+이번 실행에서 호출한 실제 TR은 `opt10075` 하나뿐이고 `opw00007` 및 주문 API는
+호출하지 않았다.
 
 ## 후속 검증: 다중 페이지 완료 판정
 
