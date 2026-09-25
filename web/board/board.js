@@ -13,6 +13,9 @@ function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
   catch { notice("브라우저 저장이 차단되어 이 창을 닫으면 초안이 사라집니다."); return false; }
 }
+function saveAndNotify(message) {
+  if (save()) notice(message);
+}
 function detail(pattern) {
   return pattern.kind === "PRICE_AT_OR_BELOW"
     ? `최근 체결가 ${pattern.threshold}원 이하`
@@ -66,15 +69,48 @@ function render() {
       const option = document.createElement("option"); option.value = pattern.id; option.textContent = `${pattern.name} · ${detail(pattern)}`; select.append(option);
     }
     select.value = state.patterns.some((p) => p.id === item.patternId) ? item.patternId : "";
-    select.addEventListener("change", () => { item.patternId = select.value; save(); notice(`${item.code}의 초안을 저장했습니다. 엔진에는 적용되지 않았습니다.`); });
+    select.addEventListener("change", () => {
+      item.patternId = select.value;
+      saveAndNotify(`${item.code}의 초안을 저장했습니다. 엔진에는 적용되지 않았습니다.`);
+    });
     card.append(label, select);
+    const edit = document.createElement("details"); edit.className = "symbol-edit";
+    const summary = document.createElement("summary"); summary.textContent = "종목 정보 수정";
+    const editForm = document.createElement("form"); editForm.className = "stack-form symbol-edit-form";
+    const nameId = `edit-name-${item.code}`;
+    const nameLabel = document.createElement("label"); nameLabel.htmlFor = nameId; nameLabel.textContent = "종목명";
+    const nameInput = document.createElement("input"); nameInput.id = nameId; nameInput.name = "name";
+    nameInput.value = item.name || ""; nameInput.maxLength = 100; nameInput.required = true;
+    const sourceId = `edit-source-${item.code}`;
+    const sourceLabel = document.createElement("label"); sourceLabel.htmlFor = sourceId; sourceLabel.textContent = "참고 링크";
+    const sourceInput = document.createElement("input"); sourceInput.id = sourceId; sourceInput.name = "source";
+    sourceInput.type = "url"; sourceInput.value = item.source || ""; sourceInput.maxLength = 2048;
+    const noteId = `edit-note-${item.code}`;
+    const noteLabel = document.createElement("label"); noteLabel.htmlFor = noteId; noteLabel.textContent = "메모";
+    const noteInput = document.createElement("textarea"); noteInput.id = noteId; noteInput.name = "note";
+    noteInput.value = item.note || ""; noteInput.maxLength = 1000; noteInput.rows = 3;
+    const saveEdit = document.createElement("button"); saveEdit.type = "submit"; saveEdit.textContent = "정보 저장";
+    editForm.append(nameLabel, nameInput, sourceLabel, sourceInput, noteLabel, noteInput, saveEdit);
+    editForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const nameValue = nameInput.value.trim();
+      const sourceValue = sourceInput.value.trim();
+      if (!nameValue || (sourceValue && !safeSourceUrl(sourceValue))) {
+        notice("종목명을 입력하고 참고 링크는 http 또는 https 주소를 사용하세요.");
+        return;
+      }
+      item.name = nameValue; item.source = sourceValue; item.note = noteInput.value.trim();
+      saveAndNotify(`${item.code}의 종목 정보를 수정했습니다. 엔진에는 적용되지 않았습니다.`);
+      render();
+    });
+    edit.append(summary, editForm); card.append(edit);
     const archive = document.createElement("button");
     archive.type = "button"; archive.className = "archive-button";
     archive.textContent = item.archived === true ? "관심 목록으로 복원" : "보관";
     archive.addEventListener("click", () => {
       item.archived = item.archived !== true;
-      save(); render();
-      notice(item.archived ? "종목 초안을 보관했습니다. 엔진 상태는 변경되지 않았습니다." : "종목 초안을 관심 목록으로 복원했습니다.");
+      saveAndNotify(item.archived ? "종목 초안을 보관했습니다. 엔진 상태는 변경되지 않았습니다." : "종목 초안을 관심 목록으로 복원했습니다.");
+      render();
     });
     card.append(archive);
     symbols.append(card);
@@ -109,8 +145,9 @@ $("symbol-form").addEventListener("submit", (event) => {
   if (!name) { notice("종목명을 직접 입력하세요."); return; }
   if (source && !safeSourceUrl(source)) { notice("참고 링크는 http 또는 https 주소만 사용할 수 있습니다."); return; }
   if (state.symbols.some((item) => item.code === code)) { notice("이미 등록한 종목입니다."); return; }
-  state.symbols.push({code, name, source, note, patternId: "", archived: false}); save(); event.target.reset(); render();
-  notice(`${name} (${code})을 초안에 추가했습니다. 감시는 시작되지 않았습니다.`);
+  state.symbols.push({code, name, source, note, patternId: "", archived: false});
+  const saved = save(); event.target.reset(); render();
+  if (saved) notice(`${name} (${code})을 초안에 추가했습니다. 감시는 시작되지 않았습니다.`);
 });
 $("pattern-kind").addEventListener("change", () => {
   const ratio = $("pattern-kind").value === "AVERAGE_COST_DROP";
@@ -129,7 +166,7 @@ $("pattern-form").addEventListener("submit", (event) => {
     notice("패턴 이름과 올바른 양수 기준값을 입력하세요. 하락률은 0과 1 사이여야 합니다."); return;
   }
   state.patterns.push({id: crypto.randomUUID(), name, kind, threshold});
-  save(); event.target.reset(); $("pattern-kind").dispatchEvent(new Event("change")); render();
-  notice("패턴 초안을 저장했습니다. 종목에 연결해도 엔진에는 적용되지 않습니다.");
+  const saved = save(); event.target.reset(); $("pattern-kind").dispatchEvent(new Event("change")); render();
+  if (saved) notice("패턴 초안을 저장했습니다. 종목에 연결해도 엔진에는 적용되지 않습니다.");
 });
 render();
