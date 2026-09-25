@@ -5,6 +5,7 @@ const {readFileSync} = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
+const {DraftImportError, parseSymbolImport} = require("./draft-import.js");
 
 class Element {
   constructor(tagName = "div", id = "") {
@@ -27,7 +28,12 @@ class Element {
   }
   dispatch(name, event = {}) {
     for (const callback of this.listeners.get(name) || []) {
-      callback({target: this, preventDefault() {}, ...event});
+      callback({target: this, currentTarget: this, preventDefault() {}, ...event});
+    }
+  }
+  async dispatchAsync(name, event = {}) {
+    for (const callback of this.listeners.get(name) || []) {
+      await callback({target: this, currentTarget: this, preventDefault() {}, ...event});
     }
   }
   reset() { this.value = ""; }
@@ -40,6 +46,7 @@ function descendants(element) {
 function boardWithDraft(draft) {
   const ids = [
     "notice", "symbol-count", "active-filter", "archived-filter", "symbol-list",
+    "bulk-import-form", "symbol-import-file",
     "pattern-list", "symbol-form", "pattern-kind", "pattern-order-type", "threshold-label",
     "threshold-hint", "pattern-threshold", "pattern-name", "pattern-form",
     "symbol-input", "symbol-name", "symbol-source", "symbol-note",
@@ -61,6 +68,7 @@ function boardWithDraft(draft) {
       setItem(key, value) { stored.set(key, value); },
     },
     crypto: {randomUUID: () => `generated-${++sequence}`},
+    CherryPulseDraftImport: require("./draft-import.js"),
     URL,
     Event: class { constructor(type) { this.type = type; } },
   };
@@ -155,4 +163,74 @@ test("new versions require an explicit supported order type", () => {
   assert.equal(draft.patterns.length, 2);
   assert.equal(draft.patterns[1].version, 2);
   assert.equal(draft.patterns[1].orderType, "LIMIT");
+});
+
+test("JSON and CSV imports normalize supported fields and preserve quoted CSV data", () => {
+  const json = parseSymbolImport("watch.json", JSON.stringify([
+    {code: "005930", name: " 삼성전자 ", source: "https://example.com/a", note: " memo "},
+  ]));
+  assert.deepEqual(json, [{
+    code: "005930", name: "삼성전자", source: "https://example.com/a", note: "memo",
+    patternId: "", archived: false,
+  }]);
+
+  const csv = parseSymbolImport(
+    "watch.CSV",
+    'name,note,code,source\r\n"SK, Inc.","line one\nline two",000660,https://example.com',
+  );
+  assert.deepEqual(csv, [{
+    code: "000660", name: "SK, Inc.", source: "https://example.com/", note: "line one\nline two",
+    patternId: "", archived: false,
+  }]);
+});
+
+test("bulk import applies all rows together and rejects duplicate codes without mutation", async () => {
+  const fixture = boardWithDraft({
+    symbols: [{code: "005930", name: "기존", patternId: "", archived: false}],
+    patterns: [],
+  });
+  const fileInput = fixture.getElement("symbol-import-file");
+  fileInput.files = [{
+    name: "watch.csv", size: 64,
+    async text() { return "code,name,source,note\n000660,SK하이닉스,,import\n035420,NAVER,,import"; },
+  }];
+  await fixture.getElement("bulk-import-form").dispatchAsync("submit");
+  let draft = fixture.getDraft();
+  assert.deepEqual(draft.symbols.map((item) => item.code), ["005930", "000660", "035420"]);
+  assert.equal(fixture.getElement("notice").textContent.includes("2개 종목"), true);
+
+  fileInput.files = [{
+    name: "duplicate.json", size: 32,
+    async text() { return '[{"code":"005930","name":"중복"}]'; },
+  }];
+  await fixture.getElement("bulk-import-form").dispatchAsync("submit");
+  draft = fixture.getDraft();
+  assert.deepEqual(draft.symbols.map((item) => item.code), ["005930", "000660", "035420"]);
+  assert.match(fixture.getElement("notice").textContent, /중복된 종목코드/);
+});
+
+test("bulk import rejects unsupported fields, malformed CSV, and duplicate codes", () => {
+  assert.throws(
+    () => parseSymbolImport("bad.json", '[{"code":"005930","name":"A","patternId":"x"}]'),
+    (error) => error instanceof DraftImportError && error.code === "IMPORT_FIELDS_INVALID",
+  );
+  assert.throws(
+    () => parseSymbolImport("bad.csv", 'code,name\n005930,"unclosed'),
+    (error) => error instanceof DraftImportError && error.code === "IMPORT_CSV_INVALID",
+  );
+  assert.throws(
+    () => parseSymbolImport("dupe.json", '[{"code":"005930","name":"A"}]', [{code: "005930"}]),
+    (error) => error instanceof DraftImportError && error.code === "IMPORT_DUPLICATE_SYMBOL",
+  );
+});
+
+test("bulk import rejects oversized files before reading or changing the draft", async () => {
+  const fixture = boardWithDraft({symbols: [], patterns: []});
+  fixture.getElement("symbol-import-file").files = [{
+    name: "large.json", size: 5 * 1024 * 1024 + 1,
+    async text() { assert.fail("oversized file must not be read"); },
+  }];
+  await fixture.getElement("bulk-import-form").dispatchAsync("submit");
+  assert.deepEqual(fixture.getDraft().symbols, []);
+  assert.match(fixture.getElement("notice").textContent, /5 MiB 이하/);
 });

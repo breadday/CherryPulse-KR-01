@@ -1,6 +1,7 @@
 "use strict";
 const STORAGE_KEY = "cherrypulse-board-draft-v1";
 const initial = {symbols: [], patterns: []};
+const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 let state;
 let symbolView = "active";
 try {
@@ -217,6 +218,43 @@ function safeSourceUrl(value) {
     return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
   } catch { return ""; }
 }
+function importErrorMessage(error) {
+  const messages = {
+    IMPORT_FILE_TYPE_UNSUPPORTED: "JSON 또는 CSV 파일만 가져올 수 있습니다.",
+    IMPORT_FILE_TOO_LARGE: "가져오기 파일은 5 MiB 이하만 지원합니다.",
+    IMPORT_JSON_INVALID: "JSON 파일을 읽을 수 없습니다.",
+    IMPORT_JSON_ARRAY_REQUIRED: "JSON 최상위 값은 종목 객체 배열이어야 합니다.",
+    IMPORT_CSV_INVALID: "CSV 인용부호·열 수·행 형식을 확인하세요.",
+    IMPORT_CSV_HEADER_INVALID: "CSV 첫 행은 code,name을 포함하고 source,note만 추가할 수 있습니다.",
+    IMPORT_FIELDS_INVALID: "지원하지 않는 필드가 있습니다. code,name,source,note만 사용하세요.",
+    IMPORT_SYMBOL_INVALID: "종목코드·종목명·링크·메모 형식 또는 길이를 확인하세요.",
+    IMPORT_DUPLICATE_SYMBOL: "이미 등록했거나 파일 안에서 중복된 종목코드가 있습니다.",
+    IMPORT_EMPTY: "가져올 종목 행이 없습니다.",
+  };
+  const message = messages[error?.code] || "파일을 읽거나 검증하지 못했습니다.";
+  return error?.recordNumber ? `${message} (행 ${error.recordNumber})` : message;
+}
+
+$("bulk-import-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const file = $("symbol-import-file").files?.[0];
+  if (!file) { notice("JSON 또는 CSV 파일을 선택하세요."); return; }
+  let imported;
+  try {
+    if (file.size > MAX_IMPORT_BYTES) throw Object.assign(new Error(), {code: "IMPORT_FILE_TOO_LARGE"});
+    imported = CherryPulseDraftImport.parseSymbolImport(
+      file.name, await file.text(), state.symbols,
+    );
+  } catch (error) {
+    notice(importErrorMessage(error));
+    return;
+  }
+  state.symbols.push(...imported);
+  const saved = save(); form.reset(); render();
+  if (saved) notice(`${imported.length}개 종목을 브라우저 초안에 추가했습니다. 감시나 주문은 시작되지 않았습니다.`);
+});
+
 $("symbol-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const code = $("symbol-input").value.trim();

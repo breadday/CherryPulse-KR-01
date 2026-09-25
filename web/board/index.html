@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CherryPulse · 관심종목 보드</title>
   <link rel="stylesheet" href="styles.css">
+  <script defer src="draft-import.js"></script>
   <script defer src="board.js"></script>
 </head>
 <body>
@@ -42,6 +43,15 @@
           <textarea id="symbol-note" name="note" maxlength="1000" rows="3" placeholder="등록 이유나 참고 내용을 적어 두세요."></textarea>
           <button type="submit">종목 추가</button>
         </form>
+        <details class="bulk-import">
+          <summary>JSON/CSV에서 종목 초안 가져오기</summary>
+          <form id="bulk-import-form" class="stack-form">
+            <label for="symbol-import-file">가져올 파일</label>
+            <input id="symbol-import-file" name="file" type="file" accept=".json,.csv,application/json,text/csv" required>
+            <p class="hint">JSON은 code·name 필수, source·note 선택인 객체 배열입니다. CSV 첫 줄은 code,name이며 source,note는 선택 열입니다. 전체 행 검증이 성공해야 한 번에 추가됩니다.</p>
+            <button type="submit">검증 후 종목 초안 가져오기</button>
+          </form>
+        </details>
         <div id="symbol-list" class="symbol-list"></div>
       </section>
       <section class="panel" aria-labelledby="patterns-heading">
