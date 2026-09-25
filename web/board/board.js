@@ -2,6 +2,7 @@
 const STORAGE_KEY = "cherrypulse-board-draft-v1";
 const initial = {symbols: [], patterns: []};
 let state;
+let symbolView = "active";
 try {
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
   state = saved && Array.isArray(saved.symbols) && Array.isArray(saved.patterns) ? saved : initial;
@@ -18,23 +19,33 @@ function detail(pattern) {
     : `확인된 평균 매수가 대비 ${Number(pattern.threshold) * 100}% 하락`;
 }
 function render() {
-  $("symbol-count").textContent = `${state.symbols.length}개`;
+  const activeCount = state.symbols.filter((item) => item.archived !== true).length;
+  const archivedCount = state.symbols.length - activeCount;
+  $("symbol-count").textContent = `${activeCount}개 관심 · ${archivedCount}개 보관`;
+  $("active-filter").setAttribute("aria-pressed", String(symbolView === "active"));
+  $("archived-filter").setAttribute("aria-pressed", String(symbolView === "archived"));
   const symbols = $("symbol-list");
   const patterns = $("pattern-list");
   symbols.replaceChildren(); patterns.replaceChildren();
-  if (!state.symbols.length) {
+  const visibleSymbols = state.symbols.filter((item) =>
+    symbolView === "archived" ? item.archived === true : item.archived !== true
+  );
+  if (!visibleSymbols.length) {
     const empty = document.createElement("p"); empty.className = "empty";
-    empty.textContent = "등록한 종목이 없습니다. 외부에서 선택한 종목코드를 직접 입력하세요.";
+    empty.textContent = symbolView === "archived"
+      ? "보관한 종목이 없습니다. 종목 카드를 보관해 두면 여기에 남습니다."
+      : "등록한 종목이 없습니다. 외부에서 선택한 종목코드를 직접 입력하세요.";
     symbols.append(empty);
   }
-  for (const item of state.symbols) {
+  for (const item of visibleSymbols) {
     const card = document.createElement("article"); card.className = "card";
     const head = document.createElement("div"); head.className = "card-head";
     const identity = document.createElement("div");
     const name = document.createElement("div"); name.className = "symbol-name"; name.textContent = item.name || "종목명 미입력";
     const code = document.createElement("span"); code.className = "symbol-code"; code.textContent = item.code;
     identity.append(name, code);
-    const badge = document.createElement("span"); badge.className = "badge"; badge.textContent = "미적용";
+    const badge = document.createElement("span"); badge.className = "badge";
+    badge.textContent = item.archived === true ? "보관 · 미적용" : "미적용";
     head.append(identity, badge);
     if (item.note) {
       const note = document.createElement("p"); note.className = "symbol-note"; note.textContent = item.note;
@@ -56,7 +67,17 @@ function render() {
     }
     select.value = state.patterns.some((p) => p.id === item.patternId) ? item.patternId : "";
     select.addEventListener("change", () => { item.patternId = select.value; save(); notice(`${item.code}의 초안을 저장했습니다. 엔진에는 적용되지 않았습니다.`); });
-    card.append(label, select); symbols.append(card);
+    card.append(label, select);
+    const archive = document.createElement("button");
+    archive.type = "button"; archive.className = "archive-button";
+    archive.textContent = item.archived === true ? "관심 목록으로 복원" : "보관";
+    archive.addEventListener("click", () => {
+      item.archived = item.archived !== true;
+      save(); render();
+      notice(item.archived ? "종목 초안을 보관했습니다. 엔진 상태는 변경되지 않았습니다." : "종목 초안을 관심 목록으로 복원했습니다.");
+    });
+    card.append(archive);
+    symbols.append(card);
   }
   if (!state.patterns.length) {
     const empty = document.createElement("p"); empty.className = "empty";
@@ -69,6 +90,8 @@ function render() {
     card.append(title, description); patterns.append(card);
   }
 }
+$("active-filter").addEventListener("click", () => { symbolView = "active"; render(); });
+$("archived-filter").addEventListener("click", () => { symbolView = "archived"; render(); });
 function safeSourceUrl(value) {
   if (!value) return "";
   try {
@@ -86,7 +109,7 @@ $("symbol-form").addEventListener("submit", (event) => {
   if (!name) { notice("종목명을 직접 입력하세요."); return; }
   if (source && !safeSourceUrl(source)) { notice("참고 링크는 http 또는 https 주소만 사용할 수 있습니다."); return; }
   if (state.symbols.some((item) => item.code === code)) { notice("이미 등록한 종목입니다."); return; }
-  state.symbols.push({code, name, source, note, patternId: ""}); save(); event.target.reset(); render();
+  state.symbols.push({code, name, source, note, patternId: "", archived: false}); save(); event.target.reset(); render();
   notice(`${name} (${code})을 초안에 추가했습니다. 감시는 시작되지 않았습니다.`);
 });
 $("pattern-kind").addEventListener("change", () => {

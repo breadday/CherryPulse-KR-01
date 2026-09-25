@@ -24,7 +24,13 @@
     <div id="notice" role="status" aria-live="polite"></div>
     <div class="columns">
       <section class="panel" aria-labelledby="symbols-heading">
-        <div class="panel-heading"><h2 id="symbols-heading">관심종목</h2><span id="symbol-count">0개</span></div>
+        <div class="panel-heading symbol-heading">
+          <div><h2 id="symbols-heading">관심종목</h2><span id="symbol-count">0개 관심 · 0개 보관</span></div>
+          <div class="symbol-filters" role="group" aria-label="종목 목록 보기">
+            <button id="active-filter" class="filter-button" type="button" aria-pressed="true" aria-controls="symbol-list">관심</button>
+            <button id="archived-filter" class="filter-button" type="button" aria-pressed="false" aria-controls="symbol-list">보관</button>
+          </div>
+        </div>
         <form id="symbol-form" class="stack-form">
           <label for="symbol-name">종목명</label>
           <input id="symbol-name" name="name" maxlength="100" placeholder="직접 입력" required>
