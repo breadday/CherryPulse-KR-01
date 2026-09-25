@@ -34,7 +34,7 @@ git pull --ff-only origin main
 진행한다. 터미널에 계좌·토큰·`.env` 내용을 출력하지 않는다.
 
 ```powershell
-& .\.venv\Scripts\python.exe -I -B -c 'import sys,struct,importlib.metadata as m; from PyQt5.QtWidgets import QApplication; from PyQt5.QAxContainer import QAxWidget; print(sys.version.split()[0],struct.calcsize("P")*8,sys.prefix!=sys.base_prefix); print(m.version("PyQt5"),m.version("PyQt5-Qt5"),m.version("PyQt5-sip")); app=QApplication([]); control=QAxWidget(); ok=control.setControl("KHOPENAPI.KHOpenAPICtrl.1"); print("control_created",ok,"is_null",control.isNull()); control.clear(); print("control_released",control.isNull()); raise SystemExit(0 if ok and struct.calcsize("P")==4 and sys.prefix!=sys.base_prefix else 1)'
+& .\.venv\Scripts\python.exe -I -B verify_kiwoom_com.py
 & .\.tools\uv\uv.exe pip check --python .venv\Scripts\python.exe --cache-dir .uv-cache
 & .\.venv\Scripts\ruff.exe check execution tests
 & .\.venv\Scripts\ruff.exe format --check execution tests
@@ -51,7 +51,10 @@ $ledgerTestTemp = Join-Path '.tools' ('pytest-' + [guid]::NewGuid().ToString('N'
 & node .tools/typecheck/basedpyright/index.js --pythonpath .venv/Scripts/python.exe
 ```
 
-COM 생성 성공은 서버 로그인·조회·주문 가능성을 보증하지 않는다.
+COM 생성 성공은 서버 로그인·조회·주문 가능성을 보증하지 않는다. `verify_kiwoom_com.py`는
+32비트 여부와 COM 생성·해제를 별도로 출력한다. 가상환경 여부는 환경 진단이며 COM
+생성 성공 조건이 아니다. COM 검증과 가상환경 검증을 한 인라인 종료식으로 합치면,
+COM이 성공해도 `sys.prefix != sys.base_prefix` 때문에 종료 코드만 실패할 수 있다.
 검사 실패 시 오류의 해당 줄과 명령 이름, Python 버전·비트 수를 전달한다.
 환경변수 전체, 계좌번호, 비밀번호, 인증서 화면은 전달하지 않는다.
 

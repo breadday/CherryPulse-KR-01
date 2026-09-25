@@ -17,10 +17,10 @@
 |---|---|---|
 | Python 격리 환경 | `.venv\Scripts\python.exe -I -B` 버전·비트수 | Python 3.10.8, 32비트, 격리됨 |
 | PyQt5 패키지 | PyQt5 / Qt / SIP 버전 출력 | 5.15.11 / 5.15.2 / 12.18.0 |
-| 의존성 | `uv pip check --python .venv\Scripts\python.exe` | 17개 패키지 호환, 종료 코드 0 |
-| Ruff check | `ruff check execution tests` | 통과, 종료 코드 0 |
-| Ruff format | `ruff format execution tests` 후 `format --check` | 39개 파일 포맷 확인, 종료 코드 0 |
-| 전체 pytest | `python -m pytest -q --tb=line --basetemp .tools\pytest-local-verification` | 130 passed, 종료 코드 0 |
+| 의존성 | `python -m pip check` | 통과, 종료 코드 0 (Python310-32 사용자 설치 패키지) |
+| Ruff check | `python -m ruff check execution tests verify_kiwoom_com.py` | 통과, 종료 코드 0 |
+| Ruff format | `python -m ruff format --check execution tests verify_kiwoom_com.py` | 41개 파일 포맷 확인, 종료 코드 0 |
+| 전체 pytest | `python -m pytest -q --tb=line --basetemp .tools\pytest-current` | **137 passed**, 종료 코드 0 |
 | 가상 데모 | `python -m execution` | 정상 출력, 종료 코드 0 |
 
 참고로 선택 검사인 `basedpyright`는 종료 코드 1이다. 기존 Pydantic 입력 경계가
@@ -29,25 +29,52 @@
 경계의 오류는 별도로 추가되지 않았다. 타입 선언을 임의로 바꾸어 거래 경계를
 변경하지 않고 후속 작업으로 남긴다.
 
-가상 데모 출력은 가상 원장의 관리량·예약·재생 변화만 포함하며 키움 호출을 의미하지 않는다.
+초기에는 프로젝트 `.venv`/uv가 없고 3.10 패키지가 없어 재검사가 불가능했지만,
+운영 소스와 분리된 사용자 개발 패키지로 동일한 32비트 Python 3.10.8에
+`pydantic`, pytest, Ruff를 설치한 뒤 재검사했다. Python 3.8 전역 pytest는
+`typing.Annotated` 부재로 부적합했고 사용하지 않았다. 현재 저장소 기준으로
+요청된 **137개 테스트와 Ruff는 통과**했다.
 
 ### COM 결과
 
-다음 주문 없는 검사에서 Python·PyQt5 버전 출력까지는 성공했다.
+현재 PC에는 문서에 기록된 프로젝트 `.venv`가 존재하지 않았다. 설치된
+`Python310-32\python.exe`를 사용해 동일한 검사와 COM-only 최소 재현을 각각
+별도 프로세스에서 실행했다. Python·PyQt5 버전과 COM 등록 상태는 다음과 같다.
 
 ```text
-3.10.8 32 True
+3.10.8 32 False
 5.15.11 5.15.2 12.18.0
+control_created True is_null False
+control_released True
 ```
 
-`QAxWidget.setControl("KHOPENAPI.KHOpenAPICtrl.1")` 이후 컨트롤 생성 결과를 출력하기 전에 프로세스가 Windows 예외 코드 `-1073740791`로 종료됐다. 따라서 이번 실행은 다음으로 판정한다.
+기존 인라인 검사와 COM-only 최소 재현 모두 `setControl()` 및 `clear()`까지
+정상 완료했다. 기존 inline 종료식은 COM 결과뿐 아니라 가상환경 여부도 성공
+조건으로 검사했으므로, 현재 직접 설치 Python에서는 COM 성공 후 종료 코드 1이
+될 수 있었다. 이를 `verify_kiwoom_com.py`로 분리했고 COM 성공 판정은 32비트,
+생성 성공, 해제 성공만 사용한다.
 
-- COM 생성·해제: **실패 또는 원인 미확인**
+레지스트리 조회 결과는 `HKCR\KHOPENAPI.KHOpenAPICtrl.1` →
+`{A1574A0D-6BFA-4BD7-9020-DED88711818D}` →
+`HKCR\WOW6432Node\CLSID\...\InprocServer32` →
+`C:\OpenAPI\KHOpenAPI.ocx`로 일치했다. OCX 파일은 존재하며 파일 버전은
+`1.0.0.1`이다. 이는 32비트 등록·경로가 현재 검사 환경과 일치함을 뜻하지만,
+OCX 내부 안정성이나 서버 연결을 보증하지 않는다.
+
+이전 `0xC0000409` 기록도 이벤트 로그에서 재대조했다. 해당 기간의 Application
+Error Event 1000 오류 모듈은 `NVDisplay.Container.exe`였고, 키움 OCX·Python
+프로세스 이벤트가 아니었다. 따라서 예외 코드만으로 키움 COM 충돌 원인을
+단정하지 않으며, 이번 재현에서는 키움 COM 충돌이 재현되지 않았다.
+
+따라서 이번 실행은 다음으로 판정한다.
+
+- COM 생성·해제: **성공**
 - 키움 로그인: 미실행
 - 국내 주식 계좌 조회: 미실행
 - 주문 가능성: 판단하지 않음
 
-COM 생성 성공으로 기록된 이전 문서는 이번 실행 결과로 갱신하지 않았다. 현재 원인은 OCX/Qt ActiveX 초기화 단계의 프로세스 종료까지 확인했으며, 서버·계좌·주문 문제로 추정하지 않는다.
+수정 사항은 환경 검증과 COM 검증을 분리한 `verify_kiwoom_com.py` 추가 및 안내
+명령 변경이다. 로그인·계좌 조회·주문 경계에는 변경이 없다.
 
 ## 단계 B 읽기 전용 경계
 
@@ -83,7 +110,7 @@ COM 생성 성공으로 기록된 이전 문서는 이번 실행 결과로 갱�
 | Q07 조회 페이지 완전성 | capture 모델과 가상 누락 검사는 추가했으나 실제 응답 없음 | 부분 확인, 실제 복구 차단 |
 | Q08 접수 전 체결 연결 | 실제 이벤트 없음. 가상 역순 검사는 기존 테스트 | 부분 확인, 실제 연결 차단 |
 | Q09 단일 PC 실행 잠금 | 기존 가상 잠금 검사는 통과. 키움 계좌 운영 정책은 미확인 | 부분 확인 |
-| Q10 Python/Qt/OCX | Python·PyQt5 버전 확인, OCX `setControl`은 예외 종료 | 부분 확인, 실제 주문 경계 차단 |
+| Q10 Python/Qt/OCX | Python·PyQt5 버전·32비트·OCX 등록/경로·`setControl`/`clear` 확인 | 부분 확인, 실제 주문 경계 차단 |
 | Q11 기존 보유·수동 거래 배정 | 운영 DB와 계좌 조회를 보지 않음 | 미확인, 자동 편입·청산 금지 |
 
 ### 자료 별칭
@@ -95,7 +122,7 @@ COM 생성 성공으로 기록된 이전 문서는 이번 실행 결과로 갱�
 
 ## 단계 C 가상 안전성
 
-읽기 전용 정규화 경계의 별도 테스트 7개가 통과했다. 확인한 내용은 다음과 같다.
+읽기 전용 정규화 경계의 별도 테스트 7개가 이전 커밋 검증에서 통과했다. 확인한 내용은 다음과 같다.
 
 - 완전한 페이지는 공백만 정규화하고 원문 payload·조회 근거를 별도 유지
 - 페이지 누락·중복·오류·미완료는 정상 snapshot으로 변환하지 않음
