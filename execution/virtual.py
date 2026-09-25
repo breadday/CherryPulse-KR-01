@@ -90,7 +90,14 @@ class VirtualDispatcher:
         latch = next(
             (item for item in journal.stop_latches if item.symbol == symbol), None
         )
-        if latch is None or portfolio(journal, symbol).liquidating:
+        if (
+            latch is None
+            or portfolio(journal, symbol).liquidating
+            or any(
+                obligation.next_action == "REVIEW_AND_ALERT"
+                for obligation in self.ledger.virtual_stop_obligations(symbol)
+            )
+        ):
             return None
         if any(
             request.command.symbol == symbol

@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from contracts.stop_evaluation import ObserveAt, Quote
-from execution.facts import Fill, Rejected, SendFailed, Transport
+from execution.facts import Cancelled, Fill, Rejected, SendFailed, Transport
 from execution.ledger import Ledger
 from execution.models import Allocation, Cancel, LedgerError, New, VirtualStopBinding
 from execution.ownership import AccountLease
@@ -539,6 +539,90 @@ def test_stop_obligation_remains_one_request_during_partial_sell(
     assert view[0].next_action == "QUERY_BROKER"
     assert restored.virtual_latched_stop_candidate("005930").unreserved_qty == 0
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
+
+
+def test_cancelled_stop_obligation_requires_review_before_another_sell(
+    tmp_path: Path, lease: AccountLease
+) -> None:
+    path = tmp_path / "ledger.sqlite3"
+    book = Ledger(path, lease)
+    book.approve_virtual_reconciliation(0)
+    book.apply_virtual_stop_config(
+        VirtualStopBinding(
+            symbol="005930", version=2, rule_kind="PRICE_AT_OR_BELOW", threshold="9800"
+        ),
+        expected_version=1,
+    )
+    buy = book.submit(
+        New(
+            key="buy-before-stop-cancel",
+            symbol="005930",
+            side="BUY",
+            config_version=2,
+            qty=4,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=4,
+            remaining=0,
+            evidence_version=1,
+        )
+    )
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    latch = book.latch_virtual_price_stop(
+        "005930",
+        Quote(symbol="005930", price="9700", received_at=now),
+        ObserveAt(now=now, max_quote_age_seconds=2),
+    )
+    assert latch is not None
+    dispatcher = VirtualDispatcher(book)
+    sell = dispatcher.drain_virtual_stop("005930", session="REGULAR")
+    assert sell is not None
+    cancel = book.submit(
+        Cancel(
+            key="cancel-stop-sell",
+            symbol="005930",
+            side="SELL",
+            config_version=2,
+            target=sell.order_id,
+            link_version=book.order(sell.order_id).link_version,
+            cancel_qty=4,
+        )
+    ).request
+    assert dispatcher.send(cancel.request_id)
+    assert book.ingest(
+        Cancelled(
+            event_id=uuid4(),
+            request_id=cancel.request_id,
+            order_id=sell.order_id,
+            qty=4,
+            remaining=0,
+            evidence_version=1,
+        )
+    )
+
+    obligation = Ledger(path, lease).virtual_stop_obligations("005930")
+    assert len(obligation) == 1
+    assert (
+        obligation[0].state,
+        obligation[0].next_action,
+        obligation[0].unfilled_qty,
+        obligation[0].reserved_qty,
+    ) == ("REVIEW_REQUIRED", "REVIEW_AND_ALERT", 4, 0)
+    call_count = len(dispatcher.calls)
+    assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
+    assert len(dispatcher.calls) == call_count
+    restored = Ledger(path, lease)
+    assert len(restored.snapshot().stop_sell_obligations) == 1
+    restored_dispatcher = VirtualDispatcher(restored)
+    assert restored_dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
+    assert restored_dispatcher.calls == []
 
 
 @pytest.mark.parametrize("rejected", [False, True])
