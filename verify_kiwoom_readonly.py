@@ -16,6 +16,8 @@ from PyQt5.QAxContainer import QAxWidget
 from PyQt5.QtCore import QEventLoop, QTimer
 from PyQt5.QtWidgets import QApplication, QInputDialog, QLineEdit
 
+from adapters.kiwoom_readonly import pagination_complete
+
 TR_TIMEOUT_SECONDS = 120
 TR_PREV_NEXT_INDEX = 4
 TR_NAME_INDEX = 1
@@ -309,8 +311,8 @@ def main() -> int:
         return 4
     evidence = query_one(control, args.tr, args.timeout)
     evidence.input_fields = input_fields
-    page_complete = bool(evidence.pages) and all(
-        bool(page["complete"]) for page in evidence.pages
+    page_complete = evidence.responded_at is not None and pagination_complete(
+        tuple(str(page["prev_next"]) for page in evidence.pages)
     )
     content_validity = "UNASSESSED"
     if evidence.error:

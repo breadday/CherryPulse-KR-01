@@ -11,6 +11,7 @@ from adapters.kiwoom_readonly import (
     ReadOnlyQueryError,
     new_capture,
     normalize_capture,
+    pagination_complete,
 )
 
 NOW = datetime(2026, 9, 25, 1, 0, tzinfo=timezone.utc)
@@ -83,3 +84,36 @@ def test_unverified_fill_history_tr_is_blocked() -> None:
 def test_non_whitelisted_tr_cannot_be_requested() -> None:
     with pytest.raises(ReadOnlyQueryError, match="TR_NOT_READ_ONLY"):
         _ = QuerySpec("SendOrder", "unsafe", {}, ())
+
+
+@pytest.mark.parametrize(
+    ("markers", "expected"),
+    [
+        ((), False),
+        (("",), True),
+        (("2",), False),
+        (("2", "0"), True),
+        (("2", "2", ""), True),
+        (("0", "0"), False),
+        (("2", "UNKNOWN"), False),
+    ],
+)
+def test_pagination_requires_terminal_after_continuations(
+    markers: tuple[str, ...], *, expected: bool
+) -> None:
+    assert pagination_complete(markers) is expected
+
+
+def test_duplicate_terminal_page_is_quarantined() -> None:
+    capture = new_capture(
+        positions_spec(), account_alias="acct-a", environment="PAPER", started_at=NOW
+    )
+    capture = replace(
+        capture,
+        finished_at=NOW,
+        pages=(
+            QueryPage(1, "0", NOW, finished=True),
+            QueryPage(2, "0", NOW, finished=True),
+        ),
+    )
+    assert capture.status is QueryStatus.QUARANTINED

@@ -91,7 +91,7 @@ class QueryCapture:
             page.error_code or not page.finished for page in self.pages
         ):
             return QueryStatus.QUARANTINED
-        if self.pages[-1].prev_next not in {"", "0"}:
+        if not pagination_complete(tuple(page.prev_next for page in self.pages)):
             return QueryStatus.QUARANTINED
         return QueryStatus.COMPLETE
 
@@ -140,6 +140,15 @@ UNFILLED_FIELDS: Final[tuple[str, ...]] = (
     "체결량",
     "주문상태",
 )
+
+
+def pagination_complete(markers: tuple[str, ...]) -> bool:
+    """Accept continuation pages followed by exactly one terminal page."""
+    return (
+        bool(markers)
+        and all(marker == "2" for marker in markers[:-1])
+        and (markers[-1] in {"", "0"})
+    )
 
 
 def utc_now() -> datetime:
