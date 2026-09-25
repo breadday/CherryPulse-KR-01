@@ -5,7 +5,7 @@ const {readFileSync} = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
-const {DraftImportError, parseSymbolImport} = require("./draft-import.js");
+const {DraftImportError, exportActiveSymbolsCsv, parseSymbolImport} = require("./draft-import.js");
 
 class Element {
   constructor(tagName = "div", id = "") {
@@ -57,7 +57,7 @@ function descendants(element) {
 function boardWithDraft(draft) {
   const ids = [
     "notice", "symbol-count", "active-filter", "archived-filter", "symbol-list",
-    "bulk-import-form", "symbol-import-file", "export-symbols",
+    "bulk-import-form", "symbol-import-file", "export-symbols-json", "export-symbols-csv",
     "pattern-list", "symbol-form", "pattern-kind", "pattern-order-type", "threshold-label",
     "threshold-hint", "pattern-threshold", "pattern-name", "pattern-form",
     "symbol-input", "symbol-name", "symbol-source", "symbol-note",
@@ -209,6 +209,15 @@ test("JSON and CSV imports normalize supported fields and preserve quoted CSV da
     code: "000660", name: "SK, Inc.", source: "https://example.com/", note: "line one\nline two",
     patternId: "", archived: false,
   }]);
+
+  const special = [{
+    code: "000001", name: 'Name, "quoted"', source: "https://example.com", note: "first,\nsecond",
+  }];
+  const roundTrip = parseSymbolImport(
+    "export.csv", exportActiveSymbolsCsv(special),
+  );
+  assert.equal(roundTrip[0].name, special[0].name);
+  assert.equal(roundTrip[0].note, special[0].note);
 });
 
 test("bulk import applies all rows together and rejects duplicate codes without mutation", async () => {
@@ -262,7 +271,7 @@ test("bulk import rejects oversized files before reading or changing the draft",
   assert.match(fixture.getElement("notice").textContent, /5 MiB 이하/);
 });
 
-test("symbol export downloads only active symbol fields accepted by the import format", () => {
+test("symbol exports download only active symbol fields accepted by the import formats", () => {
   const fixture = boardWithDraft({
     symbols: [
       {code: "005930", name: "삼성전자", source: "https://example.com", note: "watch", patternId: "pattern-a"},
@@ -270,9 +279,11 @@ test("symbol export downloads only active symbol fields accepted by the import f
     ],
     patterns: [],
   });
-  const button = fixture.getElement("export-symbols");
-  assert.equal(button.disabled, false);
-  button.click();
+  const jsonButton = fixture.getElement("export-symbols-json");
+  const csvButton = fixture.getElement("export-symbols-csv");
+  assert.equal(jsonButton.disabled, false);
+  assert.equal(csvButton.disabled, false);
+  jsonButton.click();
 
   assert.equal(fixture.getDownloads().length, 1);
   assert.equal(fixture.getDownloads()[0].type, "application/json;charset=utf-8");
@@ -281,6 +292,16 @@ test("symbol export downloads only active symbol fields accepted by the import f
   }]);
   assert.equal(fixture.getRevokedUrls().length, 1);
 
+  csvButton.click();
+  assert.equal(fixture.getDownloads().length, 2);
+  assert.equal(fixture.getDownloads()[1].type, "text/csv;charset=utf-8");
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(parseSymbolImport("download.csv", fixture.getDownloads()[1].content))),
+    [{code: "005930", name: "삼성전자", source: "https://example.com/", note: "watch", patternId: "", archived: false}],
+  );
+  assert.equal(fixture.getRevokedUrls().length, 2);
+
   const empty = boardWithDraft({symbols: [], patterns: []});
-  assert.equal(empty.getElement("export-symbols").disabled, true);
+  assert.equal(empty.getElement("export-symbols-json").disabled, true);
+  assert.equal(empty.getElement("export-symbols-csv").disabled, true);
 });

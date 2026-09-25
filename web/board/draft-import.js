@@ -161,5 +161,17 @@
       }));
   }
 
-  return {DraftImportError, exportActiveSymbols, parseSymbolImport};
+  function exportActiveSymbolsCsv(symbols) {
+    const escapeCell = (value) => {
+      const text = value || "";
+      return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+    };
+    const rows = [
+      ["code", "name", "source", "note"],
+      ...exportActiveSymbols(symbols).map(({code, name, source, note}) => [code, name, source, note]),
+    ];
+    return `\uFEFF${rows.map((row) => row.map(escapeCell).join(",")).join("\r\n")}\r\n`;
+  }
+
+  return {DraftImportError, exportActiveSymbols, exportActiveSymbolsCsv, parseSymbolImport};
 });

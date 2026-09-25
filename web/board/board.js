@@ -40,7 +40,8 @@ function render() {
   const activeCount = state.symbols.filter((item) => item.archived !== true).length;
   const archivedCount = state.symbols.length - activeCount;
   $("symbol-count").textContent = `${activeCount}개 관심 · ${archivedCount}개 보관`;
-  $("export-symbols").disabled = activeCount === 0;
+  $("export-symbols-json").disabled = activeCount === 0;
+  $("export-symbols-csv").disabled = activeCount === 0;
   $("active-filter").setAttribute("aria-pressed", String(symbolView === "active"));
   $("archived-filter").setAttribute("aria-pressed", String(symbolView === "archived"));
   const symbols = $("symbol-list");
@@ -212,21 +213,29 @@ function render() {
 }
 $("active-filter").addEventListener("click", () => { symbolView = "active"; render(); });
 $("archived-filter").addEventListener("click", () => { symbolView = "archived"; render(); });
-$("export-symbols").addEventListener("click", () => {
+function downloadActiveSymbols(format) {
   const symbols = CherryPulseDraftImport.exportActiveSymbols(state.symbols);
   if (!symbols.length) { notice("내보낼 관심종목이 없습니다."); return; }
-  const blob = new Blob([JSON.stringify(symbols, null, 2)], {type: "application/json;charset=utf-8"});
+  const isCsv = format === "csv";
+  const content = isCsv
+    ? CherryPulseDraftImport.exportActiveSymbolsCsv(state.symbols)
+    : JSON.stringify(symbols, null, 2);
+  const mimeType = isCsv ? "text/csv;charset=utf-8" : "application/json;charset=utf-8";
+  const extension = isCsv ? "csv" : "json";
+  const blob = new Blob([content], {type: mimeType});
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `cherrypulse-symbols-${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = `cherrypulse-symbols-${new Date().toISOString().slice(0, 10)}.${extension}`;
   link.hidden = true;
   document.body.append(link);
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 0);
-  notice(`${symbols.length}개 관심종목 JSON을 내보냈습니다. 패턴 연결은 포함하지 않았습니다.`);
-});
+  notice(`${symbols.length}개 관심종목 ${extension.toUpperCase()}을 내보냈습니다. 패턴 연결은 포함하지 않았습니다.`);
+}
+$("export-symbols-json").addEventListener("click", () => downloadActiveSymbols("json"));
+$("export-symbols-csv").addEventListener("click", () => downloadActiveSymbols("csv"));
 function safeSourceUrl(value) {
   if (!value) return "";
   try {
