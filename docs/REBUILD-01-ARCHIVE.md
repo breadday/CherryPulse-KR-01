@@ -42,3 +42,26 @@ manifest에서 필요한 원본 경로와 보관 경로를 확인하고, 신규 
 ## 보관 검증 — 2026-09-14
 
 manifest의 이동 파일101개를 실제 보관 파일 SHA-256과 비교해 불일치0을 확인했다. 새 안내·계약·계획 문서의 로컬 링크19개도 검사해 끊어진 링크0이다. 이동 전 기록한 파일 바이트를 보존했으며 새 엔진 실행 검증을 의미하지 않는다.
+
+## 현행 활성 경로 정적 확인 — 2026-09-25
+
+- `execution/`, `contracts/`, `adapters/`의 Python 파일 23개를 Python 3.10 AST로
+  읽어 보관 루트(`back/`)와 구 실행 모듈(`main_live`, `engine`, 구
+  `broker/core/selectors/strategies/infra`) import 및 `subprocess.run`/`Popen`/
+  `os.system`/`os.startfile` 호출을 검사했다. 해당 import와 프로세스 호출은
+  0건이었다. 단순 문자열 검색의 1건은 `execution/query_evidence.py` docstring
+  설명으로 AST import나 호출이 아니다.
+- 현재 `verify_kiwoom_com.py`는 COM 컨트롤 생성·해제, `verify_kiwoom_connection.py`는
+  `GetConnectState()` 관측, `verify_kiwoom_readonly.py`는 사용자가 직접 로그인·계좌를
+  선택한 뒤 제한된 읽기 전용 TR만 호출하도록 작성돼 있다. 읽기 전용 허용 목록은
+  `opw00018`, `opt10075`; `opw00007`은 규격 미확인으로 거절한다. 이 조사에서는
+  스크립트를 실행하지 않았고 키움 로그인·조회도 하지 않았다.
+- `subprocess` 사용은 검색상 보관된 `back/` 코드와 테스트의 가상 데모·잠금 경합
+  검사에서 발견됐다. 보관본의 외부 실행 의미를 현재 활성 경로에 편입하지 않았다.
+- 같은 날 Windows에서 읽기 전용으로 예약 작업 이름/경로/동작 문자열, 프로세스
+  이름, 서비스 이름을 `CherryPulse|main_live|selector_7am|daily_strategy|
+  auto_session_manager|verify_kiwoom` 대상으로 검색해 모두 0건이었다. 실행 인수,
+  서비스 구성, 계좌·비밀값은 출력하지 않았다. 이는 조사 시점의 로컬 관측이다.
+- 이 확인은 현재 저장소와 지정 키워드의 로컬 조사 범위다. 다른 이름으로 등록된
+  서비스·예약 작업, 다른 사용자/PC, 외부 바로가기·실행 래퍼 및 실제 계좌 상태는
+  확인되지 않았다. REBUILD-01 전체 현황은 계속 미완료다.

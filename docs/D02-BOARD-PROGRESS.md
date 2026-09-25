@@ -14,7 +14,7 @@
 구형 로컬 초안은 `version`이 없으면 v1, `patternId`가 없으면 기존 ID를
 계열 ID로 취급하고 `active`가 없으면 활성 버전으로 읽는다.
 
-검증: `node --test web/board/board.test.js` **2 passed**. 신규 버전 저장 뒤
+검증: `node --test web/board/board.test.js` **3 passed**. 신규 버전 저장 뒤
 기존 버전과 종목 연결이 보존되는 것, 비활성 버전의 새 연결 차단 및 재활성화를
 검사했다. 새 버전에 시장가 선택이 저장되는 것도 검사했다. `node --check web/board/board.js`, `node --check
 web/board/board.test.js`, `git diff --check` 통과. 테스트는 DOM 상호작용 모의
@@ -71,16 +71,23 @@ Python 3.10.8 32비트 전체 pytest **159 passed**, Ruff 검사·포맷 검사,
 
 ## 현재 검증과 미완료 — 2026-09-25
 
-- `node --test web/board/board.test.js`: **2 passed**. 버전 추가, 기존 연결
-  보존, 비활성 버전의 신규 연결 차단과 재활성화를 모의 DOM에서 확인했다.
+- `node --test web/board/board.test.js`: **3 passed**. 버전 추가, 기존 연결
+  보존, 비활성 버전의 신규 연결 차단과 재활성화, 주문 방식 미선택 시 저장
+  거절을 모의 DOM에서 확인했다.
 - `node --check web/board/board.js`, `node --check web/board/board.test.js`,
   `git diff --check`: 통과.
+- 설치 경로에서 Chrome을 찾아 headless 실제 브라우저로 확인했다. 390×844 모바일
+  emulation에서 문서 폭390px·단일 358px 열, 1365px 데스크톱 emulation에서
+  두 개 570px 열을 확인했다. 모바일 emulation에서 종목 등록·패턴 연결·v2 생성
+  및 LIMIT 선택·v1 비활성화 후 기존 연결 보존과 신규 연결 차단도 실행했다.
+  Q12 결정 전의 매수 패턴 명세 대기 패널도 양 viewport에서 표시됨을 확인했다.
+  물리 휴대폰 확인은 하지 않았다.
 - 회귀 검사: Python 3.10.8 32비트 전체 pytest **159 passed**, Ruff 검사·포맷,
   가상 데모와 `pip check` 통과. 사용자 설치 Python을 썼으며 격리 `.venv`는 없다.
-- 실제 브라우저/모바일 시각 확인은 **미실행**. 실행 가능한 브라우저 도구가
-  이 작업공간에서 발견되지 않았다.
+- 실제 기기에서의 모바일 시각 확인은 미실행이다. headless Chrome emulation은
+  실제 브라우저 동작 확인이며 물리 휴대폰의 글꼴·safe area·터치 확인은 아니다.
 - 매수 패턴의 조건·주문·시간·재진입 명세(Q12)가 없어 해당 폼은 만들지 않았다.
-  값을 임의로 가정하지 않는다. 지정가 가격·호가·거래 세션·미체결 처리(Q10),
+  대신 결정 대기 패널을 표시한다. 값을 임의로 가정하지 않는다. 지정가 가격·호가·거래 세션·미체결 처리(Q10),
   서버 저장·인증·버전 충돌·적용 승인·엔진 동기화, 외부 후보 JSON/CSV 입력도
   미완료다.
 - 실제/모의 키움 주문 API, 운영 DB 변경, 배포는 수행하지 않았다.

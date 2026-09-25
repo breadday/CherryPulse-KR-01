@@ -89,5 +89,11 @@ $ledgerTestTemp = Join-Path '.tools' ('pytest-' + [guid]::NewGuid().ToString('N'
 Ruff 설치)를 사용해 pytest **159 passed**, `ruff check execution tests`,
 `ruff format --check execution tests`, `python -m execution`, `pip check`를
 실행했고 모두 통과했다. 이 결과는 현재 설치의 Windows 전체 소프트웨어
-회귀이며 격리 `.venv`·uv 잠금 재현 검사를 대체하지 않는다. basedpyright와
-브라우저/Chromium 도구는 발견되지 않았고 설치하지 않았다.
+회귀이며 격리 `.venv`·uv 잠금 재현 검사를 대체하지 않는다. basedpyright는
+발견되지 않았다. PATH 검색에서는 브라우저를 찾지 못했지만, 직접 설치 경로의
+Chrome을 headless CDP로 구동해 390×844 모바일 및 1365px 데스크톱 viewport와
+보드 상호작용을 확인했다. 물리 모바일 기기는 미검증이다.
+
+추가로 `python -B verify_kiwoom_com.py`를 같은 Python에서 실행해 COM 생성·해제를
+확인했다: `control_created True`, `control_released True`. 이 검사는 로그인·계좌
+조회·TR·주문을 호출하지 않았다. 사용자 설치 환경은 `isolated=False`였다.

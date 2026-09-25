@@ -133,3 +133,26 @@ test("deactivation blocks new bindings but keeps a currently linked version visi
     .find((item) => item.tagName === "select");
   assert.equal(reactivatedSelect.children[1].disabled, false);
 });
+
+test("new versions require an explicit supported order type", () => {
+  const fixture = boardWithDraft({
+    symbols: [],
+    patterns: [{id: "pattern-a", name: "손절", kind: "PRICE_AT_OR_BELOW", threshold: "9800"}],
+  });
+  const form = descendants(fixture.getElement("pattern-list").children[0])
+    .find((item) => item.className === "stack-form pattern-version-form");
+  const fields = descendants(form);
+  fields.find((item) => item.name === "name").value = "손절 조정";
+  fields.find((item) => item.name === "threshold").value = "9700";
+  const orderType = fields.find((item) => item.name === "orderType");
+  form.dispatch("submit");
+  assert.equal(fixture.getDraft().patterns.length, 1);
+  assert.match(fixture.getElement("notice").textContent, /주문 방식을 확인/);
+
+  orderType.value = "LIMIT";
+  form.dispatch("submit");
+  const draft = fixture.getDraft();
+  assert.equal(draft.patterns.length, 2);
+  assert.equal(draft.patterns[1].version, 2);
+  assert.equal(draft.patterns[1].orderType, "LIMIT");
+});
