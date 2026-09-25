@@ -25,9 +25,16 @@
     <div class="columns">
       <section class="panel" aria-labelledby="symbols-heading">
         <div class="panel-heading"><h2 id="symbols-heading">관심종목</h2><span id="symbol-count">0개</span></div>
-        <form id="symbol-form" class="inline-form">
+        <form id="symbol-form" class="stack-form">
+          <label for="symbol-name">종목명</label>
+          <input id="symbol-name" name="name" maxlength="100" placeholder="직접 입력" required>
           <label for="symbol-input">종목코드</label>
-          <div class="form-row"><input id="symbol-input" name="symbol" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="예: 005930" required><button type="submit">종목 추가</button></div>
+          <input id="symbol-input" name="symbol" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="예: 005930" required>
+          <label for="symbol-source">찾은 곳 링크 <span class="optional">선택</span></label>
+          <input id="symbol-source" name="source" type="url" maxlength="2048" placeholder="https://…">
+          <label for="symbol-note">메모 <span class="optional">선택</span></label>
+          <textarea id="symbol-note" name="note" maxlength="1000" rows="3" placeholder="등록 이유나 참고 내용을 적어 두세요."></textarea>
+          <button type="submit">종목 추가</button>
         </form>
         <div id="symbol-list" class="symbol-list"></div>
       </section>

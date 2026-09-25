@@ -30,9 +30,24 @@ function render() {
   for (const item of state.symbols) {
     const card = document.createElement("article"); card.className = "card";
     const head = document.createElement("div"); head.className = "card-head";
+    const identity = document.createElement("div");
+    const name = document.createElement("div"); name.className = "symbol-name"; name.textContent = item.name || "종목명 미입력";
     const code = document.createElement("span"); code.className = "symbol-code"; code.textContent = item.code;
+    identity.append(name, code);
     const badge = document.createElement("span"); badge.className = "badge"; badge.textContent = "미적용";
-    head.append(code, badge);
+    head.append(identity, badge);
+    if (item.note) {
+      const note = document.createElement("p"); note.className = "symbol-note"; note.textContent = item.note;
+      card.append(head, note);
+    } else {
+      card.append(head);
+    }
+    if (safeSourceUrl(item.source)) {
+      const source = document.createElement("a"); source.className = "source-link";
+      source.href = safeSourceUrl(item.source); source.target = "_blank";
+      source.rel = "noopener noreferrer"; source.textContent = "참고 링크 열기";
+      card.append(source);
+    }
     const label = document.createElement("label"); label.textContent = "손절 패턴 초안";
     const select = document.createElement("select"); select.setAttribute("aria-label", `${item.code} 손절 패턴`);
     const none = document.createElement("option"); none.value = ""; none.textContent = "연결하지 않음"; select.append(none);
@@ -41,7 +56,7 @@ function render() {
     }
     select.value = state.patterns.some((p) => p.id === item.patternId) ? item.patternId : "";
     select.addEventListener("change", () => { item.patternId = select.value; save(); notice(`${item.code}의 초안을 저장했습니다. 엔진에는 적용되지 않았습니다.`); });
-    card.append(head, label, select); symbols.append(card);
+    card.append(label, select); symbols.append(card);
   }
   if (!state.patterns.length) {
     const empty = document.createElement("p"); empty.className = "empty";
@@ -54,13 +69,25 @@ function render() {
     card.append(title, description); patterns.append(card);
   }
 }
+function safeSourceUrl(value) {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
+  } catch { return ""; }
+}
 $("symbol-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const code = $("symbol-input").value.trim();
+  const name = $("symbol-name").value.trim();
+  const source = $("symbol-source").value.trim();
+  const note = $("symbol-note").value.trim();
   if (!/^\d{6}$/.test(code)) { notice("종목코드 6자리를 입력하세요."); return; }
+  if (!name) { notice("종목명을 직접 입력하세요."); return; }
+  if (source && !safeSourceUrl(source)) { notice("참고 링크는 http 또는 https 주소만 사용할 수 있습니다."); return; }
   if (state.symbols.some((item) => item.code === code)) { notice("이미 등록한 종목입니다."); return; }
-  state.symbols.push({code, patternId: ""}); save(); event.target.reset(); render();
-  notice(`${code}을 초안에 추가했습니다. 감시는 시작되지 않았습니다.`);
+  state.symbols.push({code, name, source, note, patternId: ""}); save(); event.target.reset(); render();
+  notice(`${name} (${code})을 초안에 추가했습니다. 감시는 시작되지 않았습니다.`);
 });
 $("pattern-kind").addEventListener("change", () => {
   const ratio = $("pattern-kind").value === "AVERAGE_COST_DROP";
