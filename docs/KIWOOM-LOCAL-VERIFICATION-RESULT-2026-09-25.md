@@ -120,6 +120,36 @@ py -3.10-32 verify_kiwoom_readonly.py --tr opw00018 --timeout 180
 계좌 선택과 비밀번호 입력이 완료되면 출력되는 요청·응답 시각과 페이지
 메타데이터만 공유한다. 계좌번호·비밀번호·원문 응답은 공유하지 않는다.
 
+### 단계 B-2 `opw00018` 메시지 원인 조사 시도 — 2026-09-25
+
+`opw00018`만 대상으로 안전 메타데이터 probe를 사용자 데스크톱 프로세스로
+실행했다. 로그인 대기 제한시간에 도달해 계좌 입력 단계로 진행하지 못했다.
+
+```text
+login_status LOGIN_TIMEOUT login_error None connected False
+TR: opw00018 (not called)
+SetInputValue: not called
+CommRqData return: not available
+OnReceiveMsg: not received
+```
+
+따라서 이번 시도에서는 `BROKER_MESSAGE_PRESENT`의 종류·시각·가린 메시지,
+요청 입력 항목, TR 반환 코드를 확인할 자료가 없다. 이는 조회 결과가 비어
+있다는 뜻이 아니며, 보유 0건으로 기록하지 않는다. `page_complete`나 조회
+내용 유효성도 판정하지 않는다.
+
+비밀번호 입력이 필요한 실제 조사는 지정 PC의 사용자 데스크톱에서 아래
+명령을 실행한 뒤, 로그인 창·계좌 선택·비밀번호 대화상자를 직접 처리해야
+한다. 입력 전에는 `CommRqData`가 호출되지 않는다.
+
+```powershell
+py -3.10-32 verify_kiwoom_readonly.py --tr opw00018 --timeout 180
+```
+
+출력에서 `input_fields`, `request_return`, `broker_messages`, `pages`,
+`page_complete`, `content_validity`만 공유한다. 계좌번호·비밀번호·원문
+응답은 공유하지 않는다.
+
 - COM 생성: 성공
 - 연결 상태: `0` / 미연결
 - COM 해제: 성공
