@@ -507,11 +507,14 @@ def test_stop_obligation_remains_one_request_during_partial_sell(
         )
     )
     now = datetime(2026, 9, 24, tzinfo=timezone.utc)
-    assert book.latch_virtual_price_stop(
-        "005930",
-        Quote(symbol="005930", price="9700", received_at=now),
-        ObserveAt(now=now, max_quote_age_seconds=2),
-    ) is not None
+    assert (
+        book.latch_virtual_price_stop(
+            "005930",
+            Quote(symbol="005930", price="9700", received_at=now),
+            ObserveAt(now=now, max_quote_age_seconds=2),
+        )
+        is not None
+    )
     dispatcher = VirtualDispatcher(book)
     sell = dispatcher.drain_virtual_stop("005930", session="REGULAR")
     assert sell is not None
@@ -565,8 +568,11 @@ def test_failed_stop_requires_review_without_auto_retry(
     ).request
     assert book.ingest(
         Fill(
-            event_id=uuid4(), order_id=buy.order_id, qty=2,
-            remaining=0, evidence_version=1,
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=2,
+            remaining=0,
+            evidence_version=1,
         )
     )
     now = datetime(2026, 9, 24, tzinfo=timezone.utc)
@@ -598,8 +604,10 @@ def test_failed_stop_requires_review_without_auto_retry(
         Rejected(event_id=uuid4(), request_id=sell.request_id, reason=reason)
         if rejected
         else SendFailed(
-            event_id=uuid4(), request_id=sell.request_id,
-            proof="NOT_INVOKED", reason=reason,
+            event_id=uuid4(),
+            request_id=sell.request_id,
+            proof="NOT_INVOKED",
+            reason=reason,
         )
     )
     assert book.ingest(failure)
@@ -612,7 +620,10 @@ def test_failed_stop_requires_review_without_auto_retry(
         view[0].unfilled_qty,
         view[0].failure_reason,
     ) == (
-        "REVIEW_REQUIRED", "REVIEW_AND_ALERT", 2, reason,
+        "REVIEW_REQUIRED",
+        "REVIEW_AND_ALERT",
+        2,
+        reason,
     )
     assert (
         VirtualDispatcher(restored).drain_virtual_stop("005930", session="REGULAR")

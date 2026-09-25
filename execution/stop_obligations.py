@@ -80,9 +80,7 @@ def stop_obligation_views(
         elif snapshot.filled == obligation.qty:
             state = "FULFILLED"
         elif (
-            snapshot.rejected
-            or snapshot.submission_failed
-            or snapshot.terminal_cancel
+            snapshot.rejected or snapshot.submission_failed or snapshot.terminal_cancel
         ):
             state = "REVIEW_REQUIRED"
         elif outcome.transport in ("UNKNOWN", "RECONCILING"):

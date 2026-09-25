@@ -43,13 +43,10 @@ class VirtualDispatcher:
                     or status(journal, request).positive_evidence
                 ):
                     return False
-                if (
-                    request.command.key.startswith("virtual-stop:")
-                    and (
-                        stop_session != "REGULAR"
-                        or not isinstance(request.command, New)
-                        or request.command.stop_latch_version is None
-                    )
+                if request.command.key.startswith("virtual-stop:") and (
+                    stop_session != "REGULAR"
+                    or not isinstance(request.command, New)
+                    or request.command.stop_latch_version is None
                 ):
                     return False
                 store.lease.require_ready()

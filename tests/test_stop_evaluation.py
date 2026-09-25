@@ -50,9 +50,7 @@ def test_missing_stale_future_or_wrong_symbol_quote_cannot_trigger() -> None:
         Quote(symbol="005930", price="9000", received_at=now + timedelta(seconds=1)),
     ):
         assert evaluate_stop(position, quote, rule, timing).status == "UNAVAILABLE"
-    edge = Quote(
-        symbol="005930", price="9000", received_at=now - timedelta(seconds=2)
-    )
+    edge = Quote(symbol="005930", price="9000", received_at=now - timedelta(seconds=2))
     assert evaluate_stop(position, edge, rule, timing).status == "TRIGGERED"
     with pytest.raises(ValidationError):
         _ = ObserveAt(now=now, max_quote_age_seconds=3)
