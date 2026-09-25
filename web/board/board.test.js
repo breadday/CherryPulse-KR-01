@@ -118,6 +118,7 @@ function boardWithDraft(draft) {
   return {
     getElement: (id) => elements.get(id),
     getDraft: () => JSON.parse(stored.get("cherrypulse-board-draft-v1")),
+    setExternalDraft: (draft) => stored.set("cherrypulse-board-draft-v1", JSON.stringify(draft)),
     getDownloads: () => downloads,
     getRevokedUrls: () => revokedUrls,
     setStorageFailure: (value) => { failStorageWrites = value; },
@@ -530,4 +531,19 @@ test("invalid full backup and storage failure leave the existing draft untouched
   assert.equal(fixture.getElement("restore-confirmation").hidden, false);
   assert.match(fixture.getElement("notice").textContent, /저장에 실패/);
   assert.doesNotMatch(fixture.getElement("notice").textContent, /복원했습니다/);
+});
+
+test("restore refuses to overwrite a draft changed in another tab after validation", async () => {
+  const oldDraft = {symbols: [{code: "111111", name: "기존"}], patterns: []};
+  const newDraft = {symbols: [{code: "222222", name: "다른 탭 변경"}], patterns: []};
+  const fixture = boardWithDraft(oldDraft);
+  fixture.getElement("board-backup-file").files = [{
+    size: 100, async text() { return JSON.stringify(sampleBoardBackup()); },
+  }];
+  await fixture.getElement("restore-board-backup-form").dispatchAsync("submit");
+  fixture.setExternalDraft(newDraft);
+  fixture.getElement("confirm-board-restore").click();
+  assert.deepEqual(fixture.getDraft(), newDraft);
+  assert.equal(fixture.getElement("restore-confirmation").hidden, true);
+  assert.match(fixture.getElement("notice").textContent, /다시 검사/);
 });

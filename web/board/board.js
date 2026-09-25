@@ -6,6 +6,8 @@ const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
 let state;
 let symbolView = "active";
 let pendingBoardRestore = null;
+let restoreBaseline = null;
+let restoreRequest = 0;
 try {
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
   state = saved && Array.isArray(saved.symbols) && Array.isArray(saved.patterns) ? saved : initial;
@@ -301,12 +303,16 @@ const restoreForm = $("restore-board-backup-form");
 const restoreInput = $("board-backup-file");
 const restoreConfirmation = $("restore-confirmation");
 restoreInput.addEventListener("change", () => {
+  restoreRequest += 1;
   pendingBoardRestore = null;
+  restoreBaseline = null;
   restoreConfirmation.hidden = true;
 });
 restoreForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  const request = ++restoreRequest;
   pendingBoardRestore = null;
+  restoreBaseline = null;
   restoreConfirmation.hidden = true;
   const file = restoreInput.files?.[0];
   if (!file) { notice("전체 보드 백업 JSON 파일을 선택하세요."); return; }
@@ -314,13 +320,16 @@ restoreForm.addEventListener("submit", async (event) => {
     if (file.size > MAX_BACKUP_BYTES) {
       throw Object.assign(new Error(), {code: "BACKUP_FILE_TOO_LARGE"});
     }
-    pendingBoardRestore = CherryPulseBoardBackup.parseBoardBackup(await file.text());
+    const parsed = CherryPulseBoardBackup.parseBoardBackup(await file.text());
+    if (request !== restoreRequest) return;
     if (restoreInput.files?.[0] !== file) {
-      pendingBoardRestore = null;
       notice("복원 중 선택 파일이 변경되었습니다. 새 파일을 다시 검사하세요.");
       return;
     }
+    pendingBoardRestore = parsed;
+    restoreBaseline = JSON.stringify(state);
   } catch (error) {
+    if (request !== restoreRequest) return;
     pendingBoardRestore = null;
     notice(error?.code === "BACKUP_FILE_TOO_LARGE"
       ? "전체 보드 백업은 10 MiB 이하만 복원할 수 있습니다."
@@ -334,7 +343,9 @@ restoreForm.addEventListener("submit", async (event) => {
   notice("백업 전체 검증이 통과했습니다. 현재 초안을 대체할지 확인하세요.");
 });
 $("cancel-board-restore").addEventListener("click", () => {
+  restoreRequest += 1;
   pendingBoardRestore = null;
+  restoreBaseline = null;
   restoreConfirmation.hidden = true;
   restoreForm.reset();
   notice("전체 보드 복원을 취소했습니다. 기존 초안은 변경되지 않았습니다.");
@@ -342,6 +353,14 @@ $("cancel-board-restore").addEventListener("click", () => {
 $("confirm-board-restore").addEventListener("click", () => {
   if (!pendingBoardRestore) return;
   try {
+    if (JSON.stringify(state) !== restoreBaseline ||
+      localStorage.getItem(STORAGE_KEY) !== restoreBaseline) {
+      pendingBoardRestore = null;
+      restoreBaseline = null;
+      restoreConfirmation.hidden = true;
+      notice("검사 후 현재 초안이 변경되었습니다. 백업 파일을 다시 검사하세요.");
+      return;
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingBoardRestore));
   } catch {
     notice("브라우저 저장에 실패했습니다. 기존 화면과 초안은 유지했습니다.");
@@ -349,6 +368,7 @@ $("confirm-board-restore").addEventListener("click", () => {
   }
   const restored = pendingBoardRestore;
   pendingBoardRestore = null;
+  restoreBaseline = null;
   state = restored;
   symbolView = "active";
   $("symbol-search").value = "";
