@@ -9,7 +9,8 @@
 - 실제 주문 API: 호출하지 않음
 - `SendOrder`, 정정, 취소: 호출하지 않음
 - `CommConnect`: 로그인 창을 통한 연결 확인에서 호출함
-- 계좌 선택, 계좌/TR 조회: 호출하지 않음
+- 계좌 선택: 사용자 직접 처리
+- 읽기 전용 `opw00018`, `opt10075`: 각각 독립 호출
 - 운영 SQLite: 열람·변경하지 않음
 - `.env`, 계좌번호, 비밀번호, 토큰, 인증서: 출력·보관·커밋하지 않음
 
@@ -20,8 +21,8 @@
 | Python 격리 환경 | `.venv\Scripts\python.exe -I -B` 버전·비트수 | Python 3.10.8, 32비트, 격리됨 |
 | PyQt5 패키지 | PyQt5 / Qt / SIP 버전 출력 | 5.15.11 / 5.15.2 / 12.18.0 |
 | 의존성 | `python -m pip check` | 통과, 종료 코드 0 (Python310-32 사용자 설치 패키지) |
-| Ruff check | `python -m ruff check execution tests verify_kiwoom_com.py` | 통과, 종료 코드 0 |
-| Ruff format | `python -m ruff format --check execution tests verify_kiwoom_com.py` | 41개 파일 포맷 확인, 종료 코드 0 |
+| Ruff check | `python -m ruff check execution tests verify_kiwoom_com.py verify_kiwoom_connection.py verify_kiwoom_readonly.py` | 통과, 종료 코드 0 |
+| Ruff format | `python -m ruff format --check execution tests verify_kiwoom_com.py verify_kiwoom_connection.py verify_kiwoom_readonly.py` | 43개 파일 포맷 확인, 종료 코드 0 |
 | 전체 pytest | `python -m pytest -q --tb=line --basetemp .tools\pytest-current` | **137 passed**, 종료 코드 0 |
 | 가상 데모 | `python -m execution` | 정상 출력, 종료 코드 0 |
 
@@ -164,8 +165,81 @@ py -3.10-32 verify_kiwoom_readonly.py --tr opw00018 --timeout 180
 로그인 화면에서 추가 인증이나 계좌 선택이 필요한 경우 자동 입력하지 않고
 사용자 조작을 기다린다.
 
-수정 사항은 환경 검증과 COM 검증을 분리한 `verify_kiwoom_com.py` 추가 및 안내
-명령 변경이다. 로그인·계좌 조회·주문 경계에는 변경이 없다.
+수정 사항은 환경 검증과 COM 검증을 분리한 probe 및 단일 TR 메타데이터
+수집 경로다. 로그인·읽기 전용 조회 외 주문 경계에는 변경이 없다.
+
+### 단계 B-3 성공한 `opw00018` PowerShell 실행 — 2026-09-25
+
+사용자가 지정 PC 화면에서 계좌 선택과 비밀번호 입력을 직접 처리한 성공
+실행의 안전 메타데이터다. 계좌번호·비밀번호와 원문 응답은 보관하지 않았다.
+
+```text
+login_status LOGIN_EVENT login_error 0 connected True
+tr opw00018 alias READONLY-ACCOUNT-1
+requested_at 2026-09-25T03:57:07.120621+00:00
+broker_message_at 2026-09-25T03:57:07.138625+00:00
+responded_at 2026-09-25T03:57:07.140631+00:00
+request_return 0
+input_fields 계좌번호=<redacted>, 비밀번호=<redacted>, 비밀번호입력매체구분=00, 조회구분=1
+pages page=1 prev_next=<empty> row_count=0 complete=True
+page_complete True
+content_validity NOT_VALIDATED
+broker_message_kind PAPER_TRADING_NO_QUERY_HISTORY
+error BROKER_MESSAGE_PRESENT
+```
+
+가린 증권사 메시지는 사용자가 지정한 기준에 따라 `모의투자 조회 내역 없음`으로
+분류했다. 이는 모의투자 계좌에 해당 조회 내역이 없다는 메시지 분류일 뿐,
+보유 수량 0이나 보유 없음의 확정이 아니다. `row_count=0`과
+`page_complete=True`도 응답 페이지의 완전성만 나타내며, 보유 데이터 의미의
+유효성은 `NOT_VALIDATED`로 남겼다.
+
+### 단계 B-4 독립 `opt10075` 읽기 전용 실행 — 2026-09-25
+
+`opw00018`과 별도 프로세스에서 `opt10075`만 요청했다. 사용자가 계좌를 직접
+선택했으며 비밀번호 입력은 요구되지 않았다.
+
+```text
+login_status LOGIN_EVENT login_error 0 connected True
+tr opt10075 alias READONLY-ACCOUNT-1
+requested_at 2026-09-25T03:55:50.821099+00:00
+broker_message_at 2026-09-25T03:55:50.920954+00:00
+responded_at 2026-09-25T03:55:50.936959+00:00
+request_return 0
+input_fields 계좌번호=<redacted>, 전체종목구분=0, 매매구분=0, 종목코드=<empty>, 체결구분=1
+pages page=1 prev_next=<empty> row_count=0 complete=True
+page_complete True
+content_validity NOT_VALIDATED
+broker_message_kind QUERY_COMPLETED
+error BROKER_MESSAGE_PRESENT
+```
+
+가린 메시지는 일반 조회 완료 메시지로 분류되었다. 따라서 `row_count=0`은
+미체결 없음·미전송·취소 완료를 확정하지 않으며, 실제 미체결 의미의 유효성은
+검증하지 않았다. 연속조회 표식은 `<empty>`로 종료되어 페이지 완전성은
+확인했지만 내용 승격은 하지 않았다.
+
+### 설치 TR 규격·필드 대조
+
+설치 자료는 다음 암호화 파일의 존재와 메타데이터만 확인했다. 파일 내용이나
+원문 응답은 저장소에 복사하지 않았다.
+
+```text
+C:\OpenAPI\data\opw00018.enc  size=682  modified=2025-03-01T21:37:02+09:00
+C:\OpenAPI\data\opt10075.enc  size=660  modified=2025-03-01T21:37:02+09:00
+```
+
+설치 암호화 자료를 임의 해독하지 않고, 공식 가이드의 조회 API 구조와 보관
+코드의 후보 매핑을 대조했다. `opw00018` 입력은 계좌번호·비밀번호·비밀번호
+입력매체구분·조회구분이며 후보 응답 필드는 종목번호·종목명·보유수량·매매가능수량·
+매입가·현재가다. `opt10075` 입력은 계좌번호·전체종목구분·매매구분·종목코드·
+체결구분이며 후보 응답 필드는 주문번호·종목코드·종목명·주문구분·주문가격·
+주문수량·미체결수량·체결량·주문상태다. 이 대조는 필드 후보와 실제 응답
+구조의 일치 확인이며, 빈 응답의 업무 의미를 공식적으로 보증하지 않는다.
+
+이번 실제 응답에서 확인된 사실은 `CommRqData` 반환값 0, 수신 시각, 1페이지,
+`prev_next` 종료, `GetRepeatCnt` 행 수 0, 메시지 분류뿐이다. 필드 값이 없다는
+이유로 보유 0 또는 미체결 0을 원장에 기록하지 않았다.
 
 ## 단계 B 읽기 전용 경계
 
@@ -186,9 +260,10 @@ py -3.10-32 verify_kiwoom_readonly.py --tr opw00018 --timeout 180
 - 페이지 누락·중복·오류·미완료·연속조회 잔여는 `QUARANTINED`, 응답 미완료는 `UNKNOWN`이다.
 - 완전한 조회도 `READ_ONLY_QUERY_COMPLETE_NOT_MANAGED`로 표시하며 관리 보유·가상 체결로 편입하지 않는다.
 
-이번 단계에서는 연결 상태가 `0`이므로 실제 TR 응답 capture를 수집하지 못했다.
-따라서 위 TR과 필드 목록은 기존 공식 문서·설치 자료·보관 코드에서 확인한
-후보 경계이며, 설치된 KOA Studio의 실제 응답 의미를 검증한 것이 아니다.
+초기 연결 상태 `0` 단계에서는 실제 TR 응답 capture를 수집하지 못했지만,
+이후 수동 로그인 후 `opw00018`과 `opt10075`의 안전 메타데이터를 각각
+수집했다. 원문 응답과 민감 입력은 보관하지 않았고, 설치된 KOA Studio의
+빈 결과 업무 의미까지 검증한 것은 아니다.
 
 ## Q01~Q11 상태
 
@@ -199,12 +274,12 @@ py -3.10-32 verify_kiwoom_readonly.py --tr opw00018 --timeout 180
 | Q03 정정 수량 의미 | 주문 호출 금지로 자료 없음 | 미확인, 정정 어댑터 차단 |
 | Q04 취소 접수·완료·지연 체결 | 실제 자료 없음 | 미확인, ACK만으로 예약 해제 금지 |
 | Q05 전송 오류의 미전송 근거 | 가상 검사는 있으나 키움 반환값 검증 없음 | 부분 확인, UNKNOWN 자동 재전송 금지 |
-| Q06 매매가능수량·예약 반영 | `매매가능수량` 필드 후보만 확인 | 미확인, 여력 계산 차단 |
-| Q07 조회 페이지 완전성 | capture 모델과 가상 누락 검사는 추가했으나 실제 응답 없음 | 부분 확인, 실제 복구 차단 |
+| Q06 매매가능수량·예약 반영 | `opw00018` 입력·후보 필드와 1페이지 종료를 확인. 예약 반영은 자료 없음 | 미확인, 여력 계산 차단 |
+| Q07 조회 페이지 완전성 | 두 TR 모두 1페이지·`prev_next` 종료·`page_complete=True` 확인 | 부분 확인, 내용 유효성·실복구 차단 |
 | Q08 접수 전 체결 연결 | 실제 이벤트 없음. 가상 역순 검사는 기존 테스트 | 부분 확인, 실제 연결 차단 |
 | Q09 단일 PC 실행 잠금 | 기존 가상 잠금 검사는 통과. 키움 계좌 운영 정책은 미확인 | 부분 확인 |
 | Q10 Python/Qt/OCX | Python·PyQt5 버전·32비트·OCX 등록/경로·`setControl`/`clear` 확인, 수동 로그인 이벤트와 `GetConnectState=1` 확인 | 부분 확인, 실제 주문 경계 차단 |
-| Q11 기존 보유·수동 거래 배정 | 운영 DB와 계좌 조회를 보지 않음 | 미확인, 자동 편입·청산 금지 |
+| Q11 기존 보유·수동 거래 배정 | 보유 TR을 조회했지만 빈 결과 의미와 관리 배정은 검증하지 않음 | 미확인, 자동 편입·청산 금지 |
 
 ### 자료 별칭
 
