@@ -702,6 +702,30 @@ def test_virtual_send_requires_durable_obligation_in_claim_transaction(
     assert book.virtual_latched_stop_candidate("005930").unreserved_qty == 2
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
     assert len(book.snapshot().requests) == 2
+    later = book.submit(
+        New(
+            key="virtual-stop:005930:later",
+            symbol="005930",
+            side="SELL",
+            config_version=2,
+            qty=2,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+            stop_latch_version=latch.rule_version,
+        )
+    ).request
+    assert (
+        next(
+            view.state
+            for view in book.virtual_stop_obligations("005930")
+            if view.request_id == later.request_id
+        )
+        == "PENDING"
+    )
+    assert not dispatcher.send(later.request_id, stop_session="REGULAR")
+    assert book.transport(later.request_id) == "INTENT_PERSISTED"
+    assert dispatcher.calls == []
 
 
 def test_cancelled_stop_obligation_requires_review_before_another_sell(

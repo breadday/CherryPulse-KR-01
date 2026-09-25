@@ -51,14 +51,18 @@ class VirtualDispatcher:
                 ):
                     return False
                 if request.command.key.startswith("virtual-stop:"):
-                    obligations = [
-                        view
-                        for view in stop_obligation_views(
-                            journal, request.command.symbol
-                        )
-                        if view.request_id == request_id
+                    obligations = stop_obligation_views(journal, request.command.symbol)
+                    current = [
+                        view for view in obligations if view.request_id == request_id
                     ]
-                    if len(obligations) != 1 or obligations[0].state != "PENDING":
+                    if (
+                        len(current) != 1
+                        or current[0].state != "PENDING"
+                        or any(
+                            view.state in ("REVIEW_REQUIRED", "BLOCKED_EVIDENCE")
+                            for view in obligations
+                        )
+                    ):
                         return False
                 store.lease.require_ready()
                 check_freshness(journal, request.command, self.ledger.clock())
