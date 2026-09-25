@@ -56,7 +56,7 @@ function descendants(element) {
 
 function boardWithDraft(draft) {
   const ids = [
-    "notice", "symbol-count", "active-filter", "archived-filter", "symbol-list",
+    "notice", "symbol-count", "active-filter", "archived-filter", "symbol-search", "symbol-list",
     "bulk-import-form", "symbol-import-file", "export-symbols-json", "export-symbols-csv",
     "pattern-list", "symbol-form", "pattern-kind", "pattern-order-type", "threshold-label",
     "threshold-hint", "pattern-threshold", "pattern-name", "pattern-form",
@@ -304,4 +304,35 @@ test("symbol exports download only active symbol fields accepted by the import f
   const empty = boardWithDraft({symbols: [], patterns: []});
   assert.equal(empty.getElement("export-symbols-json").disabled, true);
   assert.equal(empty.getElement("export-symbols-csv").disabled, true);
+});
+
+test("symbol search covers code, name, link, and note while respecting active/archive filters", () => {
+  const fixture = boardWithDraft({
+    symbols: [
+      {code: "005930", name: "삼성전자", source: "https://example.com/semiconductor", note: "메모리", archived: false},
+      {code: "000660", name: "하이닉스", source: "", note: "HBM", archived: false},
+      {code: "035420", name: "보관종목", source: "https://example.com/archive", note: "보관메모", archived: true},
+    ],
+    patterns: [],
+  });
+  const search = fixture.getElement("symbol-search");
+  const visibleCodes = () => fixture.getElement("symbol-list").children
+    .filter((item) => item.className === "card")
+    .map((card) => descendants(card).find((item) => item.className === "symbol-code").textContent);
+
+  for (const [query, expected] of [["005930", ["005930"]], ["하이닉스", ["000660"]], ["example.com/semiconductor", ["005930"]], ["hbm", ["000660"]]]) {
+    search.value = query;
+    search.dispatch("input");
+    assert.deepEqual(visibleCodes(), expected);
+  }
+
+  search.value = "보관메모";
+  search.dispatch("input");
+  assert.deepEqual(visibleCodes(), []);
+  fixture.getElement("archived-filter").dispatch("click");
+  assert.deepEqual(visibleCodes(), ["035420"]);
+  assert.match(fixture.getElement("symbol-count").textContent, /1개 표시/);
+  search.value = "찾을수없음";
+  search.dispatch("input");
+  assert.match(fixture.getElement("symbol-list").children[0].textContent, /검색 결과가 없습니다/);
 });

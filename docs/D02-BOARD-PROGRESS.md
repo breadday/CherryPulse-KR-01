@@ -30,6 +30,16 @@ URL 해제를 확인했다. Chrome 모바일 headless에서 두 버튼을 실제
 다운로드 완료 이벤트를 받았고, 내려받은 파일 내용을 읽어 활성 종목만 포함하는
 것을 확인했다. 브라우저 에뮬레이션 외의 OS별 다운로드 동작은 미검증이다.
 
+## 관심종목 검색 — 2026-09-25
+
+현재 선택한 관심/보관 목록 안에서 종목코드·종목명·참고 링크·메모를 대소문자
+구분 없이 검색한다. 검색은 초안 데이터를 수정·저장하지 않으며, 검색 결과가 없으면
+빈 결과 안내를 표시한다. 결과 개수는 전체 관심/보관 수와 함께 보여 준다.
+
+검증: Node DOM 테스트에서 네 검색 필드, 관심/보관 필터 조합, 빈 결과 표시를
+확인했다. Chrome 모바일 emulation에서 HBM 메모 검색 후 보관 탭의 메모 검색을
+실행했고, 390px 가로 폭 넘침 없음과 데스크톱 2열을 다시 확인했다.
+
 ## 불변 버전 초안 추가 — 2026-09-25
 
 보드에서 저장한 손절 패턴을 기존 값에 덮어쓰지 않고 새 버전으로 만들 수
@@ -44,7 +54,7 @@ URL 해제를 확인했다. Chrome 모바일 headless에서 두 버튼을 실제
 구형 로컬 초안은 `version`이 없으면 v1, `patternId`가 없으면 기존 ID를
 계열 ID로 취급하고 `active`가 없으면 활성 버전으로 읽는다.
 
-검증: `node --test web/board/board.test.js` **8 passed**. 신규 버전 저장 뒤
+검증: `node --test web/board/board.test.js` **9 passed**. 신규 버전 저장 뒤
 기존 버전과 종목 연결이 보존되는 것, 비활성 버전의 새 연결 차단 및 재활성화를,
 새 버전에 시장가/지정가 선택이 저장되는 것을 검사했다. `node --check
 web/board/board.js`, `node --check web/board/board.test.js`, `git diff --check`
@@ -102,16 +112,17 @@ Python 3.10.8 32비트 전체 pytest **159 passed**, Ruff 검사·포맷 검사,
 
 ## 현재 검증과 미완료 — 2026-09-25
 
-- `node --test web/board/board.test.js`: **8 passed**. 패턴 버전과 종목 연결,
-  주문 방식 검증, JSON/CSV 형식·전체 검증·중복 무변경, JSON 내보내기 필드와
-  다운로드 자원 해제를 모의 DOM/순수 파서 검사로 확인했다.
-- `node --check web/board/board.js`, `node --check web/board/board.test.js`,
+- `node --test web/board/board.test.js`: **9 passed**. 검색·필터, 패턴 버전과 종목
+  연결, 주문 방식, JSON/CSV 가져오기·내보내기와 검증 경계를 확인했다.
+- `node --check web/board/board.js`, `node --check web/board/draft-import.js`,
+  `node --check web/board/board.test.js`,
   `git diff --check`: 통과.
 - 설치 경로에서 Chrome을 찾아 headless 실제 브라우저로 확인했다. 390×844 모바일
   emulation에서 문서 폭390px·단일 358px 열, 1365px 데스크톱 emulation에서
-  두 개 570px 열을 확인했다. 모바일 emulation에서 종목 등록·패턴 연결·v2 생성
-  및 LIMIT 선택·v1 비활성화 후 기존 연결 보존과 신규 연결 차단도 실행했다.
-  Q12 결정 전의 매수 패턴 명세 대기 패널도 양 viewport에서 표시됨을 확인했다.
+   두 개 570px 열을 확인했다. 모바일 emulation에서 종목 등록·패턴 연결·v2 생성
+   및 LIMIT 선택·v1 비활성화 후 기존 연결 보존과 신규 연결 차단도 실행했다.
+   CSV 내보내기/가져오기, 코드·메모 검색과 보관 목록 필터, Q12 결정 전의 매수
+   패턴 명세 대기 패널도 확인했다.
   물리 휴대폰 확인은 하지 않았다.
 - 회귀 검사: Python 3.10.8 32비트 전체 pytest **159 passed**, Ruff 검사·포맷,
   가상 데모와 `pip check` 통과. 사용자 설치 Python을 썼으며 격리 `.venv`는 없다.

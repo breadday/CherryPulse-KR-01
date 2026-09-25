@@ -39,7 +39,18 @@ function nextPatternVersion(pattern) {
 function render() {
   const activeCount = state.symbols.filter((item) => item.archived !== true).length;
   const archivedCount = state.symbols.length - activeCount;
-  $("symbol-count").textContent = `${activeCount}개 관심 · ${archivedCount}개 보관`;
+  const query = $("symbol-search").value.trim().toLowerCase();
+  const scopedSymbols = state.symbols.filter((item) =>
+    symbolView === "archived" ? item.archived === true : item.archived !== true
+  );
+  const visibleSymbols = query
+    ? scopedSymbols.filter((item) =>
+      [item.code, item.name, item.source, item.note]
+        .some((value) => typeof value === "string" && value.toLowerCase().includes(query))
+    )
+    : scopedSymbols;
+  const totals = `${activeCount}개 관심 · ${archivedCount}개 보관`;
+  $("symbol-count").textContent = query ? `${totals} · ${visibleSymbols.length}개 표시` : totals;
   $("export-symbols-json").disabled = activeCount === 0;
   $("export-symbols-csv").disabled = activeCount === 0;
   $("active-filter").setAttribute("aria-pressed", String(symbolView === "active"));
@@ -47,12 +58,11 @@ function render() {
   const symbols = $("symbol-list");
   const patterns = $("pattern-list");
   symbols.replaceChildren(); patterns.replaceChildren();
-  const visibleSymbols = state.symbols.filter((item) =>
-    symbolView === "archived" ? item.archived === true : item.archived !== true
-  );
   if (!visibleSymbols.length) {
     const empty = document.createElement("p"); empty.className = "empty";
-    empty.textContent = symbolView === "archived"
+    empty.textContent = query
+      ? "검색 결과가 없습니다. 종목명·코드·링크·메모를 확인하세요."
+      : symbolView === "archived"
       ? "보관한 종목이 없습니다. 종목 카드를 보관해 두면 여기에 남습니다."
       : "등록한 종목이 없습니다. 외부에서 선택한 종목코드를 직접 입력하세요.";
     symbols.append(empty);
@@ -213,6 +223,7 @@ function render() {
 }
 $("active-filter").addEventListener("click", () => { symbolView = "active"; render(); });
 $("archived-filter").addEventListener("click", () => { symbolView = "archived"; render(); });
+$("symbol-search").addEventListener("input", render);
 function downloadActiveSymbols(format) {
   const symbols = CherryPulseDraftImport.exportActiveSymbols(state.symbols);
   if (!symbols.length) { notice("내보낼 관심종목이 없습니다."); return; }
