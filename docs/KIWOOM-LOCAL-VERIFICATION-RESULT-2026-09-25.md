@@ -84,6 +84,14 @@ control_created True connect_state 0 connected False
 process_exit 0
 ```
 
+재확인도 별도 프로세스에서 같은 결과였다.
+
+```text
+observed_at 2026-09-25T02:56:26.121921+00:00
+control_created True connect_state 0 connected False
+process_exit 0
+```
+
 - COM 생성: 성공
 - 연결 상태: `0` / 미연결
 - COM 해제: 성공
