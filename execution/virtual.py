@@ -94,7 +94,7 @@ class VirtualDispatcher:
             latch is None
             or portfolio(journal, symbol).liquidating
             or any(
-                obligation.next_action == "REVIEW_AND_ALERT"
+                obligation.state in ("REVIEW_REQUIRED", "BLOCKED_EVIDENCE")
                 for obligation in self.ledger.virtual_stop_obligations(symbol)
             )
         ):

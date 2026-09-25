@@ -547,6 +547,70 @@ def test_stop_obligation_remains_one_request_during_partial_sell(
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
 
 
+def test_blocked_obligation_prevents_later_virtual_stop_sell(
+    tmp_path: Path, lease: AccountLease, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    book = Ledger(tmp_path / "ledger.sqlite3", lease)
+    book.approve_virtual_reconciliation(0)
+    book.apply_virtual_stop_config(
+        VirtualStopBinding(
+            symbol="005930", version=2, rule_kind="PRICE_AT_OR_BELOW", threshold="9800"
+        ),
+        expected_version=1,
+    )
+    buy = book.submit(
+        New(
+            key="protected-buy",
+            symbol="005930",
+            side="BUY",
+            config_version=2,
+            qty=4,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=2,
+            remaining=2,
+            evidence_version=1,
+        )
+    )
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    assert (
+        book.latch_virtual_price_stop(
+            "005930",
+            Quote(symbol="005930", price="9700", received_at=now),
+            ObserveAt(now=now, max_quote_age_seconds=2),
+        )
+        is not None
+    )
+    dispatcher = VirtualDispatcher(book)
+    assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is not None
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=2,
+            remaining=0,
+            evidence_version=2,
+        )
+    )
+    assert book.virtual_latched_stop_candidate("005930").unreserved_qty == 2
+    view = book.virtual_stop_obligations("005930")[0]
+    monkeypatch.setattr(
+        book,
+        "virtual_stop_obligations",
+        lambda symbol: (replace(view, state="BLOCKED_EVIDENCE"),),
+    )
+    before = len(book.snapshot().requests)
+    assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
+    assert len(book.snapshot().requests) == before
+
+
 def test_cancelled_stop_obligation_requires_review_before_another_sell(
     tmp_path: Path, lease: AccountLease
 ) -> None:
