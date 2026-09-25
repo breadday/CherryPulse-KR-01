@@ -1,5 +1,18 @@
 # D03 가상 손절 보호 진행 기록
 
+## 사용자 PC 회귀 결과 전달 — 2026-09-25
+
+사용자가 앞서 안내한 Windows PowerShell 검사 명령 실행 후 전달한 출력:
+전체 pytest **161 passed in 8.97s**, Ruff 검사 **All checks passed!**,
+Ruff 포맷 검사 **79 files already formatted**, `python -m execution` 가상
+데모는 `managed=70`, `reserved=0`, `cancel_unknown_reserved=100`,
+`cancel_confirmed_reserved=30`, `lifecycle=CANCELLED`, `virtual_calls=2`,
+`replay_changes=0`을 출력했다. 이 결과는 사용자 PC에서 전달된 로그이며
+이번 작업 환경에서 Windows 실행을 직접 재현한 것은 아니다. 인터프리터
+비트 수, 각 명령의 종료 코드, `git status --short` 출력은 별도 전달되지
+않았으므로 확정 기록하지 않는다. 실제 키움 주문·체결 조회와 운영 DB
+검증으로 해석하지 않는다. D03의 자동 시세·세션·외부 조회·알림은 남아 있다.
+
 ## 전송 직전 손절 의무 근거 재확인 — 2026-09-25
 
 가상 dispatcher는 `virtual-stop:` 요청을 전송 상태로 표시하기 직전,
