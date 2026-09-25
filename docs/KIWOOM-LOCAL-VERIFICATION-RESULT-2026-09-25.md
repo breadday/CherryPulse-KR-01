@@ -8,6 +8,7 @@
 - 시작 상태: `git status --short --branch` 결과 `main...origin/main`, 변경 파일 없음
 - 실제 주문 API: 호출하지 않음
 - `SendOrder`, 정정, 취소: 호출하지 않음
+- `CommConnect`, 계좌 선택, 계좌/TR 조회: 호출하지 않음
 - 운영 SQLite: 열람·변경하지 않음
 - `.env`, 계좌번호, 비밀번호, 토큰, 인증서: 출력·보관·커밋하지 않음
 
@@ -73,6 +74,30 @@ Error Event 1000 오류 모듈은 `NVDisplay.Container.exe`였고, 키움 OCX·P
 - 국내 주식 계좌 조회: 미실행
 - 주문 가능성: 판단하지 않음
 
+### 단계 B-0 연결 상태 확인 — 2026-09-25
+
+COM 생성 직후 별도 프로세스에서 `GetConnectState()`만 한 번 호출했다.
+
+```text
+observed_at 2026-09-25T02:50:56.601424+00:00
+control_created True connect_state 0 connected False
+process_exit 0
+```
+
+- COM 생성: 성공
+- 연결 상태: `0` / 미연결
+- COM 해제: 성공
+- `CommConnect`, 계좌번호·비밀번호 입력, 계좌 선택, `CommRqData`: 미호출
+- 이번 단계에서 호출한 TR: 없음
+
+따라서 `opw00018`, `opt10075`, `opw00007` 조회는 보류했다. 사용자가 지정 PC에서
+키움 OpenAPI+ 로그인 화면을 직접 열고, 필요한 로그인·인증·계좌 선택을 직접
+수행해야 한다. 계좌번호·비밀번호·인증 화면을 이 저장소나 채팅에 공유하지
+않는다. 로그인 완료 후에는 먼저 동일한 `GetConnectState()`를 다시 확인하고,
+`1`이 확인된 경우에만 허용된 계좌를 사용해 한 종류씩 읽기 전용 TR을 요청한다.
+로그인 화면에서 추가 인증이나 계좌 선택이 필요한 경우 자동 입력하지 않고
+사용자 조작을 기다린다.
+
 수정 사항은 환경 검증과 COM 검증을 분리한 `verify_kiwoom_com.py` 추가 및 안내
 명령 변경이다. 로그인·계좌 조회·주문 경계에는 변경이 없다.
 
@@ -95,7 +120,9 @@ Error Event 1000 오류 모듈은 `NVDisplay.Container.exe`였고, 키움 OCX·P
 - 페이지 누락·중복·오류·미완료·연속조회 잔여는 `QUARANTINED`, 응답 미완료는 `UNKNOWN`이다.
 - 완전한 조회도 `READ_ONLY_QUERY_COMPLETE_NOT_MANAGED`로 표시하며 관리 보유·가상 체결로 편입하지 않는다.
 
-이번 PC에서는 COM 초기화가 종료되었으므로 로그인 상태나 실제 TR 응답 capture를 수집하지 못했다. 따라서 위 TR과 필드 목록은 기존 공식 문서·설치 자료·보관 코드에서 확인한 후보 경계이며, 설치된 KOA Studio의 실제 응답 의미를 검증한 것이 아니다.
+이번 단계에서는 연결 상태가 `0`이므로 실제 TR 응답 capture를 수집하지 못했다.
+따라서 위 TR과 필드 목록은 기존 공식 문서·설치 자료·보관 코드에서 확인한
+후보 경계이며, 설치된 KOA Studio의 실제 응답 의미를 검증한 것이 아니다.
 
 ## Q01~Q11 상태
 
@@ -110,7 +137,7 @@ Error Event 1000 오류 모듈은 `NVDisplay.Container.exe`였고, 키움 OCX·P
 | Q07 조회 페이지 완전성 | capture 모델과 가상 누락 검사는 추가했으나 실제 응답 없음 | 부분 확인, 실제 복구 차단 |
 | Q08 접수 전 체결 연결 | 실제 이벤트 없음. 가상 역순 검사는 기존 테스트 | 부분 확인, 실제 연결 차단 |
 | Q09 단일 PC 실행 잠금 | 기존 가상 잠금 검사는 통과. 키움 계좌 운영 정책은 미확인 | 부분 확인 |
-| Q10 Python/Qt/OCX | Python·PyQt5 버전·32비트·OCX 등록/경로·`setControl`/`clear` 확인 | 부분 확인, 실제 주문 경계 차단 |
+| Q10 Python/Qt/OCX | Python·PyQt5 버전·32비트·OCX 등록/경로·`setControl`/`clear` 확인, `GetConnectState=0` | 부분 확인, 실제 주문 경계 차단 |
 | Q11 기존 보유·수동 거래 배정 | 운영 DB와 계좌 조회를 보지 않음 | 미확인, 자동 편입·청산 금지 |
 
 ### 자료 별칭
