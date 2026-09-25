@@ -23,13 +23,18 @@ class VirtualDispatcher:
         self.ledger: Ledger = ledger
         self.calls: list[Request] = []
 
+    @property
+    def real_order_transport_available(self) -> bool:
+        """Real orders stay unavailable: Scope permits only the virtual adapter."""
+        return False
+
     def send(
         self,
         request_id: UUID,
         *,
         stop_session: Literal["REGULAR", "CLOSED"] | None = None,
     ) -> bool:
-        """Claim an uncalled intention atomically, then simulate submission."""
+        """Claim an intention and simulate it; this method never sends to a broker."""
         with self.ledger.storage.lease.operation():
             store = self.ledger.storage
             with store.transaction() as connection:
@@ -98,7 +103,11 @@ class VirtualDispatcher:
     def drain_virtual_stop(
         self, symbol: str, *, session: Literal["REGULAR", "CLOSED"]
     ) -> Request | None:
-        """Create one simulated market sell from a latched stop in regular session."""
+        """Create a virtual market-sell scenario from a latch.
+
+        ``session`` controls only the simulation. A caller-provided REGULAR value
+        is not exchange-calendar evidence and cannot enable real-order transport.
+        """
         if session != "REGULAR":
             return None
         journal = self.ledger.snapshot()

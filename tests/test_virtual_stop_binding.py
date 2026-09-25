@@ -276,7 +276,10 @@ def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(  # noqa: 
     now = datetime(2026, 9, 24, tzinfo=timezone.utc)
     timing = ObserveAt(now=now, max_quote_age_seconds=2)
     quote = Quote(symbol="005930", price="9700", received_at=now)
-    latch = book.latch_virtual_price_stop("005930", quote, timing)
+    quote_result = book.process_virtual_stop_quote("005930", quote, timing)
+    assert quote_result.accepted
+    assert quote_result.observation.status == "TRIGGERED"
+    latch = quote_result.latch
     assert latch is not None
     assert book.latch_virtual_price_stop("005930", quote, timing) == latch
     assert len(book.snapshot().stop_latches) == 1
@@ -312,6 +315,7 @@ def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(  # noqa: 
     assert len(book.snapshot().requests) == before_requests
     assert book.virtual_latched_stop_candidate("005930").unreserved_qty == 4
     dispatcher = VirtualDispatcher(book)
+    assert not dispatcher.real_order_transport_available
     assert not dispatcher.send(pending.request_id)
     assert dispatcher.drain_virtual_stop("005930", session="CLOSED") is None
     first_sell = dispatcher.drain_virtual_stop("005930", session="REGULAR")
@@ -1086,3 +1090,124 @@ def test_preexisting_holdings_cannot_acquire_inferred_cost(
     book.approve_virtual_reconciliation(0)
     book.allocate(Allocation(symbol="005930", qty=1))
     assert book.confirmed_stop_cost_basis("005930") is None
+
+
+def test_quote_ingress_blocks_replay_reverse_order_and_restarts_safely(
+    tmp_path: Path, lease: AccountLease
+) -> None:
+    path = tmp_path / "ledger.sqlite3"
+    book = Ledger(path, lease)
+    book.approve_virtual_reconciliation(0)
+    book.apply_virtual_stop_config(
+        VirtualStopBinding(
+            symbol="005930",
+            version=2,
+            rule_kind="PRICE_AT_OR_BELOW",
+            threshold="9800",
+        ),
+        expected_version=1,
+    )
+    buy = book.submit(
+        New(
+            key="quote-ingress-buy",
+            symbol="005930",
+            side="BUY",
+            config_version=2,
+            qty=7,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=4,
+            remaining=3,
+            evidence_version=1,
+        )
+    )
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    timing = ObserveAt(now=now, max_quote_age_seconds=2)
+
+    first = Quote(
+        symbol="005930", price="9900", received_at=now - timedelta(milliseconds=500)
+    )
+    observed = book.process_virtual_stop_quote("005930", first, timing)
+    assert (observed.accepted, observed.observation.status, observed.latch) == (
+        True,
+        "NOT_TRIGGERED",
+        None,
+    )
+
+    stale = book.process_virtual_stop_quote(
+        "005930",
+        Quote(symbol="005930", price="9000", received_at=now - timedelta(seconds=3)),
+        timing,
+    )
+    assert (stale.accepted, stale.observation.reason) == (False, "QUOTE_NOT_FRESH")
+
+    clock_reversed = book.process_virtual_stop_quote(
+        "005930",
+        Quote(
+            symbol="005930",
+            price="9700",
+            received_at=now - timedelta(milliseconds=200),
+        ),
+        ObserveAt(now=now - timedelta(milliseconds=100), max_quote_age_seconds=2),
+    )
+    assert (clock_reversed.accepted, clock_reversed.observation.reason) == (
+        False,
+        "EVALUATION_TIME_REVERSED",
+    )
+
+    reversed_quote = Quote(
+        symbol="005930", price="9700", received_at=now - timedelta(seconds=1)
+    )
+    reversed_result = book.process_virtual_stop_quote("005930", reversed_quote, timing)
+    assert (reversed_result.accepted, reversed_result.observation.reason) == (
+        False,
+        "QUOTE_OUT_OF_ORDER",
+    )
+    duplicate = book.process_virtual_stop_quote("005930", first, timing)
+    assert (duplicate.accepted, duplicate.observation.reason) == (
+        False,
+        "QUOTE_DUPLICATE",
+    )
+
+    triggered_quote = Quote(
+        symbol="005930", price="9700", received_at=now - timedelta(milliseconds=250)
+    )
+    triggered = book.process_virtual_stop_quote("005930", triggered_quote, timing)
+    assert triggered.accepted
+    assert triggered.observation.status == "TRIGGERED"
+    assert triggered.latch is not None
+    assert book.virtual_latched_stop_candidate("005930").unreserved_qty == 4
+
+    restored = Ledger(path, lease)
+    repeated = restored.process_virtual_stop_quote("005930", triggered_quote, timing)
+    assert (repeated.accepted, repeated.observation.reason) == (
+        False,
+        "QUOTE_DUPLICATE",
+    )
+    assert restored.snapshot().stop_latches == (triggered.latch,)
+    assert restored.snapshot().stop_sell_obligations == ()
+    assert VirtualDispatcher(restored).real_order_transport_available is False
+
+    future = Quote(
+        symbol="005930", price="9000", received_at=now + timedelta(milliseconds=1)
+    )
+    future_result = restored.process_virtual_stop_quote("005930", future, timing)
+    assert (future_result.accepted, future_result.observation.reason) == (
+        False,
+        "QUOTE_NOT_FRESH",
+    )
+    wrong_symbol = Quote(
+        symbol="000660", price="9000", received_at=now - timedelta(milliseconds=100)
+    )
+    wrong_result = restored.process_virtual_stop_quote("005930", wrong_symbol, timing)
+    assert (wrong_result.accepted, wrong_result.observation.reason) == (
+        False,
+        "QUOTE_MISSING_OR_WRONG_SYMBOL",
+    )

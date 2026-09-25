@@ -18,6 +18,7 @@ from execution.models import (
     LedgerError,
     Request,
     StopLatch,
+    StopQuoteCheckpoint,
     StopRuleAssignment,
     StopSellObligation,
     VirtualStopBinding,
@@ -37,8 +38,9 @@ EntryKind = Literal[
 ]
 ROWS: Final = TypeAdapter(list[tuple[EntryKind, str, str]])
 COUNTS: Final = TypeAdapter(list[tuple[int]])
-SCHEMA_VERSION: Final = 1
-SCHEMA_OBJECTS: Final = 3
+SCHEMA_VERSION: Final = 2
+SCHEMA_OBJECTS: Final = 4
+SCHEMA_V1_OBJECTS: Final = 3
 SCHEMA: Final = (
     """CREATE TABLE journal (
       seq INTEGER PRIMARY KEY, scope TEXT NOT NULL, kind TEXT NOT NULL,
@@ -47,7 +49,11 @@ SCHEMA: Final = (
       seq INTEGER PRIMARY KEY REFERENCES journal(seq), payload TEXT NOT NULL)""",
     """CREATE TRIGGER publish AFTER INSERT ON journal BEGIN
       INSERT INTO outbox(seq, payload) VALUES (NEW.seq, NEW.payload); END""",
-    "PRAGMA user_version = 1",
+    """CREATE TABLE stop_quote_cursors (
+      scope TEXT NOT NULL, symbol TEXT NOT NULL, price TEXT NOT NULL,
+      received_at TEXT NOT NULL, evaluated_at TEXT NOT NULL,
+      PRIMARY KEY(scope, symbol))""",
+    "PRAGMA user_version = 2",
 )
 
 
@@ -63,6 +69,7 @@ class Journal:
     stop_bindings: tuple[VirtualStopBinding, ...] = ()
     stop_assignments: tuple[StopRuleAssignment, ...] = ()
     stop_latches: tuple[StopLatch, ...] = ()
+    stop_quotes: tuple[StopQuoteCheckpoint, ...] = ()
     stop_sell_obligations: tuple[StopSellObligation, ...] = ()
 
     @property
@@ -116,15 +123,25 @@ class Storage:
             else:
                 names = connection.execute(
                     """SELECT count(*) FROM sqlite_master
-                    WHERE name IN ('journal','outbox','publish')""",
+                    WHERE name IN (
+                    'journal','outbox','publish','stop_quote_cursors')""",
                 ).fetchall()
-                if COUNTS.validate_python(names)[0][0] != SCHEMA_OBJECTS:
-                    raise LedgerError("UNRECOGNIZED_DATABASE")
+                object_count = COUNTS.validate_python(names)[0][0]
                 version = COUNTS.validate_python(
-                    connection.execute(
-                        "PRAGMA user_version",
-                    ).fetchall()
+                    connection.execute("PRAGMA user_version").fetchall()
                 )[0][0]
+                if version == 1 and object_count == SCHEMA_V1_OBJECTS:
+                    _ = connection.execute(
+                        """CREATE TABLE stop_quote_cursors (
+                        scope TEXT NOT NULL, symbol TEXT NOT NULL, price TEXT NOT NULL,
+                        received_at TEXT NOT NULL, evaluated_at TEXT NOT NULL,
+                        PRIMARY KEY(scope, symbol))"""
+                    )
+                    _ = connection.execute("PRAGMA user_version = 2")
+                    object_count = SCHEMA_OBJECTS
+                    version = SCHEMA_VERSION
+                if object_count != SCHEMA_OBJECTS:
+                    raise LedgerError("UNRECOGNIZED_DATABASE")
                 if version != SCHEMA_VERSION:
                     raise LedgerError("UNSUPPORTED_SCHEMA_VERSION")
 
@@ -155,6 +172,19 @@ class Storage:
         stop_bindings: list[VirtualStopBinding] = []
         stop_assignments: list[StopRuleAssignment] = []
         stop_latches: list[StopLatch] = []
+        stop_quotes = [
+            StopQuoteCheckpoint(
+                symbol=symbol,
+                price=price,
+                received_at=received_at,
+                evaluated_at=evaluated_at,
+            )
+            for symbol, price, received_at, evaluated_at in connection.execute(
+                """SELECT symbol,price,received_at,evaluated_at
+                FROM stop_quote_cursors WHERE scope=? ORDER BY symbol""",
+                (self.scope,),
+            ).fetchall()
+        ]
         stop_sell_obligations: list[StopSellObligation] = []
         for kind, _, payload in rows:
             match kind:
@@ -193,6 +223,7 @@ class Storage:
             tuple(stop_bindings),
             tuple(stop_assignments),
             tuple(stop_latches),
+            tuple(stop_quotes),
             tuple(stop_sell_obligations),
         )
 
@@ -201,4 +232,23 @@ class Storage:
         _ = connection.execute(
             "INSERT INTO journal(scope,kind,key,payload) VALUES(?,?,?,?)",
             (self.scope, entry.kind, entry.key, entry.payload),
+        )
+
+    def checkpoint_stop_quote(
+        self, connection: sqlite3.Connection, checkpoint: StopQuoteCheckpoint
+    ) -> None:
+        """Keep one monotonic cursor per symbol without journaling every market tick."""
+        _ = connection.execute(
+            """INSERT INTO stop_quote_cursors
+            (scope,symbol,price,received_at,evaluated_at) VALUES(?,?,?,?,?)
+            ON CONFLICT(scope,symbol) DO UPDATE SET
+            price=excluded.price, received_at=excluded.received_at,
+            evaluated_at=excluded.evaluated_at""",
+            (
+                self.scope,
+                checkpoint.symbol,
+                str(checkpoint.price),
+                checkpoint.received_at.isoformat(),
+                checkpoint.evaluated_at.isoformat(),
+            ),
         )

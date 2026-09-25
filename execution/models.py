@@ -186,6 +186,15 @@ class StopLatch(Boundary):
     quote_received_at: AwareDatetime
 
 
+class StopQuoteCheckpoint(Boundary):
+    """Last accepted virtual stop input for monotonic replay protection."""
+
+    symbol: Key
+    price: Price
+    received_at: AwareDatetime
+    evaluated_at: AwareDatetime
+
+
 class StopSellObligation(Boundary):
     """One immutable protected share slice paired with one sell request."""
 

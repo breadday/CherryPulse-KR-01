@@ -1,5 +1,66 @@
 # D03 가상 손절 보호 진행 기록
 
+## 2026-09-26 시세 입력에서 가상 평가까지의 원자 경계 — 기준 `fc6f334`
+
+작업 시작 시 `git fetch origin main` 후 `HEAD`와 `origin/main`은 모두
+`fc6f334d1d01a81d0c29223330562881079ec25b`였고 브랜치 `main`, 작업 트리는
+깨끗했다. 기존의 손절 발동·청산 의무·dispatcher 재시작 차단은 재작성하지 않았다.
+
+기존 `Quote`는 종목코드, `LAST_TRADE`, 정확한 양수 유한 decimal 가격,
+시간대가 있는 수신시각을 검증하고 `ObserveAt`은 시간대가 있는 평가시각과
+최대 2초(`1` 또는 `2`)만 허용한다. 순수 평가기는 다른 종목·평가시각보다
+미래인 시세·2초 초과 시세를 `UNAVAILABLE`로 처리하고 2초 경계는 허용한다.
+잘못된 가격과 잘못된 종목 형식은 계약 검증에서 거부된다. 기존 결함은
+종목별 최근 수신/평가시각을 보존하지 않아 같은 시세·역순 시세를 재평가할
+수 있었고, 발동 기록과 비교 결과를 같은 쓰기 트랜잭션에 연결한 진입 경로가
+없었던 점이다.
+
+`Ledger.process_virtual_stop_quote`를 추가했다. 검증된 새 시세의 종목별 최신
+checkpoint와 손절 발동 latch를 같은 SQLite `BEGIN IMMEDIATE` 트랜잭션에서
+기록한다. 시장 틱마다 outbox에 이벤트를 무한히 쌓지 않도록 checkpoint 전용
+테이블에 종목별 최신 시세만 보존한다. 기존 schema v1은 v2로 로컬 마이그레이션
+지원하며, 이번 작업에서는 운영 DB를 열지 않았다.
+최근 수신시각보다 역순, 동일 수신시각 중복, 평가시계 역행, 미래/오래된 시세,
+다른 종목은 거절하며 거절 입력은 checkpoint를 전진시키지 않는다. 가격·시세
+checkpoint는 계좌·체결 사실이 아닌 단조성 검사용 로컬 가상 상태다.
+기존 latch의 멱등성과 요청별 청산 의무 원장은 그대로 사용한다.
+
+세션 값 `REGULAR`는 가상 시나리오 실행 조건일 뿐 거래소 세션의 증거로
+인정하지 않는다. `VirtualDispatcher`는 `Scope.broker_adapter="virtual"`만
+받고 `real_order_transport_available`은 항상 `False`다. 거래소 시간표·휴장일
+근거가 없어 실제 주문 가능 상태는 계속 차단이다. 임의의 거래 시간표는
+추가하지 않았다.
+
+회귀 시나리오: 부분 매수 체결 4주 직후 보호 후보 4주, 뒤늦은 매수 체결의
+추가 의무, 시세 중복·역순·평가시각 역행·미래·다른 종목, 같은 SQLite 원장
+재시작, 손절 latch 멱등성, 취소 `UNKNOWN` 후 재시작/추가 제출 차단을 확인했다.
+기존 계약 회귀에서 오래된 시세 및 정확히 2초 경계도 계속 검사된다. 취소
+`UNKNOWN`을 성공/실패로 추정하지 않고, 자동 재주문하지 않는다.
+
+검증은 Windows Python `3.10.8` 32비트 (`py -3.10-32`, 사용자 설치 환경)에서
+수행했다. 각 종료 코드:
+
+| 검사 명령 | 결과 |
+|---|---|
+| `py -3.10-32 -m pytest -q --tb=line --basetemp <고유 임시 경로> tests/test_stop_evaluation.py tests/test_virtual_stop_binding.py` | 종료 0, **27 passed** |
+| `py -3.10-32 -m pytest -q --tb=line --basetemp <고유 임시 경로>` | 종료 0, **163 passed** (`9.02s`) |
+| `py -3.10-32 -m ruff check execution contracts tests` | 종료 0, All checks passed |
+| `py -3.10-32 -m ruff format --check execution contracts tests` | 종료 0, **44 files already formatted** |
+| `py -3.10-32 -m execution` | 종료 0, 데모 정상 (`virtual_calls=2`, `replay_changes=0`) |
+| `git diff --check` | 종료 0 |
+
+프로젝트 `.venv`, `.tools/typecheck/basedpyright/index.js`와 basedpyright 명령은
+없어 잠금 기반 격리 환경 및 basedpyright는 미실행이다. Windows Python 3.10
+32비트 사용자 설치를 직접 사용했다. 테스트는 임시 SQLite DB이며 운영 DB는
+열거나 변경하지 않았다. 키움 로그인·조회·TR·실제/모의 주문·정정·취소,
+실제 세션/휴장일 확인, 배포는 실행하지 않았다.
+
+남은 D03 완료 조건: 자동 시세 수신 어댑터와 연결 상태/오래된 시세 운영 표시,
+실제 거래소 시간·휴장일에 대한 검증된 세션 근거, 부분 매도 및 추가 체결 후
+청산 의무의 끝까지의 재시작 검증, 취소·거절·미체결의 증권사 근거 대조·알림,
+기존 보유 인계, 실제 키움 데이터에서의 Q01~Q11 확인이다. 따라서 D03은
+부분 구현이며 완료가 아니다.
+
 ## 2026-09-25 D03 전송/재시작 경계 재검토 — 기준 `1ddab20`
 
 `VirtualDispatcher.send`의 전송 직전 SQLite 트랜잭션은 해당 stop request의 의무가

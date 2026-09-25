@@ -3,6 +3,25 @@
 지정 Windows PC의 주문 없는 검사 및 향후 키움 읽기 전용 증거 수집 준비는
 [키움 로컬 검증 안내](KIWOOM-LOCAL-VERIFICATION-GUIDE.md)에 정리했다.
 
+## 2026-09-26 D03 가상 시세 입력 경계
+
+- 시작 기준: `git fetch origin main` 뒤 `HEAD`/`origin/main` 모두
+  `fc6f334d1d01a81d0c29223330562881079ec25b`, `main`, 시작 시 clean.
+- `Ledger.process_virtual_stop_quote`가 종목·신선도·단조 수신시각·평가시각을
+  확인하고 SQLite에 시세 checkpoint와 발동 latch를 원자적으로 기록한다.
+  중복·역순·평가시계 역행·미래/오래된 시세·다른 종목은 checkpoint 및 손절
+  발동에 영향을 주지 않는다. checkpoint는 종목별 최신값만 유지하며 schema v1→v2
+  마이그레이션을 추가했다. 이미 구현된 청산 의무·dispatcher 복구는 재작성하지 않았다.
+- `REGULAR`은 가상 재생 값으로 한정한다. 가상 dispatcher는 실제 주문 전송
+  기능이 없고 실제 주문 가능 상태는 `False`; 거래소 시간표/휴장일 근거가
+  없으므로 실제 전송은 차단 상태다.
+- Windows 사용자 설치 Python 3.10.8 32비트: 관련 pytest **27 passed**,
+  전체 pytest **163 passed**, Ruff check/format, `python -m execution` 데모 및
+  `git diff --check` 모두 종료 코드 0. 고유 pytest basetemp 사용. `.venv`와
+  basedpyright는 없어 잠금 환경/type-check는 미실행.
+- 키움 API와 운영 DB, 실제·모의 정정·취소·주문, 배포는 사용하지 않았다.
+  상세 검사 명령 및 남은 D03 조건은 [D03 기록](D03-VIRTUAL-STOP-PROGRESS.md)에 있다.
+
 - 기록일: 2026-09-24
 - 확인한 GitHub `main`: `c38010d` (`Handle cross-symbol config command identity conflicts`)
 - 이 기록의 목적: 대화가 중단되어도 현재 확인된 상태, 다음 작업 및 완료 판단 기준을 복원한다.

@@ -151,8 +151,37 @@ def test_schema_version_rejected_when_database_is_from_future(
 ) -> None:
     # Given
     with closing(sqlite3.connect(scenario.book.storage.path)) as connection, connection:
-        _ = connection.execute("PRAGMA user_version = 2")
+        _ = connection.execute("PRAGMA user_version = 3")
     scope = scenario.book.storage.lease
     # When / Then
     with pytest.raises(LedgerError, match="UNSUPPORTED_SCHEMA_VERSION"):
         _ = Ledger(scenario.book.storage.path, scope)
+
+
+def test_schema_v1_migrates_quote_cursor_table_transactionally(
+    tmp_path: Path, lease: AccountLease
+) -> None:
+    path = tmp_path / "v1.sqlite3"
+    with closing(sqlite3.connect(path)) as connection, connection:
+        _ = connection.execute(
+            """CREATE TABLE journal (
+            seq INTEGER PRIMARY KEY, scope TEXT NOT NULL, kind TEXT NOT NULL,
+            key TEXT NOT NULL, payload TEXT NOT NULL, UNIQUE(scope, kind, key))"""
+        )
+        _ = connection.execute(
+            """CREATE TABLE outbox (
+            seq INTEGER PRIMARY KEY REFERENCES journal(seq), payload TEXT NOT NULL)"""
+        )
+        _ = connection.execute(
+            """CREATE TRIGGER publish AFTER INSERT ON journal BEGIN
+            INSERT INTO outbox(seq, payload) VALUES (NEW.seq, NEW.payload); END"""
+        )
+        _ = connection.execute("PRAGMA user_version = 1")
+
+    _ = Ledger(path, lease)
+    with closing(sqlite3.connect(path)) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone() == (2,)
+        assert connection.execute(
+            """SELECT count(*) FROM sqlite_master
+            WHERE type='table' AND name='stop_quote_cursors'"""
+        ).fetchone() == (1,)

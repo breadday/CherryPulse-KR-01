@@ -35,6 +35,7 @@ from execution.models import (
     OrderCommand,
     Request,
     StopLatch,
+    StopQuoteCheckpoint,
     StopRuleAssignment,
     StopSellObligation,
     VirtualStopBinding,
@@ -64,6 +65,15 @@ class Submission:
     created: bool
 
 
+@dataclass(frozen=True, slots=True)
+class VirtualStopInputResult:
+    """Persisted input decision, explicitly separate from send eligibility."""
+
+    accepted: bool
+    observation: StopObservation
+    latch: StopLatch | None
+
+
 def _check_virtual_stop_link(journal: Journal, command: OrderCommand) -> None:
     """Require durable latch evidence for explicitly tagged virtual stop sells."""
     if not isinstance(command, New):
@@ -80,6 +90,102 @@ def _check_virtual_stop_link(journal: Journal, command: OrderCommand) -> None:
         for latch in journal.stop_latches
     ):
         raise LedgerError("STOP_LATCH_LINK_NOT_FOUND")
+
+
+def _quote_rejection_reason(
+    journal: Journal, symbol: str, quote: Quote, timing: ObserveAt
+) -> str | None:
+    """Reject unsafe quote ordering before it can affect virtual stop state."""
+    reason: str | None = None
+    if quote.symbol != symbol:
+        reason = "QUOTE_MISSING_OR_WRONG_SYMBOL"
+    else:
+        age = timing.now - quote.received_at
+        if (
+            age.total_seconds() < 0
+            or age.total_seconds() > timing.max_quote_age_seconds
+        ):
+            reason = "QUOTE_NOT_FRESH"
+        else:
+            previous = next(
+                (
+                    item
+                    for item in reversed(journal.stop_quotes)
+                    if item.symbol == symbol
+                ),
+                None,
+            )
+            if previous is not None and timing.now < previous.evaluated_at:
+                reason = "EVALUATION_TIME_REVERSED"
+            elif previous is not None and quote.received_at == previous.received_at:
+                reason = "QUOTE_DUPLICATE"
+            elif previous is not None and quote.received_at < previous.received_at:
+                reason = "QUOTE_OUT_OF_ORDER"
+            elif any(item.symbol == symbol for item in journal.stop_latches):
+                reason = "STOP_ALREADY_LATCHED"
+    return reason
+
+
+def _evaluate_virtual_quote(
+    journal: Journal, symbol: str, quote: Quote, timing: ObserveAt
+) -> tuple[StopObservation, VirtualStopBinding | None]:
+    """Evaluate a quote only against the assigned rule and confirmed exposure."""
+    position = portfolio(journal, symbol)
+    if position.reconciliation_required or position.sell_uncertain:
+        return (
+            StopObservation(status="UNAVAILABLE", reason="SELL_EVIDENCE_UNRESOLVED"),
+            None,
+        )
+    if position.available == 0:
+        return (
+            StopObservation(
+                status="UNAVAILABLE", reason="NO_UNRESERVED_MANAGED_POSITION"
+            ),
+            None,
+        )
+    basis = confirmed_stop_cost_basis(journal, symbol)
+    holdings = confirmed_stop_holdings(journal, symbol)
+    if basis is not None:
+        rule_version = basis.rule_version
+        managed = ManagedPosition(
+            symbol=symbol,
+            confirmed_qty=basis.qty,
+            average_cost=str(basis.average_cost),
+        )
+    elif holdings is not None:
+        rule_version = holdings.rule_version
+        managed = ManagedPosition(symbol=symbol, confirmed_qty=holdings.qty)
+    else:
+        return (
+            StopObservation(
+                status="UNAVAILABLE", reason="STOP_RULE_EVIDENCE_INCOMPLETE"
+            ),
+            None,
+        )
+    binding = next(
+        (
+            item
+            for item in journal.stop_bindings
+            if item.symbol == symbol and item.version == rule_version
+        ),
+        None,
+    )
+    if binding is None:
+        return (
+            StopObservation(
+                status="UNAVAILABLE", reason="STOP_RULE_EVIDENCE_INCOMPLETE"
+            ),
+            None,
+        )
+    return (
+        evaluate_stop(
+            managed,
+            quote,
+            StopRule(kind=binding.rule_kind, threshold=binding.threshold),
+            timing,
+        ),
+        binding,
+    )
 
 
 class Ledger:
@@ -359,6 +465,56 @@ class Ledger:
     ) -> StopObservation:
         """Evaluate an assigned percentage rule without creating an order."""
         return self._observe_virtual_cost_stop(self.snapshot(), symbol, quote, timing)
+
+    def process_virtual_stop_quote(
+        self, symbol: str, quote: Quote, timing: ObserveAt
+    ) -> VirtualStopInputResult:
+        """Validate, order, evaluate and latch one quote in a single SQLite write.
+
+        This is a virtual inspection path only. It does not reserve, submit, or
+        establish that the exchange session is open.
+        """
+        with self.storage.transaction() as connection:
+            self.storage.lease.require_ready()
+            journal = self.storage.read(connection)
+            rejection = _quote_rejection_reason(journal, symbol, quote, timing)
+            if rejection is not None:
+                latch = next(
+                    (item for item in journal.stop_latches if item.symbol == symbol),
+                    None,
+                )
+                return VirtualStopInputResult(
+                    accepted=False,
+                    observation=StopObservation(status="UNAVAILABLE", reason=rejection),
+                    latch=latch if rejection == "STOP_ALREADY_LATCHED" else None,
+                )
+            observation, binding = _evaluate_virtual_quote(
+                journal, symbol, quote, timing
+            )
+
+            checkpoint = StopQuoteCheckpoint(
+                symbol=symbol,
+                price=str(quote.price),
+                received_at=quote.received_at,
+                evaluated_at=timing.now,
+            )
+            self.storage.checkpoint_stop_quote(connection, checkpoint)
+            latch = None
+            if observation.status == "TRIGGERED" and binding is not None:
+                latch = StopLatch(
+                    symbol=symbol,
+                    rule_version=binding.version,
+                    rule_kind=binding.rule_kind,
+                    quote_price=str(quote.price),
+                    quote_received_at=quote.received_at,
+                )
+                self.storage.append(
+                    connection,
+                    Entry("stop_latch", symbol, latch.model_dump_json()),
+                )
+            return VirtualStopInputResult(
+                accepted=True, observation=observation, latch=latch
+            )
 
     @staticmethod
     def _observe_virtual_cost_stop(
