@@ -7,15 +7,13 @@ snapshot as managed ownership or a fill fact without an explicit review.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Final, Protocol
+from typing import Final, Protocol
 from uuid import UUID, uuid4
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
 
 
 class QueryStatus(str, Enum):
@@ -85,7 +83,9 @@ class QueryCapture:
         """Classify completeness; never infer success from an empty response."""
         if not self.pages or self.finished_at is None:
             return QueryStatus.UNKNOWN
-        if not _capture_times_are_consistent(self):
+        if not _capture_pages_are_well_formed(
+            self
+        ) or not _capture_times_are_consistent(self):
             return QueryStatus.QUARANTINED
         numbers = tuple(page.page_number for page in self.pages)
         expected = tuple(range(1, max(numbers) + 1))
@@ -160,7 +160,9 @@ def _capture_times_are_consistent(capture: QueryCapture) -> bool:
     if finished_at is None:
         return False
     times = (capture.started_at, finished_at, *(p.received_at for p in capture.pages))
-    if any(value is None or value.utcoffset() is None for value in times):
+    if any(
+        not isinstance(value, datetime) or value.utcoffset() is None for value in times
+    ):
         return False
     if capture.started_at > finished_at:
         return False
@@ -169,6 +171,33 @@ def _capture_times_are_consistent(capture: QueryCapture) -> bool:
         if page.received_at < previous or page.received_at > finished_at:
             return False
         previous = page.received_at
+    return True
+
+
+def _capture_pages_are_well_formed(capture: QueryCapture) -> bool:
+    """Reject malformed response structures before pagination or row handling."""
+    for page in capture.pages:
+        if not isinstance(page, QueryPage):
+            return False
+        if (
+            type(page.page_number) is not int
+            or page.page_number < 1
+            or not isinstance(page.prev_next, str)
+            or type(page.finished) is not bool
+            or (page.error_code is not None and not isinstance(page.error_code, str))
+            or not isinstance(page.raw_payload, str)
+            or not isinstance(page.raw_rows, tuple)
+        ):
+            return False
+        if any(
+            not isinstance(row, Mapping)
+            or any(
+                not isinstance(key, str) or not isinstance(value, str)
+                for key, value in row.items()
+            )
+            for row in page.raw_rows
+        ):
+            return False
     return True
 
 

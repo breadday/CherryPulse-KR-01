@@ -72,6 +72,23 @@ def test_incomplete_or_missing_pages_are_quarantined(
     assert normalize_capture(capture).rows == ()
 
 
+@pytest.mark.parametrize(
+    "page",
+    [
+        QueryPage(page_number=True, prev_next="0", received_at=NOW, finished=True),
+        QueryPage(1, [], NOW, finished=True),  # type: ignore[arg-type]
+        QueryPage(1, "0", NOW, raw_rows=({"보유수량": 10},), finished=True),  # type: ignore[arg-type]
+    ],
+)
+def test_malformed_page_metadata_and_rows_are_quarantined(page: QueryPage) -> None:
+    capture = new_capture(
+        positions_spec(), account_alias="acct-a", environment="PAPER", started_at=NOW
+    )
+    capture = replace(capture, finished_at=NOW, pages=(page,))
+    assert capture.status is QueryStatus.QUARANTINED
+    assert normalize_capture(capture).rows == ()
+
+
 def test_unverified_fill_history_tr_is_blocked() -> None:
     with pytest.raises(ReadOnlyQueryError, match="TR_NOT_READ_ONLY"):
         _ = QuerySpec(
