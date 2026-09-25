@@ -150,5 +150,16 @@
     });
   }
 
-  return {DraftImportError, parseSymbolImport};
+  function exportActiveSymbols(symbols) {
+    return symbols
+      .filter((symbol) => symbol.archived !== true)
+      .map(({code, name, source, note}) => ({
+        code,
+        name,
+        source: source || "",
+        note: note || "",
+      }));
+  }
+
+  return {DraftImportError, exportActiveSymbols, parseSymbolImport};
 });

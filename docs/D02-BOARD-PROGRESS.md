@@ -16,6 +16,18 @@
 5 MiB 한도 초과 시 파일 읽기 전 거부하는 테스트도 통과했다. 실제 사용자 파일과
 물리 모바일은 미검증이다.
 
+## 관심종목 JSON 내보내기 — 2026-09-25
+
+활성 관심종목이 있을 때 코드·이름·링크·메모를 가져오기와 호환되는 JSON 배열로
+다운로드한다. 보관 종목과 손절 패턴·종목별 패턴 연결은 내보내지 않으며, 따라서
+전체 보드 백업이나 엔진 설정 내보내기가 아니다. 저장소 상태를 바꾸지 않고,
+다운로드는 사용자가 버튼을 눌렀을 때만 시작한다.
+
+검증: Node 검사에서 JSON 내용·필드 선택·보관 항목 제외·Blob URL 해제를 확인했다.
+Chrome headless에서 버튼을 실제 클릭해 JSON 다운로드 완료 이벤트를 받았고,
+내려받은 파일 내용이 활성 종목만 포함하는 것을 읽어 검증했다. 브라우저 에뮬레이션
+외의 OS별 다운로드 동작은 미검증이다.
+
 ## 불변 버전 초안 추가 — 2026-09-25
 
 보드에서 저장한 손절 패턴을 기존 값에 덮어쓰지 않고 새 버전으로 만들 수
@@ -30,7 +42,7 @@
 구형 로컬 초안은 `version`이 없으면 v1, `patternId`가 없으면 기존 ID를
 계열 ID로 취급하고 `active`가 없으면 활성 버전으로 읽는다.
 
-검증: `node --test web/board/board.test.js` **7 passed**. 신규 버전 저장 뒤
+검증: `node --test web/board/board.test.js` **8 passed**. 신규 버전 저장 뒤
 기존 버전과 종목 연결이 보존되는 것, 비활성 버전의 새 연결 차단 및 재활성화를,
 새 버전에 시장가/지정가 선택이 저장되는 것을 검사했다. `node --check
 web/board/board.js`, `node --check web/board/board.test.js`, `git diff --check`
@@ -88,9 +100,9 @@ Python 3.10.8 32비트 전체 pytest **159 passed**, Ruff 검사·포맷 검사,
 
 ## 현재 검증과 미완료 — 2026-09-25
 
-- `node --test web/board/board.test.js`: **7 passed**. 패턴 버전 추가와 연결
-  보존·비활성 동작·주문 방식 검증 및 JSON/CSV 형식·전체 검증·중복 무변경을
-  모의 DOM/순수 파서 검사로 확인했다.
+- `node --test web/board/board.test.js`: **8 passed**. 패턴 버전과 종목 연결,
+  주문 방식 검증, JSON/CSV 형식·전체 검증·중복 무변경, JSON 내보내기 필드와
+  다운로드 자원 해제를 모의 DOM/순수 파서 검사로 확인했다.
 - `node --check web/board/board.js`, `node --check web/board/board.test.js`,
   `git diff --check`: 통과.
 - 설치 경로에서 Chrome을 찾아 headless 실제 브라우저로 확인했다. 390×844 모바일

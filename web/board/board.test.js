@@ -14,12 +14,19 @@ class Element {
     this.children = [];
     this.listeners = new Map();
     this.attributes = new Map();
+    this.parentNode = null;
     this.value = "";
     this.textContent = "";
   }
 
-  append(...children) { this.children.push(...children); }
-  replaceChildren(...children) { this.children = [...children]; }
+  append(...children) {
+    for (const child of children) child.parentNode = this;
+    this.children.push(...children);
+  }
+  replaceChildren(...children) {
+    this.children = [];
+    this.append(...children);
+  }
   setAttribute(name, value) { this.attributes.set(name, value); }
   addEventListener(name, callback) {
     const callbacks = this.listeners.get(name) || [];
@@ -37,6 +44,10 @@ class Element {
     }
   }
   reset() { this.value = ""; }
+  click() { this.clicked = true; this.dispatch("click"); }
+  remove() {
+    if (this.parentNode) this.parentNode.children = this.parentNode.children.filter((item) => item !== this);
+  }
 }
 
 function descendants(element) {
@@ -46,14 +57,24 @@ function descendants(element) {
 function boardWithDraft(draft) {
   const ids = [
     "notice", "symbol-count", "active-filter", "archived-filter", "symbol-list",
-    "bulk-import-form", "symbol-import-file",
+    "bulk-import-form", "symbol-import-file", "export-symbols",
     "pattern-list", "symbol-form", "pattern-kind", "pattern-order-type", "threshold-label",
     "threshold-hint", "pattern-threshold", "pattern-name", "pattern-form",
     "symbol-input", "symbol-name", "symbol-source", "symbol-note",
   ];
   const elements = new Map(ids.map((id) => [id, new Element("div", id)]));
   const stored = new Map([["cherrypulse-board-draft-v1", JSON.stringify(draft)]]);
+  const downloads = [];
+  const revokedUrls = [];
+  let downloadSequence = 0;
+  class TestURL extends URL {}
+  TestURL.createObjectURL = (blob) => {
+    downloads.push(blob);
+    return `blob:test-${++downloadSequence}`;
+  };
+  TestURL.revokeObjectURL = (url) => revokedUrls.push(url);
   const document = {
+    body: new Element("body"),
     getElementById(id) {
       if (!elements.has(id)) elements.set(id, new Element("div", id));
       return elements.get(id);
@@ -69,7 +90,11 @@ function boardWithDraft(draft) {
     },
     crypto: {randomUUID: () => `generated-${++sequence}`},
     CherryPulseDraftImport: require("./draft-import.js"),
-    URL,
+    URL: TestURL,
+    Blob: class {
+      constructor(parts, options) { this.content = parts.join(""); this.type = options.type; }
+    },
+    setTimeout(callback) { callback(); return 0; },
     Event: class { constructor(type) { this.type = type; } },
   };
   const source = readFileSync(path.join(__dirname, "board.js"), "utf8");
@@ -77,6 +102,8 @@ function boardWithDraft(draft) {
   return {
     getElement: (id) => elements.get(id),
     getDraft: () => JSON.parse(stored.get("cherrypulse-board-draft-v1")),
+    getDownloads: () => downloads,
+    getRevokedUrls: () => revokedUrls,
   };
 }
 
@@ -233,4 +260,27 @@ test("bulk import rejects oversized files before reading or changing the draft",
   await fixture.getElement("bulk-import-form").dispatchAsync("submit");
   assert.deepEqual(fixture.getDraft().symbols, []);
   assert.match(fixture.getElement("notice").textContent, /5 MiB 이하/);
+});
+
+test("symbol export downloads only active symbol fields accepted by the import format", () => {
+  const fixture = boardWithDraft({
+    symbols: [
+      {code: "005930", name: "삼성전자", source: "https://example.com", note: "watch", patternId: "pattern-a"},
+      {code: "000660", name: "보관", source: "", note: "archived", patternId: "", archived: true},
+    ],
+    patterns: [],
+  });
+  const button = fixture.getElement("export-symbols");
+  assert.equal(button.disabled, false);
+  button.click();
+
+  assert.equal(fixture.getDownloads().length, 1);
+  assert.equal(fixture.getDownloads()[0].type, "application/json;charset=utf-8");
+  assert.deepEqual(JSON.parse(fixture.getDownloads()[0].content), [{
+    code: "005930", name: "삼성전자", source: "https://example.com", note: "watch",
+  }]);
+  assert.equal(fixture.getRevokedUrls().length, 1);
+
+  const empty = boardWithDraft({symbols: [], patterns: []});
+  assert.equal(empty.getElement("export-symbols").disabled, true);
 });
