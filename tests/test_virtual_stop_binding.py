@@ -544,6 +544,13 @@ def test_stop_obligation_remains_one_request_during_partial_sell(
     damaged_view = stop_obligation_views(without_latch, "005930")
     assert damaged_view[0].state == "BLOCKED_EVIDENCE"
     assert damaged_view[0].next_action == "QUERY_BROKER"
+    duplicated = replace(
+        restored.snapshot(), stop_sell_obligations=obligation + obligation
+    )
+    assert all(
+        item.state == "BLOCKED_EVIDENCE"
+        for item in stop_obligation_views(duplicated, "005930")
+    )
     assert restored.virtual_latched_stop_candidate("005930").unreserved_qty == 0
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
 
@@ -630,7 +637,7 @@ def test_virtual_send_requires_durable_obligation_in_claim_transaction(
             symbol="005930",
             side="BUY",
             config_version=2,
-            qty=2,
+            qty=4,
             order_type="MARKET",
             session="REGULAR",
             validity="DAY",
@@ -641,7 +648,7 @@ def test_virtual_send_requires_durable_obligation_in_claim_transaction(
             event_id=uuid4(),
             order_id=buy.order_id,
             qty=2,
-            remaining=0,
+            remaining=2,
             evidence_version=1,
         )
     )
@@ -667,13 +674,34 @@ def test_virtual_send_requires_durable_obligation_in_claim_transaction(
     ).request
     with sqlite3.connect(path) as connection:
         connection.execute(
+            "DELETE FROM outbox WHERE seq IN "
+            "(SELECT seq FROM journal WHERE kind = ? AND key = ?)",
+            ("stop_sell_obligation", str(sell.request_id)),
+        )
+        connection.execute(
             "DELETE FROM journal WHERE kind = ? AND key = ?",
             ("stop_sell_obligation", str(sell.request_id)),
         )
     dispatcher = VirtualDispatcher(book)
+    views = book.virtual_stop_obligations("005930")
+    assert len(views) == 1
+    assert views[0].request_id == sell.request_id
+    assert views[0].state == "BLOCKED_EVIDENCE"
     assert not dispatcher.send(sell.request_id, stop_session="REGULAR")
     assert dispatcher.calls == []
     assert book.transport(sell.request_id) == "INTENT_PERSISTED"
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=2,
+            remaining=0,
+            evidence_version=2,
+        )
+    )
+    assert book.virtual_latched_stop_candidate("005930").unreserved_qty == 2
+    assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
+    assert len(book.snapshot().requests) == 2
 
 
 def test_cancelled_stop_obligation_requires_review_before_another_sell(

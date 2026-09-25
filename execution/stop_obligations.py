@@ -34,6 +34,28 @@ class StopObligationView:
         return "QUERY_BROKER"
 
 
+def _unpaired_stop_requests(
+    journal: Journal, symbol: str, obligation_counts: dict[UUID, int]
+) -> list[StopObligationView]:
+    """Surface lost obligation records as blocked requests, not absent protection."""
+    return [
+        StopObligationView(
+            request.request_id,
+            request.order_id,
+            request.command.qty,
+            0,
+            request.command.qty,
+            0,
+            "BLOCKED_EVIDENCE",
+        )
+        for request in journal.requests
+        if isinstance(request.command, New)
+        and request.command.symbol == symbol
+        and request.command.stop_latch_version is not None
+        and obligation_counts.get(request.request_id, 0) == 0
+    ]
+
+
 def stop_obligation_views(
     journal: Journal, symbol: str
 ) -> tuple[StopObligationView, ...]:
@@ -41,6 +63,11 @@ def stop_obligation_views(
     requests = {r.request_id: r for r in journal.requests}
     position = portfolio(journal, symbol)
     views: list[StopObligationView] = []
+    obligation_counts: dict[UUID, int] = {}
+    for obligation in journal.stop_sell_obligations:
+        obligation_counts[obligation.request_id] = (
+            obligation_counts.get(obligation.request_id, 0) + 1
+        )
     for obligation in journal.stop_sell_obligations:
         if obligation.symbol != symbol:
             continue
@@ -62,6 +89,7 @@ def stop_obligation_views(
         outcome = status(journal, request)
         consistent = (
             request.order_id == obligation.order_id
+            and obligation_counts[obligation.request_id] == 1
             and request.command.symbol == symbol
             and request.command.side == "SELL"
             and request.command.qty == obligation.qty
@@ -109,4 +137,5 @@ def stop_obligation_views(
                 reasons[-1] if state == "REVIEW_REQUIRED" and reasons else None,
             )
         )
+    views.extend(_unpaired_stop_requests(journal, symbol, obligation_counts))
     return tuple(views)
