@@ -85,6 +85,8 @@ class QueryCapture:
         """Classify completeness; never infer success from an empty response."""
         if not self.pages or self.finished_at is None:
             return QueryStatus.UNKNOWN
+        if not _capture_times_are_consistent(self):
+            return QueryStatus.QUARANTINED
         numbers = tuple(page.page_number for page in self.pages)
         expected = tuple(range(1, max(numbers) + 1))
         if numbers != expected or any(
@@ -150,6 +152,24 @@ def pagination_complete(markers: tuple[str, ...]) -> bool:
         and all(marker == "2" for marker in markers[:-1])
         and (markers[-1] in {"", "0"})
     )
+
+
+def _capture_times_are_consistent(capture: QueryCapture) -> bool:
+    """Require aware, ordered timestamps bounded by the query interval."""
+    finished_at = capture.finished_at
+    if finished_at is None:
+        return False
+    times = (capture.started_at, finished_at, *(p.received_at for p in capture.pages))
+    if any(value is None or value.utcoffset() is None for value in times):
+        return False
+    if capture.started_at > finished_at:
+        return False
+    previous = capture.started_at
+    for page in capture.pages:
+        if page.received_at < previous or page.received_at > finished_at:
+            return False
+        previous = page.received_at
+    return True
 
 
 def event_matches_request(

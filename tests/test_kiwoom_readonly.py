@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -115,6 +115,46 @@ def test_duplicate_terminal_page_is_quarantined() -> None:
         pages=(
             QueryPage(1, "0", NOW, finished=True),
             QueryPage(2, "0", NOW, finished=True),
+        ),
+    )
+    assert capture.status is QueryStatus.QUARANTINED
+
+
+@pytest.mark.parametrize(
+    ("started_at", "finished_at", "received_at"),
+    [
+        (NOW + timedelta(seconds=1), NOW, NOW),
+        (NOW, NOW, NOW - timedelta(seconds=1)),
+        (NOW, NOW, NOW.replace(tzinfo=None)),
+        (NOW, NOW.replace(tzinfo=None), NOW),
+    ],
+)
+def test_inconsistent_capture_timestamps_are_quarantined(
+    started_at: datetime, finished_at: datetime, received_at: datetime
+) -> None:
+    capture = new_capture(
+        positions_spec(), account_alias="acct-a", environment="PAPER", started_at=NOW
+    )
+    capture = replace(
+        capture,
+        started_at=started_at,
+        finished_at=finished_at,
+        pages=(QueryPage(1, "0", received_at, finished=True),),
+    )
+    assert capture.status is QueryStatus.QUARANTINED
+    assert normalize_capture(capture).rows == ()
+
+
+def test_page_timestamps_must_follow_pagination_order() -> None:
+    capture = new_capture(
+        positions_spec(), account_alias="acct-a", environment="PAPER", started_at=NOW
+    )
+    capture = replace(
+        capture,
+        finished_at=NOW + timedelta(seconds=2),
+        pages=(
+            QueryPage(1, "2", NOW + timedelta(seconds=2), finished=True),
+            QueryPage(2, "0", NOW + timedelta(seconds=1), finished=True),
         ),
     )
     assert capture.status is QueryStatus.QUARANTINED
