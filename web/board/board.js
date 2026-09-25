@@ -2,8 +2,10 @@
 const STORAGE_KEY = "cherrypulse-board-draft-v1";
 const initial = {symbols: [], patterns: []};
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
+const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
 let state;
 let symbolView = "active";
+let pendingBoardRestore = null;
 try {
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
   state = saved && Array.isArray(saved.symbols) && Array.isArray(saved.patterns) ? saved : initial;
@@ -247,6 +249,115 @@ function downloadActiveSymbols(format) {
 }
 $("export-symbols-json").addEventListener("click", () => downloadActiveSymbols("json"));
 $("export-symbols-csv").addEventListener("click", () => downloadActiveSymbols("csv"));
+$("export-board-backup").addEventListener("click", () => {
+  let content;
+  try {
+    content = CherryPulseBoardBackup.serializeBoardBackup(state);
+  } catch (error) {
+    notice(boardBackupErrorMessage(error));
+    return;
+  }
+  const blob = new Blob([content], {type: "application/json;charset=utf-8"});
+  if (blob.size > MAX_BACKUP_BYTES) {
+    notice("전체 보드 백업이 10 MiB를 초과해 지원하지 않는 크기입니다.");
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `cherrypulse-board-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  notice("전체 보드 초안 JSON 백업을 다운로드했습니다. 엔진 설정은 포함되지 않습니다.");
+});
+
+function boardBackupErrorMessage(error) {
+  const messages = {
+    BACKUP_JSON_INVALID: "백업 JSON을 읽을 수 없습니다.",
+    BACKUP_ROOT_INVALID: "백업의 최상위 구조가 올바르지 않습니다.",
+    BACKUP_FIELDS_INVALID: "백업에 지원하지 않는 필드가 있습니다.",
+    BACKUP_FORMAT_UNSUPPORTED: "CherryPulse 전체 보드 백업 형식이 아닙니다.",
+    BACKUP_SCHEMA_UNSUPPORTED: "지원하지 않는 백업 schemaVersion입니다.",
+    BACKUP_COLLECTIONS_INVALID: "종목 또는 패턴 배열이 없습니다.",
+    BACKUP_SYMBOL_INVALID: "종목 코드·이름·필드를 확인하세요.",
+    BACKUP_DUPLICATE_SYMBOL: "중복된 종목코드가 있습니다.",
+    BACKUP_FIELD_INVALID: "링크·메모·연결 또는 보관 필드가 올바르지 않습니다.",
+    BACKUP_PATTERN_INVALID: "손절 패턴 필드를 확인하세요.",
+    BACKUP_DUPLICATE_PATTERN_ID: "중복된 패턴 ID가 있습니다.",
+    BACKUP_PATTERN_REVISION_INVALID: "패턴 계열 또는 버전 정보가 올바르지 않습니다.",
+    BACKUP_DUPLICATE_PATTERN_VERSION: "같은 패턴 계열에 중복된 버전이 있습니다.",
+    BACKUP_THRESHOLD_INVALID: "손절 기준값이 올바르지 않습니다.",
+    BACKUP_ORDER_TYPE_INVALID: "손절 주문 방식은 시장가 또는 지정가여야 합니다.",
+    BACKUP_PATTERN_LINK_MISSING: "종목이 연결된 패턴 ID를 백업에서 찾을 수 없습니다.",
+  };
+  const message = messages[error?.code] || "전체 보드 백업을 검증하지 못했습니다.";
+  return error?.path ? `${message} (${error.path})` : message;
+}
+
+const restoreForm = $("restore-board-backup-form");
+const restoreInput = $("board-backup-file");
+const restoreConfirmation = $("restore-confirmation");
+restoreInput.addEventListener("change", () => {
+  pendingBoardRestore = null;
+  restoreConfirmation.hidden = true;
+});
+restoreForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  pendingBoardRestore = null;
+  restoreConfirmation.hidden = true;
+  const file = restoreInput.files?.[0];
+  if (!file) { notice("전체 보드 백업 JSON 파일을 선택하세요."); return; }
+  try {
+    if (file.size > MAX_BACKUP_BYTES) {
+      throw Object.assign(new Error(), {code: "BACKUP_FILE_TOO_LARGE"});
+    }
+    pendingBoardRestore = CherryPulseBoardBackup.parseBoardBackup(await file.text());
+    if (restoreInput.files?.[0] !== file) {
+      pendingBoardRestore = null;
+      notice("복원 중 선택 파일이 변경되었습니다. 새 파일을 다시 검사하세요.");
+      return;
+    }
+  } catch (error) {
+    pendingBoardRestore = null;
+    notice(error?.code === "BACKUP_FILE_TOO_LARGE"
+      ? "전체 보드 백업은 10 MiB 이하만 복원할 수 있습니다."
+      : boardBackupErrorMessage(error));
+    return;
+  }
+  const summary = CherryPulseBoardBackup.backupSummary(pendingBoardRestore);
+  $("restore-summary").textContent =
+    `${summary.symbols}개 종목(보관 ${summary.archivedSymbols}개), 손절 패턴 ${summary.patterns}개(비활성 ${summary.inactivePatterns}개)를 검증했습니다.`;
+  restoreConfirmation.hidden = false;
+  notice("백업 전체 검증이 통과했습니다. 현재 초안을 대체할지 확인하세요.");
+});
+$("cancel-board-restore").addEventListener("click", () => {
+  pendingBoardRestore = null;
+  restoreConfirmation.hidden = true;
+  restoreForm.reset();
+  notice("전체 보드 복원을 취소했습니다. 기존 초안은 변경되지 않았습니다.");
+});
+$("confirm-board-restore").addEventListener("click", () => {
+  if (!pendingBoardRestore) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingBoardRestore));
+  } catch {
+    notice("브라우저 저장에 실패했습니다. 기존 화면과 초안은 유지했습니다.");
+    return;
+  }
+  const restored = pendingBoardRestore;
+  pendingBoardRestore = null;
+  state = restored;
+  symbolView = "active";
+  $("symbol-search").value = "";
+  restoreConfirmation.hidden = true;
+  restoreForm.reset();
+  render();
+  notice("전체 보드 초안을 복원했습니다. 엔진 적용·감시·주문은 시작되지 않았습니다.");
+});
+
 function safeSourceUrl(value) {
   if (!value) return "";
   try {

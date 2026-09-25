@@ -10,3 +10,4 @@
 .bulk-import{border-top:1px solid #34465b;margin-top:.9rem;padding-top:.75rem}.bulk-import summary{cursor:pointer;color:#cbd8e7;font-size:.9rem;font-weight:700}.bulk-import-form{margin-top:.75rem}
 .export-actions{margin-top:.75rem}.export-button{flex:1;padding:.45rem .7rem;background:#273649;color:#d6e0ec;font-size:.85rem}.export-button:hover{background:#3b4d63}.export-button:disabled{cursor:not-allowed;opacity:.55}.export-hint{margin:.35rem 0}
 .symbol-search-label{display:block;margin-bottom:.4rem}.symbol-search{width:100%;margin-bottom:1rem}
+.full-backup{border-top:1px solid #34465b;margin-top:.9rem;padding-top:.75rem}.full-backup summary{cursor:pointer;color:#cbd8e7;font-size:.9rem;font-weight:700}.restore-confirmation:not([hidden]){border:1px solid #9b7650;background:#202433;border-radius:12px;margin-top:.9rem;padding:1rem}.restore-confirmation h3{font-size:1rem;margin:0 0 .5rem}.restore-actions{margin-top:.75rem}.restore-actions button{flex:1}

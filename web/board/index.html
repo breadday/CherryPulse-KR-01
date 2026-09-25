@@ -6,6 +6,7 @@
   <title>CherryPulse · 관심종목 보드</title>
   <link rel="stylesheet" href="styles.css">
   <script defer src="draft-import.js"></script>
+  <script defer src="board-backup.js"></script>
   <script defer src="board.js"></script>
 </head>
 <body>
@@ -59,6 +60,26 @@
           <button id="export-symbols-csv" class="export-button" type="button" disabled>CSV 내보내기</button>
         </div>
         <p class="hint export-hint">활성 관심종목의 코드·이름·링크·메모만 내보냅니다. 보관 상태와 패턴 연결은 포함하지 않습니다.</p>
+        <details class="full-backup">
+          <summary>전체 보드 초안 백업·복원</summary>
+          <button id="export-board-backup" class="export-button" type="button">전체 JSON 백업 다운로드</button>
+          <p class="hint">관심·보관 종목, 손절 패턴 버전과 연결을 포함합니다. 복원 시 현재 브라우저 초안 전체를 대체합니다.</p>
+          <form id="restore-board-backup-form" class="stack-form">
+            <label for="board-backup-file">복원할 전체 백업 JSON</label>
+            <input id="board-backup-file" name="file" type="file" accept=".json,application/json" required>
+            <p class="hint">최대 10 MiB. 파일 전체 검증이 통과한 뒤 별도 확인을 거쳐 적용합니다.</p>
+            <button type="submit">백업 파일 검사</button>
+          </form>
+          <section id="restore-confirmation" class="restore-confirmation" aria-labelledby="restore-heading" hidden>
+            <h3 id="restore-heading">현재 보드 초안을 대체합니다</h3>
+            <p id="restore-summary"></p>
+            <p class="hint">복원을 확정하면 현재 브라우저 초안이 이 백업 내용으로 교체됩니다. 엔진 설정·감시·주문은 변경되지 않습니다.</p>
+            <div class="form-row restore-actions">
+              <button id="confirm-board-restore" type="button">전체 초안 복원</button>
+              <button id="cancel-board-restore" class="archive-button" type="button">취소</button>
+            </div>
+          </section>
+        </details>
         <div id="symbol-list" class="symbol-list"></div>
       </section>
       <section class="panel" aria-labelledby="patterns-heading">

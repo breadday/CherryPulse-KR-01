@@ -1,5 +1,36 @@
 # D02 관심종목·손절 패턴 보드 진행 기록
 
+## 전체 보드 JSON 백업·복원 — 2026-09-25
+
+관심종목 전용 JSON/CSV 가져오기·내보내기와 별도로 전체 보드 백업·복원을
+추가했다. 파일은 `format: "cherrypulse-board-draft"`, `schemaVersion: 1`,
+`symbols`, `patterns`를 가진다. 종목의 관심/보관 상태·이름·링크·메모·손절
+연결과 모든 손절 패턴 버전·계열·활성 상태·기준값·주문 방식이 포함된다.
+백업·복원은 브라우저 초안만 다루며 엔진 적용·감시·주문·클라우드 전송은 없다.
+
+복원 파일은 10 MiB 제한, JSON/root/필드/schema 검증 후 종목코드와 중복,
+패턴 ID·계열/버전 조합·역치·주문 방식, 종목→패턴 연결을 전부 검사한다.
+잘못된 데이터가 하나라도 있으면 일부 적용하지 않는다. 전체 검증 후에는
+대체될 종목/보관/패턴 수를 보여 주고 별도의 복원 확인을 거친다. 저장은
+새 상태를 localStorage에 성공적으로 쓴 다음 화면 상태를 바꾸므로 저장 실패
+시 현재 상태·화면을 유지한다. 내보내기도 같은 10 MiB 제한을 적용해 생성한
+파일이 복원 크기 제한을 넘지 않게 한다.
+
+구형 로컬 초안과 같은 선택 필드 누락은 복원 시 그대로 보존한다. 구형 패턴에
+없는 버전·계열·활성·주문 방식을 추정해 파일에 채워 넣지 않는다. 현재 읽기
+화면의 기존 호환 동작은 유지한다. 중복 코드/패턴 ID/계열 버전, 손상 JSON,
+지원하지 않는 형식·버전, 잘못된 링크와 임계값은 복원 전에 거절한다.
+
+변경 파일: `web/board/board-backup.js`, `board.js`, `index.html`, `styles.css`,
+`board.test.js`; 기록 갱신: 이 문서, `WORK-CONTINUATION-STATUS.md`,
+`DEVELOPMENT-GOAL.md`, `CherryPulse-KR-01-Rebuild-Plan.md`.
+
+검증: Node 전체 테스트 **13 passed**. 전체 백업의 보관 종목·패턴 버전·활성 상태·
+연결 왕복, legacy 필드 보존, 무효 입력·중복·고아 연결·미지원 버전 거절, 취소,
+저장 실패 무변경과 reload 복구를 확인했다. Chrome headless 모바일에서는 백업
+다운로드→확인 전 원본 유지→취소 후 원본 유지→복원 확정→reload 뒤 관계/상태 유지,
+데스크톱에서는 검증·확인 화면·취소 동작을 확인했다. 물리 모바일은 미검증이다.
+
 ## JSON/CSV 종목 초안 가져오기 — 2026-09-25
 
 관심 종목 패널에서 UTF-8 JSON 또는 CSV 파일을 브라우저 로컬 초안으로
@@ -54,7 +85,7 @@ URL 해제를 확인했다. Chrome 모바일 headless에서 두 버튼을 실제
 구형 로컬 초안은 `version`이 없으면 v1, `patternId`가 없으면 기존 ID를
 계열 ID로 취급하고 `active`가 없으면 활성 버전으로 읽는다.
 
-검증: `node --test web/board/board.test.js` **9 passed**. 신규 버전 저장 뒤
+검증: `node --test web/board/board.test.js` **13 passed**. 신규 버전 저장 뒤
 기존 버전과 종목 연결이 보존되는 것, 비활성 버전의 새 연결 차단 및 재활성화를,
 새 버전에 시장가/지정가 선택이 저장되는 것을 검사했다. `node --check
 web/board/board.js`, `node --check web/board/board.test.js`, `git diff --check`
@@ -112,25 +143,27 @@ Python 3.10.8 32비트 전체 pytest **159 passed**, Ruff 검사·포맷 검사,
 
 ## 현재 검증과 미완료 — 2026-09-25
 
-- `node --test web/board/board.test.js`: **9 passed**. 검색·필터, 패턴 버전과 종목
-  연결, 주문 방식, JSON/CSV 가져오기·내보내기와 검증 경계를 확인했다.
+- `node --test web/board/board.test.js`: **13 passed**. 전체 백업/복원, 저장 실패·취소·
+  reload, 검색·필터, 패턴 버전·JSON/CSV 교환을 검사했다.
 - `node --check web/board/board.js`, `node --check web/board/draft-import.js`,
-  `node --check web/board/board.test.js`,
+  `node --check web/board/board-backup.js`, `node --check web/board/board.test.js`,
   `git diff --check`: 통과.
 - 설치 경로에서 Chrome을 찾아 headless 실제 브라우저로 확인했다. 390×844 모바일
   emulation에서 문서 폭390px·단일 358px 열, 1365px 데스크톱 emulation에서
-   두 개 570px 열을 확인했다. 모바일 emulation에서 종목 등록·패턴 연결·v2 생성
-   및 LIMIT 선택·v1 비활성화 후 기존 연결 보존과 신규 연결 차단도 실행했다.
-   CSV 내보내기/가져오기, 코드·메모 검색과 보관 목록 필터, Q12 결정 전의 매수
-   패턴 명세 대기 패널도 확인했다.
-  물리 휴대폰 확인은 하지 않았다.
+  두 개 570px 열을 확인했다. 모바일 emulation에서 전체 백업 다운로드, 복원 확인
+  전 원본 유지, 취소, 확정 복원과 reload 후 보관/버전/연결 관계를 확인했다.
+  데스크톱 emulation에서는 검증·확인·취소 상태를 확인했다. CSV 내보내기/가져오기,
+  검색/보관 필터도 실행했다. 물리 휴대폰 확인은 하지 않았다.
 - 회귀 검사: Python 3.10.8 32비트 전체 pytest **159 passed**, Ruff 검사·포맷,
-  가상 데모와 `pip check` 통과. 사용자 설치 Python을 썼으며 격리 `.venv`는 없다.
+  가상 데모와 `pip check` 통과. 사용자 설치 Python을 썼으며 격리 `.venv`와
+  basedpyright는 이번 환경에서 사용할 수 없었다.
 - 실제 기기에서의 모바일 시각 확인은 미실행이다. headless Chrome emulation은
   실제 브라우저 동작 확인이며 물리 휴대폰의 글꼴·safe area·터치 확인은 아니다.
 - 종목 JSON/CSV 초안 일괄 가져오기를 구현했다. canonical 입력 형식과 검증은
   위의 2026-09-25 기록을 따르며 기존 종목 등록·저장 상태는 중복이나 오류가
   있으면 바뀌지 않는다.
+- 저장 실패는 Node localStorage 모의에서 기존 in-memory/저장 상태 유지로 검사했다.
+  실제 브라우저 quota/full 상태는 만들지 않아 미검증이다.
 - 매수 패턴의 조건·주문·시간·재진입 명세(Q12)가 없어 해당 폼은 만들지 않았다.
   대신 결정 대기 패널을 표시한다. 값을 임의로 가정하지 않는다. 지정가 가격·호가·거래 세션·미체결 처리(Q10),
   서버 저장·인증·버전 충돌·적용 승인·엔진 동기화는 미완료다.

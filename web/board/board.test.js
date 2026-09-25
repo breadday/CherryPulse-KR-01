@@ -6,6 +6,11 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 const {DraftImportError, exportActiveSymbolsCsv, parseSymbolImport} = require("./draft-import.js");
+const {
+  BoardBackupError,
+  parseBoardBackup,
+  serializeBoardBackup,
+} = require("./board-backup.js");
 
 class Element {
   constructor(tagName = "div", id = "") {
@@ -58,6 +63,8 @@ function boardWithDraft(draft) {
   const ids = [
     "notice", "symbol-count", "active-filter", "archived-filter", "symbol-search", "symbol-list",
     "bulk-import-form", "symbol-import-file", "export-symbols-json", "export-symbols-csv",
+    "export-board-backup", "restore-board-backup-form", "board-backup-file",
+    "restore-confirmation", "restore-summary", "confirm-board-restore", "cancel-board-restore",
     "pattern-list", "symbol-form", "pattern-kind", "pattern-order-type", "threshold-label",
     "threshold-hint", "pattern-threshold", "pattern-name", "pattern-form",
     "symbol-input", "symbol-name", "symbol-source", "symbol-note",
@@ -66,6 +73,7 @@ function boardWithDraft(draft) {
   const stored = new Map([["cherrypulse-board-draft-v1", JSON.stringify(draft)]]);
   const downloads = [];
   const revokedUrls = [];
+  let failStorageWrites = false;
   let downloadSequence = 0;
   class TestURL extends URL {}
   TestURL.createObjectURL = (blob) => {
@@ -86,13 +94,21 @@ function boardWithDraft(draft) {
     document,
     localStorage: {
       getItem(key) { return stored.get(key) ?? null; },
-      setItem(key, value) { stored.set(key, value); },
+      setItem(key, value) {
+        if (failStorageWrites) throw new Error("QUOTA_EXCEEDED");
+        stored.set(key, value);
+      },
     },
     crypto: {randomUUID: () => `generated-${++sequence}`},
     CherryPulseDraftImport: require("./draft-import.js"),
+    CherryPulseBoardBackup: require("./board-backup.js"),
     URL: TestURL,
     Blob: class {
-      constructor(parts, options) { this.content = parts.join(""); this.type = options.type; }
+      constructor(parts, options) {
+        this.content = parts.join("");
+        this.type = options.type;
+        this.size = Buffer.byteLength(this.content, "utf8");
+      }
     },
     setTimeout(callback) { callback(); return 0; },
     Event: class { constructor(type) { this.type = type; } },
@@ -104,6 +120,35 @@ function boardWithDraft(draft) {
     getDraft: () => JSON.parse(stored.get("cherrypulse-board-draft-v1")),
     getDownloads: () => downloads,
     getRevokedUrls: () => revokedUrls,
+    setStorageFailure: (value) => { failStorageWrites = value; },
+  };
+}
+
+function sampleBoardBackup() {
+  return {
+    format: "cherrypulse-board-draft",
+    schemaVersion: 1,
+    symbols: [
+      {
+        code: "005930", name: "삼성전자", source: "https://example.com/stock",
+        note: "active", patternId: "stop-v2", archived: false,
+      },
+      {
+        code: "000660", name: "하이닉스", source: "", note: "archived",
+        patternId: "stop-v1", archived: true,
+      },
+    ],
+    patterns: [
+      {
+        id: "stop-v1", patternId: "stop-family", version: 1, active: false,
+        name: "손절", kind: "PRICE_AT_OR_BELOW", threshold: "9800", orderType: "MARKET",
+      },
+      {
+        id: "stop-v2", patternId: "stop-family", version: 2, active: true,
+        name: "손절 조정", kind: "AVERAGE_COST_DROP", threshold: "0.02", orderType: "LIMIT",
+      },
+      {id: "legacy-pattern", name: "구버전", kind: "PRICE_AT_OR_BELOW", threshold: "9000"},
+    ],
   };
 }
 
@@ -335,4 +380,154 @@ test("symbol search covers code, name, link, and note while respecting active/ar
   search.value = "찾을수없음";
   search.dispatch("input");
   assert.match(fixture.getElement("symbol-list").children[0].textContent, /검색 결과가 없습니다/);
+});
+
+test("full backup serialization preserves archived symbols, all pattern revisions, and legacy fields", () => {
+  const legacy = {
+    format: "cherrypulse-board-draft",
+    schemaVersion: 1,
+    symbols: [{code: "123456", name: "legacy"}],
+    patterns: [{id: "legacy", name: "legacy", kind: "PRICE_AT_OR_BELOW", threshold: "1"}],
+  };
+  const restored = parseBoardBackup(serializeBoardBackup(legacy));
+  assert.deepEqual(restored, legacy);
+
+  const modern = sampleBoardBackup();
+  assert.deepEqual(parseBoardBackup(serializeBoardBackup({symbols: modern.symbols, patterns: modern.patterns})), modern);
+});
+
+test("full backup validation rejects unsupported versions, duplicate identities, invalid rules, and broken links", () => {
+  const cases = [
+    ["not json", "BACKUP_JSON_INVALID"],
+    [JSON.stringify({...sampleBoardBackup(), format: "other"}), "BACKUP_FORMAT_UNSUPPORTED"],
+    [JSON.stringify({...sampleBoardBackup(), schemaVersion: 2}), "BACKUP_SCHEMA_UNSUPPORTED"],
+    [JSON.stringify({...sampleBoardBackup(), symbols: [...sampleBoardBackup().symbols, sampleBoardBackup().symbols[0]]}), "BACKUP_DUPLICATE_SYMBOL"],
+    [JSON.stringify({...sampleBoardBackup(), patterns: [...sampleBoardBackup().patterns, sampleBoardBackup().patterns[0]]}), "BACKUP_DUPLICATE_PATTERN_ID"],
+    [JSON.stringify({...sampleBoardBackup(), patterns: [
+      ...sampleBoardBackup().patterns,
+      {...sampleBoardBackup().patterns[1], id: "duplicate-revision"},
+    ]}), "BACKUP_DUPLICATE_PATTERN_VERSION"],
+    [JSON.stringify({...sampleBoardBackup(), patterns: [
+      {id: "legacy-family", name: "legacy", kind: "PRICE_AT_OR_BELOW", threshold: "9000"},
+      {id: "new-revision", patternId: "legacy-family", version: 1, name: "v1", kind: "PRICE_AT_OR_BELOW", threshold: "9000"},
+    ], symbols: []}), "BACKUP_DUPLICATE_PATTERN_VERSION"],
+    [JSON.stringify({...sampleBoardBackup(), symbols: [
+      {...sampleBoardBackup().symbols[0], patternId: "missing-pattern"},
+    ]}), "BACKUP_PATTERN_LINK_MISSING"],
+    [JSON.stringify({...sampleBoardBackup(), patterns: [
+      {...sampleBoardBackup().patterns[0], threshold: "0"},
+    ], symbols: []}), "BACKUP_THRESHOLD_INVALID"],
+    [JSON.stringify({...sampleBoardBackup(), patterns: [
+      {...sampleBoardBackup().patterns[0], orderType: "UNKNOWN"},
+    ], symbols: []}), "BACKUP_ORDER_TYPE_INVALID"],
+    [JSON.stringify({...sampleBoardBackup(), patterns: [
+      {...sampleBoardBackup().patterns[0], version: 1.5},
+    ], symbols: []}), "BACKUP_PATTERN_REVISION_INVALID"],
+    [JSON.stringify({...sampleBoardBackup(), patterns: [
+      {...sampleBoardBackup().patterns[0], kind: "AVERAGE_COST_DROP", threshold: "1"},
+    ], symbols: []}), "BACKUP_THRESHOLD_INVALID"],
+  ];
+  for (const [text, code] of cases) {
+    assert.throws(
+      () => parseBoardBackup(text),
+      (error) => error instanceof BoardBackupError && error.code === code,
+      code,
+    );
+  }
+});
+
+test("full backup restore requires confirmation, cancellation preserves state, and confirmed data survives reload", async () => {
+  const oldDraft = {
+    symbols: [{code: "111111", name: "현재 초안", patternId: "", archived: false}],
+    patterns: [],
+  };
+  const expected = sampleBoardBackup();
+  const fixture = boardWithDraft(oldDraft);
+  fixture.getElement("export-board-backup").click();
+  const downloaded = fixture.getDownloads()[0];
+  assert.equal(downloaded.type, "application/json;charset=utf-8");
+  assert.deepEqual(JSON.parse(downloaded.content), {
+    ...expected,
+    // The exporter serializes the supplied current draft; the UI fixture's state is used below.
+    symbols: oldDraft.symbols,
+    patterns: oldDraft.patterns,
+  });
+
+  const input = fixture.getElement("board-backup-file");
+  input.files = [{name: "full-board.json", size: 1024, async text() { return JSON.stringify(expected); }}];
+  await fixture.getElement("restore-board-backup-form").dispatchAsync("submit");
+  assert.deepEqual(fixture.getDraft(), oldDraft);
+  assert.equal(fixture.getElement("restore-confirmation").hidden, false);
+  assert.match(fixture.getElement("restore-summary").textContent, /2개 종목.*손절 패턴 3개/);
+
+  fixture.getElement("cancel-board-restore").click();
+  assert.deepEqual(fixture.getDraft(), oldDraft);
+  assert.equal(fixture.getElement("restore-confirmation").hidden, true);
+
+  await fixture.getElement("restore-board-backup-form").dispatchAsync("submit");
+  fixture.getElement("confirm-board-restore").click();
+  assert.deepEqual(fixture.getDraft(), expected);
+  assert.match(fixture.getElement("notice").textContent, /복원했습니다/);
+  const reloaded = boardWithDraft(fixture.getDraft());
+  assert.deepEqual(reloaded.getDraft(), expected);
+});
+
+test("invalid full backup and storage failure leave the existing draft untouched", async () => {
+  const oldDraft = {
+    symbols: [{code: "111111", name: "현재 초안", patternId: "", archived: false}],
+    patterns: [],
+  };
+  const fixture = boardWithDraft(oldDraft);
+  const input = fixture.getElement("board-backup-file");
+  const restoreForm = fixture.getElement("restore-board-backup-form");
+  input.files = [{name: "broken.json", size: 10, async text() { return "{}"; }}];
+  await restoreForm.dispatchAsync("submit");
+  assert.deepEqual(fixture.getDraft(), oldDraft);
+  assert.equal(fixture.getElement("restore-confirmation").hidden, true);
+
+  const invalidBackups = [
+    {...sampleBoardBackup(), schemaVersion: 77},
+    {
+      ...sampleBoardBackup(),
+      symbols: [...sampleBoardBackup().symbols, sampleBoardBackup().symbols[0]],
+    },
+    {
+      ...sampleBoardBackup(),
+      symbols: [{...sampleBoardBackup().symbols[0], patternId: "missing-pattern"}],
+    },
+  ];
+  for (const invalidBackup of invalidBackups) {
+    const text = JSON.stringify(invalidBackup);
+    input.files = [{name: "invalid.json", size: Buffer.byteLength(text), async text() { return text; }}];
+    await restoreForm.dispatchAsync("submit");
+    assert.deepEqual(fixture.getDraft(), oldDraft);
+    assert.equal(fixture.getElement("restore-confirmation").hidden, true);
+    assert.equal(
+      descendants(fixture.getElement("symbol-list").children[0])
+        .find((item) => item.className === "symbol-code").textContent,
+      "111111",
+    );
+  }
+
+  input.files = [{
+    name: "large.json", size: 10 * 1024 * 1024 + 1,
+    async text() { assert.fail("oversized backup must not be read"); },
+  }];
+  await restoreForm.dispatchAsync("submit");
+  assert.deepEqual(fixture.getDraft(), oldDraft);
+  assert.match(fixture.getElement("notice").textContent, /10 MiB 이하/);
+
+  input.files = [{name: "valid.json", size: 100, async text() { return JSON.stringify(sampleBoardBackup()); }}];
+  await restoreForm.dispatchAsync("submit");
+  fixture.setStorageFailure(true);
+  fixture.getElement("confirm-board-restore").click();
+  assert.deepEqual(fixture.getDraft(), oldDraft);
+  assert.equal(
+    descendants(fixture.getElement("symbol-list").children[0])
+      .find((item) => item.className === "symbol-code").textContent,
+    "111111",
+  );
+  assert.equal(fixture.getElement("restore-confirmation").hidden, false);
+  assert.match(fixture.getElement("notice").textContent, /저장에 실패/);
+  assert.doesNotMatch(fixture.getElement("notice").textContent, /복원했습니다/);
 });
