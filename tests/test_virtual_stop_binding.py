@@ -1,5 +1,6 @@
 """Durable, inert stop rule binding in the virtual ledger."""
 
+import sqlite3
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -609,6 +610,70 @@ def test_blocked_obligation_prevents_later_virtual_stop_sell(
     before = len(book.snapshot().requests)
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
     assert len(book.snapshot().requests) == before
+
+
+def test_virtual_send_requires_durable_obligation_in_claim_transaction(
+    tmp_path: Path, lease: AccountLease
+) -> None:
+    path = tmp_path / "ledger.sqlite3"
+    book = Ledger(path, lease)
+    book.approve_virtual_reconciliation(0)
+    book.apply_virtual_stop_config(
+        VirtualStopBinding(
+            symbol="005930", version=2, rule_kind="PRICE_AT_OR_BELOW", threshold="9800"
+        ),
+        expected_version=1,
+    )
+    buy = book.submit(
+        New(
+            key="protected-buy",
+            symbol="005930",
+            side="BUY",
+            config_version=2,
+            qty=2,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    assert book.ingest(
+        Fill(
+            event_id=uuid4(),
+            order_id=buy.order_id,
+            qty=2,
+            remaining=0,
+            evidence_version=1,
+        )
+    )
+    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    latch = book.latch_virtual_price_stop(
+        "005930",
+        Quote(symbol="005930", price="9700", received_at=now),
+        ObserveAt(now=now, max_quote_age_seconds=2),
+    )
+    assert latch is not None
+    sell = book.submit(
+        New(
+            key="virtual-stop:005930:claim",
+            symbol="005930",
+            side="SELL",
+            config_version=2,
+            qty=2,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+            stop_latch_version=latch.rule_version,
+        )
+    ).request
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "DELETE FROM journal WHERE kind = ? AND key = ?",
+            ("stop_sell_obligation", str(sell.request_id)),
+        )
+    dispatcher = VirtualDispatcher(book)
+    assert not dispatcher.send(sell.request_id, stop_session="REGULAR")
+    assert dispatcher.calls == []
+    assert book.transport(sell.request_id) == "INTENT_PERSISTED"
 
 
 def test_cancelled_stop_obligation_requires_review_before_another_sell(

@@ -11,6 +11,7 @@ from execution.ledger import Ledger
 from execution.models import Amend, Cancel, LedgerError, New, Request
 from execution.outcomes import request_state, status
 from execution.projection import portfolio
+from execution.stop_obligations import stop_obligation_views
 from execution.storage import Entry
 
 
@@ -49,6 +50,16 @@ class VirtualDispatcher:
                     or request.command.stop_latch_version is None
                 ):
                     return False
+                if request.command.key.startswith("virtual-stop:"):
+                    obligations = [
+                        view
+                        for view in stop_obligation_views(
+                            journal, request.command.symbol
+                        )
+                        if view.request_id == request_id
+                    ]
+                    if len(obligations) != 1 or obligations[0].state != "PENDING":
+                        return False
                 store.lease.require_ready()
                 check_freshness(journal, request.command, self.ledger.clock())
                 match request.command:
