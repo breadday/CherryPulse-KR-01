@@ -66,6 +66,10 @@ def stop_obligation_views(
             and request.command.side == "SELL"
             and request.command.qty == obligation.qty
             and request.command.stop_latch_version == obligation.rule_version
+            and any(
+                latch.symbol == symbol and latch.rule_version == obligation.rule_version
+                for latch in journal.stop_latches
+            )
             and snapshot.original == obligation.qty
             and snapshot.filled <= obligation.qty
         )

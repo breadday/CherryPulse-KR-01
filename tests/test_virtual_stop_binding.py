@@ -1,5 +1,6 @@
 """Durable, inert stop rule binding in the virtual ledger."""
 
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -13,6 +14,7 @@ from execution.facts import Cancelled, Fill, Rejected, SendFailed, Transport
 from execution.ledger import Ledger
 from execution.models import Allocation, Cancel, LedgerError, New, VirtualStopBinding
 from execution.ownership import AccountLease
+from execution.stop_obligations import stop_obligation_views
 from execution.virtual import VirtualDispatcher
 
 
@@ -537,6 +539,10 @@ def test_stop_obligation_remains_one_request_during_partial_sell(
     assert (view[0].initial_qty, view[0].filled_qty, view[0].unfilled_qty) == (4, 2, 2)
     assert view[0].state == "PENDING"
     assert view[0].next_action == "QUERY_BROKER"
+    without_latch = replace(restored.snapshot(), stop_latches=())
+    damaged_view = stop_obligation_views(without_latch, "005930")
+    assert damaged_view[0].state == "BLOCKED_EVIDENCE"
+    assert damaged_view[0].next_action == "QUERY_BROKER"
     assert restored.virtual_latched_stop_candidate("005930").unreserved_qty == 0
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
 
