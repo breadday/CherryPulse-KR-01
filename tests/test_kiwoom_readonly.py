@@ -1,6 +1,5 @@
 from dataclasses import replace
 from datetime import datetime, timezone
-from uuid import uuid4
 
 import pytest
 
@@ -71,21 +70,14 @@ def test_incomplete_or_missing_pages_are_quarantined(
     assert normalize_capture(capture).rows == ()
 
 
-def test_order_and_fill_identifiers_are_not_invented() -> None:
-    capture = new_capture(
-        QuerySpec(
+def test_unverified_fill_history_tr_is_blocked() -> None:
+    with pytest.raises(ReadOnlyQueryError, match="TR_NOT_READ_ONLY"):
+        _ = QuerySpec(
             tr_code="opw00007",
             rq_name="readonly_fills",
             input_values={"계좌번호": "ACCOUNT_ALIAS_ONLY"},
             fields=(),
-        ),
-        account_alias="acct-a",
-        environment="PAPER",
-        started_at=NOW,
-    )
-    assert capture.spec.tr_code == "opw00007"
-    assert normalize_capture(capture).status is QueryStatus.UNKNOWN
-    assert capture.capture_id != uuid4()
+        )
 
 
 def test_non_whitelisted_tr_cannot_be_requested() -> None:

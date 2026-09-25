@@ -115,7 +115,8 @@ class LoginObservation:
     raw_state: int
 
 
-READ_ONLY_TRS: Final[frozenset[str]] = frozenset({"opw00018", "opt10075", "opw00007"})
+# opw00007 remains blocked until its output and pagination contract is verified.
+READ_ONLY_TRS: Final[frozenset[str]] = frozenset({"opw00018", "opt10075"})
 SENSITIVE_INPUT_NAMES: Final[frozenset[str]] = frozenset(
     {"계좌번호", "비밀번호", "비밀번호입력매체구분"}
 )
