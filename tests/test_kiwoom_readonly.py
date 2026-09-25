@@ -9,6 +9,7 @@ from adapters.kiwoom_readonly import (
     QuerySpec,
     QueryStatus,
     ReadOnlyQueryError,
+    event_matches_request,
     new_capture,
     normalize_capture,
     pagination_complete,
@@ -117,3 +118,24 @@ def test_duplicate_terminal_page_is_quarantined() -> None:
         ),
     )
     assert capture.status is QueryStatus.QUARANTINED
+
+
+@pytest.mark.parametrize(
+    ("event", "matched"),
+    [
+        (("9101", "readonly_opw00018", "OPW00018", "record"), True),
+        (("9102", "readonly_opw00018", "opw00018", "record"), False),
+        (("9101", "another_request", "opw00018", "record"), False),
+        (("9101", "readonly_opw00018", "opt10075", "record"), False),
+        (("9101", "readonly_opw00018"), False),
+    ],
+)
+def test_only_the_requested_tr_event_is_accepted(
+    event: tuple[object, ...], *, matched: bool
+) -> None:
+    assert (
+        event_matches_request(
+            event, screen="9101", rq_name="readonly_opw00018", tr_code="opw00018"
+        )
+        is matched
+    )

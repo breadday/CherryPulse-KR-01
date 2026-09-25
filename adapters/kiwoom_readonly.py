@@ -117,6 +117,7 @@ class LoginObservation:
 
 # opw00007 remains blocked until its output and pagination contract is verified.
 READ_ONLY_TRS: Final[frozenset[str]] = frozenset({"opw00018", "opt10075"})
+EVENT_IDENTITY_FIELDS: Final[int] = 3
 SENSITIVE_INPUT_NAMES: Final[frozenset[str]] = frozenset(
     {"계좌번호", "비밀번호", "비밀번호입력매체구분"}
 )
@@ -148,6 +149,18 @@ def pagination_complete(markers: tuple[str, ...]) -> bool:
         bool(markers)
         and all(marker == "2" for marker in markers[:-1])
         and (markers[-1] in {"", "0"})
+    )
+
+
+def event_matches_request(
+    args: tuple[object, ...], *, screen: str, rq_name: str, tr_code: str
+) -> bool:
+    """Accept only a response with the exact screen and request identity."""
+    return (
+        len(args) >= EVENT_IDENTITY_FIELDS
+        and str(args[0]).strip() == screen
+        and str(args[1]).strip() == rq_name
+        and str(args[2]).strip().casefold() == tr_code.casefold()
     )
 
 

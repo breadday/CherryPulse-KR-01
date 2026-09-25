@@ -16,7 +16,7 @@ from PyQt5.QAxContainer import QAxWidget
 from PyQt5.QtCore import QEventLoop, QTimer
 from PyQt5.QtWidgets import QApplication, QInputDialog, QLineEdit
 
-from adapters.kiwoom_readonly import pagination_complete
+from adapters.kiwoom_readonly import event_matches_request, pagination_complete
 
 TR_TIMEOUT_SECONDS = 120
 TR_PREV_NEXT_INDEX = 4
@@ -197,6 +197,10 @@ def query_one(control: QAxWidget, tr_code: str, timeout_seconds: int) -> QueryEv
 
     def on_message(*args: object) -> None:
         nonlocal response_error
+        if not event_matches_request(
+            args, screen=screen, rq_name=request_name, tr_code=tr_code
+        ):
+            return
         message = str(args[-1]) if args else ""
         received_at = now()
         response_error = "BROKER_MESSAGE_PRESENT" if message.strip() else None
@@ -210,6 +214,10 @@ def query_one(control: QAxWidget, tr_code: str, timeout_seconds: int) -> QueryEv
         )
 
     def on_data(*args: object) -> None:
+        if not event_matches_request(
+            args, screen=screen, rq_name=request_name, tr_code=tr_code
+        ):
+            return
         previous_next = (
             str(args[TR_PREV_NEXT_INDEX]).strip()
             if len(args) > TR_PREV_NEXT_INDEX
