@@ -17,9 +17,13 @@ function saveAndNotify(message) {
   if (save()) notice(message);
 }
 function detail(pattern) {
-  return pattern.kind === "PRICE_AT_OR_BELOW"
+  const condition = pattern.kind === "PRICE_AT_OR_BELOW"
     ? `최근 체결가 ${pattern.threshold}원 이하`
     : `확인된 평균 매수가 대비 ${Number(pattern.threshold) * 100}% 하락`;
+  const orderType = pattern.orderType === "MARKET"
+    ? "시장가"
+    : pattern.orderType === "LIMIT" ? "지정가 (가격 미정)" : "주문 방식 미정";
+  return `${condition} · ${orderType}`;
 }
 function patternFamily(pattern) { return pattern.patternId || pattern.id; }
 function patternVersion(pattern) {
@@ -158,22 +162,36 @@ function render() {
     const thresholdInput = document.createElement("input"); thresholdInput.id = thresholdId;
     thresholdInput.name = "threshold"; thresholdInput.type = "number"; thresholdInput.min = "0.000001";
     thresholdInput.step = "any"; thresholdInput.required = true; thresholdInput.value = pattern.threshold;
+    const orderTypeId = `version-order-type-${pattern.id}`;
+    const orderTypeLabel = document.createElement("label"); orderTypeLabel.htmlFor = orderTypeId;
+    orderTypeLabel.textContent = "손절 주문 방식";
+    const orderTypeInput = document.createElement("select"); orderTypeInput.id = orderTypeId;
+    orderTypeInput.name = "orderType"; orderTypeInput.required = true;
+    for (const [value, text] of [["", "선택하세요"], ["MARKET", "시장가"], ["LIMIT", "지정가"]]) {
+      const option = document.createElement("option"); option.value = value; option.textContent = text;
+      orderTypeInput.append(option);
+    }
+    orderTypeInput.value = pattern.orderType || "";
     kindInput.addEventListener("change", () => {
       thresholdLabel.textContent = kindInput.value === "AVERAGE_COST_DROP" ? "하락률 (예: 0.02 = 2%)" : "기준 가격 (원)";
     });
     const saveVersion = document.createElement("button"); saveVersion.type = "submit";
     saveVersion.textContent = `v${nextPatternVersion(pattern)} 초안 저장`;
-    form.append(nameLabel, nameInput, kindLabel, kindInput, thresholdLabel, thresholdInput, saveVersion);
+    form.append(nameLabel, nameInput, kindLabel, kindInput, thresholdLabel, thresholdInput,
+      orderTypeLabel, orderTypeInput, saveVersion);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       const value = Number(thresholdInput.value);
-      if (!nameInput.value.trim() || !Number.isFinite(value) || value <= 0 || (kindInput.value === "AVERAGE_COST_DROP" && value >= 1)) {
-        notice("패턴 이름과 올바른 양수 기준값을 입력하세요. 하락률은 0과 1 사이여야 합니다."); return;
+      if (!nameInput.value.trim() || !Number.isFinite(value) || value <= 0 ||
+        (kindInput.value === "AVERAGE_COST_DROP" && value >= 1) ||
+        !["MARKET", "LIMIT"].includes(orderTypeInput.value)) {
+        notice("패턴 이름·기준값·주문 방식을 확인하세요. 하락률은 0과 1 사이여야 합니다."); return;
       }
       const version = nextPatternVersion(pattern);
       state.patterns.push({
         id: crypto.randomUUID(), patternId: patternFamily(pattern), version, active: true,
         name: nameInput.value.trim(), kind: kindInput.value, threshold: thresholdInput.value.trim(),
+        orderType: orderTypeInput.value,
       });
       saveAndNotify(`손절 패턴 v${version} 초안을 저장했습니다. 기존 연결은 유지되며 새 버전은 종목에 다시 연결해야 합니다.`);
       render();
@@ -225,12 +243,14 @@ $("pattern-form").addEventListener("submit", (event) => {
   const name = $("pattern-name").value.trim();
   const kind = $("pattern-kind").value;
   const threshold = $("pattern-threshold").value.trim();
+  const orderType = $("pattern-order-type").value;
   const value = Number(threshold);
-  if (!name || !Number.isFinite(value) || value <= 0 || (kind === "AVERAGE_COST_DROP" && value >= 1)) {
-    notice("패턴 이름과 올바른 양수 기준값을 입력하세요. 하락률은 0과 1 사이여야 합니다."); return;
+  if (!name || !Number.isFinite(value) || value <= 0 || (kind === "AVERAGE_COST_DROP" && value >= 1) ||
+    !["MARKET", "LIMIT"].includes(orderType)) {
+    notice("패턴 이름, 기준값과 시장가·지정가 주문 방식을 확인하세요. 하락률은 0과 1 사이여야 합니다."); return;
   }
   const id = crypto.randomUUID();
-  state.patterns.push({id, patternId: id, version: 1, active: true, name, kind, threshold});
+  state.patterns.push({id, patternId: id, version: 1, active: true, name, kind, threshold, orderType});
   const saved = save(); event.target.reset(); $("pattern-kind").dispatchEvent(new Event("change")); render();
   if (saved) notice("패턴 초안을 저장했습니다. 종목에 연결해도 엔진에는 적용되지 않습니다.");
 });

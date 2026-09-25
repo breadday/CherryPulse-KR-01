@@ -80,3 +80,14 @@ $ledgerTestTemp = Join-Path '.tools' ('pytest-' + [guid]::NewGuid().ToString('N'
 기존 테스트 폴더를 basetemp로 지정하지 않는다. 매번 고유 폴더를 생성한다. 이번 실행에서는 기본 임시 경로를 쓰는 일부 검사 호출이 도구 제한시간을 넘겼고, 작업영역 내부의 고유 임시 경로에서는 전체 검사를 정상 완료했다. 외부 pytest 플러그인 자동 로딩을 끈 상태에서도 확인했다.
 
 현재 결과는 [내부 원장 구현 기록](REBUILD-04-LOCAL-LEDGER.md)에 정리했다. `.tools/`와 테스트 DB는 Git 제외 대상이다. 체크아웃·시스템 환경이 달라지면 위 검사를 다시 수행한다.
+
+## 2026-09-25 현재 작업공간 재검사
+
+이번 세션에서 저장소 `.venv`, `.tools/uv/uv.exe`,
+`.tools/typecheck/basedpyright/index.js`는 사용할 수 없었다.
+사용자 설치 Python 3.10.8 32비트(현재 import된 Pydantic 2.13.5, pytest 9.1.1,
+Ruff 설치)를 사용해 pytest **159 passed**, `ruff check execution tests`,
+`ruff format --check execution tests`, `python -m execution`, `pip check`를
+실행했고 모두 통과했다. 이 결과는 현재 설치의 Windows 전체 소프트웨어
+회귀이며 격리 `.venv`·uv 잠금 재현 검사를 대체하지 않는다. basedpyright와
+브라우저/Chromium 도구는 발견되지 않았고 설치하지 않았다.
