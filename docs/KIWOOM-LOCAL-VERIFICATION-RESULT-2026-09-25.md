@@ -8,7 +8,8 @@
 - 시작 상태: `git status --short --branch` 결과 `main...origin/main`, 변경 파일 없음
 - 실제 주문 API: 호출하지 않음
 - `SendOrder`, 정정, 취소: 호출하지 않음
-- `CommConnect`, 계좌 선택, 계좌/TR 조회: 호출하지 않음
+- `CommConnect`: 로그인 창을 통한 연결 확인에서 호출함
+- 계좌 선택, 계좌/TR 조회: 호출하지 않음
 - 운영 SQLite: 열람·변경하지 않음
 - `.env`, 계좌번호, 비밀번호, 토큰, 인증서: 출력·보관·커밋하지 않음
 
@@ -92,6 +93,33 @@ control_created True connect_state 0 connected False
 process_exit 0
 ```
 
+### 단계 B-1 수동 로그인 경로 — 2026-09-25
+
+읽기 전용 실행 경로 `verify_kiwoom_readonly.py --tr opw00018`를 실행했다.
+로그인 이벤트와 연결 상태는 성공했지만, 계좌 선택 단계에서 중단되어 TR은
+호출하지 않았다.
+
+```text
+login_status LOGIN_EVENT login_error 0 connected True
+account_count 1
+TR request: not called
+```
+
+첫 실행은 표준입력이 없는 실행 채널에서 계좌 선택을 기다리다 `EOFError`로
+종료되었다. GUI 대화상자로 변경한 재실행도 계좌 선택 대화상자에서 사용자
+입력을 기다리며 실행 채널 제한시간을 초과했다. 계좌를 임의 선택하거나
+비밀번호를 추정하지 않았고, 입력 전 `CommRqData`는 호출되지 않았다.
+
+지정 PC의 사용자 데스크톱에서 일반 PowerShell을 열어 아래 명령을 실행하면
+로그인 창과 계좌 선택·비밀번호 입력 대화상자를 직접 처리할 수 있다.
+
+```powershell
+py -3.10-32 verify_kiwoom_readonly.py --tr opw00018 --timeout 180
+```
+
+계좌 선택과 비밀번호 입력이 완료되면 출력되는 요청·응답 시각과 페이지
+메타데이터만 공유한다. 계좌번호·비밀번호·원문 응답은 공유하지 않는다.
+
 - COM 생성: 성공
 - 연결 상태: `0` / 미연결
 - COM 해제: 성공
@@ -145,7 +173,7 @@ process_exit 0
 | Q07 조회 페이지 완전성 | capture 모델과 가상 누락 검사는 추가했으나 실제 응답 없음 | 부분 확인, 실제 복구 차단 |
 | Q08 접수 전 체결 연결 | 실제 이벤트 없음. 가상 역순 검사는 기존 테스트 | 부분 확인, 실제 연결 차단 |
 | Q09 단일 PC 실행 잠금 | 기존 가상 잠금 검사는 통과. 키움 계좌 운영 정책은 미확인 | 부분 확인 |
-| Q10 Python/Qt/OCX | Python·PyQt5 버전·32비트·OCX 등록/경로·`setControl`/`clear` 확인, `GetConnectState=0` | 부분 확인, 실제 주문 경계 차단 |
+| Q10 Python/Qt/OCX | Python·PyQt5 버전·32비트·OCX 등록/경로·`setControl`/`clear` 확인, 수동 로그인 이벤트와 `GetConnectState=1` 확인 | 부분 확인, 실제 주문 경계 차단 |
 | Q11 기존 보유·수동 거래 배정 | 운영 DB와 계좌 조회를 보지 않음 | 미확인, 자동 편입·청산 금지 |
 
 ### 자료 별칭
