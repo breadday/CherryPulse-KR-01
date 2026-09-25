@@ -390,6 +390,11 @@ def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(  # noqa: 
         view.state == "BLOCKED_EVIDENCE"
         for view in restored.virtual_stop_obligations("005930")
     )
+    restarted_dispatcher = VirtualDispatcher(Ledger(path, lease))
+    recovered = set(restarted_dispatcher.recover())
+    assert {buy.request_id, cancel.request_id} <= recovered
+    assert restarted_dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
+    assert restarted_dispatcher.calls == []
 
 
 def test_cost_stop_latch_requires_price_then_preserves_residual_after_sale(
@@ -553,6 +558,10 @@ def test_stop_obligation_remains_one_request_during_partial_sell(
     )
     assert restored.virtual_latched_stop_candidate("005930").unreserved_qty == 0
     assert dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
+    restarted_dispatcher = VirtualDispatcher(restored)
+    assert restarted_dispatcher.recover() == (buy.request_id,)
+    assert restarted_dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
+    assert restarted_dispatcher.calls == []
 
 
 def test_blocked_obligation_prevents_later_virtual_stop_sell(
@@ -726,6 +735,14 @@ def test_virtual_send_requires_durable_obligation_in_claim_transaction(
     assert not dispatcher.send(later.request_id, stop_session="REGULAR")
     assert book.transport(later.request_id) == "INTENT_PERSISTED"
     assert dispatcher.calls == []
+    restarted = Ledger(path, lease)
+    restarted_dispatcher = VirtualDispatcher(restarted)
+    assert restarted_dispatcher.recover() == (buy.request_id,)
+    assert restarted.virtual_stop_obligations("005930")[-1].state == "BLOCKED_EVIDENCE"
+    assert restarted_dispatcher.drain_virtual_stop("005930", session="REGULAR") is None
+    assert not restarted_dispatcher.send(later.request_id, stop_session="REGULAR")
+    assert restarted.transport(later.request_id) == "INTENT_PERSISTED"
+    assert restarted_dispatcher.calls == []
 
 
 def test_cancelled_stop_obligation_requires_review_before_another_sell(

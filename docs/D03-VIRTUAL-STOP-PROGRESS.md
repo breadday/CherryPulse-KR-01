@@ -1,5 +1,36 @@
 # D03 가상 손절 보호 진행 기록
 
+## 2026-09-25 D03 전송/재시작 경계 재검토 — 기준 `1ddab20`
+
+`VirtualDispatcher.send`의 전송 직전 SQLite 트랜잭션은 해당 stop request의 의무가
+정확히 하나이며 `PENDING`인지, 같은 종목의 다른 의무에 `REVIEW_REQUIRED` 또는
+`BLOCKED_EVIDENCE`가 없는지 확인한 뒤에만 `SENDING`을 기록한다. 지정된 partial fill,
+cancel·reject·`UNKNOWN`, 재시작 경계에서 새 production 결함은 재현되지 않았다.
+이미 구현된 누락/중복 의무 격리와 같은 종목 격리 의무 차단은 재구현하지 않았다.
+
+회귀 보강: 부분 매도 reservation 상태에서 dispatcher 재생성 후 follow-up sell 0,
+취소 `UNKNOWN` 이후 재시작 후 drain 0, 손실된 의무 원장 뒤 지연 매수·후속 의도 생성
+시나리오에서 restart 후 의무 `BLOCKED_EVIDENCE`, 전송 상태 `INTENT_PERSISTED`,
+가상 호출 0을 검사했다. 테스트용 의무 누락 이후의 새 의무도 차단되는 것이 기대값이며
+정상 진행으로 처리하지 않는다.
+production execution code는 수정하지 않았다. 회귀 테스트 변경은
+`tests/test_virtual_stop_binding.py`에만 추가했다. 진행 범위와 검증 기록은 이 MD와
+`docs/WORK-CONTINUATION-STATUS.md`에 기록했다.
+
+검증: Windows Python 3.10.8 32-bit 사용자 설치 환경에서 전체 pytest **161 passed**
+in 11.68s, Ruff check 통과, Ruff format check **40 files already formatted**,
+`python -m execution` 가상 데모 통과, `pip check`는 의존성 문제 없음,
+`git diff --check` 통과. 동시 검사 중 첫 전체 pytest 호출은 120초 도구 제한에 걸려
+중간 출력에서 종료됐고, 단독·고유 basetemp 재실행은 통과했다. timeout 원인은
+재현되지 않았다. 저장소 `.venv`와 basedpyright 도구는 없어 격리/고정 환경 및
+type-check 검증은 미실행이다.
+테스트 실패/수정 이력: 첫 확장 assertion은 손실 의무 뒤의 추가 의무를 `PENDING`으로
+기대했으나 원장이 더 보수적으로 `BLOCKED_EVIDENCE`를 반환했다. 이 기대값을 수정해
+정상 차단 상태를 확인했고 최종 전체 회귀가 통과했다. production 코드 변경은 없다.
+
+키움 로그인·조회·TR·주문·체결, 운영 DB 및 배포는 실행하지 않았다. 자동 시세 수신,
+검증된 거래 세션, 증권사 조회/알림은 여전히 미구현이므로 D03 완료가 아니다.
+
 ## 동일 종목의 다른 격리 의무도 전송 직전 차단 — 2026-09-25
 
 가상 전송은 해당 요청의 청산 의무뿐 아니라 같은 종목의 모든 손절 의무를

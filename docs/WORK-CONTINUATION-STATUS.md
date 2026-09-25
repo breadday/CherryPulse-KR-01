@@ -125,11 +125,30 @@ pytest **11 passed**, Ruff와 공백 검사 통과. 상세 범위는
   포함한다. 복원 파일 전체 검증 후 대체 확인을 받고, localStorage 저장 성공 전에는
   현재 in-memory 화면 상태를 바꾸지 않는다. 기존 localStorage 포맷은 별도 마이그레이션
   없이 계속 읽는다.
-- Node 전체 테스트 **13 passed**. Chrome 모바일에서 백업 다운로드, 확인 전 유지,
+- Node 전체 테스트 **14 passed**. Chrome 모바일에서 백업 다운로드, 확인 전 유지,
   취소, 복원 및 reload를 확인했다. 데스크톱 emulation에서 복원 확인/취소도 확인했다.
 - Windows Python 3.10.8 32비트 사용자 설치 환경에서 pytest **159 passed**, Ruff 검사·
   포맷, 가상 데모 및 `pip check` 통과. 격리 `.venv`와 basedpyright는 사용할 수 없어
   고정 환경/type-check는 미실행이다. 주문 API·운영 DB·배포는 실행하지 않았다.
+
+## D03 가상 손절 재시작 경계 재검토 — 2026-09-25
+
+- 시작 기준: fetch 후 `main`/`origin/main` 모두 `1ddab2074a54ca51903d548be618dd9ac737cb71`,
+  브랜치 `main`, 작업 트리 clean. 이전 수정은 이미 동일 종목의 격리 의무를
+  `SENDING` 전에 차단하고 있었다. 그 로직은 재구현하지 않았다.
+- `tests/test_virtual_stop_binding.py`에 부분 매도·`UNKNOWN` 취소·의무 기록 손실
+  후 지연 매수/후속 의도 시나리오의 dispatcher 재시작 검사를 확장했다.
+  `BLOCKED_EVIDENCE`에서는 후속 요청을 `SENDING`으로 바꾸지 않고 가상 호출도 0이다.
+- 변경 파일은 이 테스트 파일과 [D03 진행 기록](D03-VIRTUAL-STOP-PROGRESS.md)뿐이다.
+- 전체 Windows 회귀 **161 passed in 11.68s**. Ruff check, Ruff format check,
+  `python -m execution`, `pip check`, `git diff --check` 통과. 첫 동시 실행은
+  120초 도구 제한에 걸렸으나 단독 fresh-basetemp 재실행에서 통과했다(원인은 재현되지 않음).
+  User-installed Python 3.10.8 32-bit이며 격리 `.venv`/basedpyright는 미사용이다.
+- 조사 중 신규 production 결함은 재현되지 않았다. 첫 새 assertion은 orphan 의무가
+  있는 상태의 후속 의무를 `PENDING`으로 잘못 예상했으나 실제 `BLOCKED_EVIDENCE`가
+  확인되어 안전한 기대값으로 수정했다.
+- 키움 API·조회·주문, 운영 DB와 배포는 사용하지 않았다. 자동 시세·검증된 세션·
+  실제 조회/알림은 여전히 D03 완료를 막는다.
 
 ## 완료 전 필요한 외부 결정·검증
 

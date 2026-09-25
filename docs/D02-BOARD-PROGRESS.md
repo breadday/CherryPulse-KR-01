@@ -34,7 +34,7 @@
 `board.test.js`; 기록 갱신: 이 문서, `WORK-CONTINUATION-STATUS.md`,
 `DEVELOPMENT-GOAL.md`, `CherryPulse-KR-01-Rebuild-Plan.md`.
 
-검증: Node 전체 테스트 **13 passed**. 전체 백업의 보관 종목·패턴 버전·활성 상태·
+검증: Node 전체 테스트 **14 passed**. 전체 백업의 보관 종목·패턴 버전·활성 상태·
 연결 왕복, legacy 필드 보존, 무효 입력·중복·고아 연결·미지원 버전 거절, 취소,
 저장 실패 무변경과 reload 복구를 확인했다. Chrome headless 모바일에서는 백업
 다운로드→확인 전 원본 유지→취소 후 원본 유지→복원 확정→reload 뒤 관계/상태 유지,
@@ -94,7 +94,7 @@ URL 해제를 확인했다. Chrome 모바일 headless에서 두 버튼을 실제
 구형 로컬 초안은 `version`이 없으면 v1, `patternId`가 없으면 기존 ID를
 계열 ID로 취급하고 `active`가 없으면 활성 버전으로 읽는다.
 
-검증: `node --test web/board/board.test.js` **13 passed**. 신규 버전 저장 뒤
+검증: `node --test web/board/board.test.js` **14 passed**. 신규 버전 저장 뒤
 기존 버전과 종목 연결이 보존되는 것, 비활성 버전의 새 연결 차단 및 재활성화를,
 새 버전에 시장가/지정가 선택이 저장되는 것을 검사했다. `node --check
 web/board/board.js`, `node --check web/board/board.test.js`, `git diff --check`
@@ -152,7 +152,7 @@ Python 3.10.8 32비트 전체 pytest **159 passed**, Ruff 검사·포맷 검사,
 
 ## 현재 검증과 미완료 — 2026-09-25
 
-- `node --test web/board/board.test.js`: **13 passed**. 전체 백업/복원, 저장 실패·취소·
+- `node --test web/board/board.test.js`: **14 passed**. 전체 백업/복원, 저장 실패·취소·
   reload, 검색·필터, 패턴 버전·JSON/CSV 교환을 검사했다.
 - `node --check web/board/board.js`, `node --check web/board/draft-import.js`,
   `node --check web/board/board-backup.js`, `node --check web/board/board.test.js`,
