@@ -31,17 +31,21 @@ def main() -> int:
     screen = "8799"
     registered = False
     exit_code = 0
+    event_count = 0
 
     def finish() -> None:
         nonlocal registered
         if registered:
             control.dynamicCall("SetRealRemove(QString, QString)", screen, args.symbol)
             registered = False
+        print(f"observation ended; stock-trade events={event_count}", flush=True)
         app.quit()
 
     def on_real(code: str, real_type: str, _payload: str) -> None:
+        nonlocal event_count
         if code != args.symbol or real_type != "주식체결":
             return
+        event_count += 1
         # Read FIDs inside the event callback as prescribed by the installed guide.
         price = control.dynamicCall("GetCommRealData(QString, int)", code, 10)
         trade_time = control.dynamicCall("GetCommRealData(QString, int)", code, 20)
@@ -76,10 +80,18 @@ def main() -> int:
             return
         registered = True
         print("observing stock trades; Ctrl+C or timeout stops subscription", flush=True)
+        QTimer.singleShot(args.seconds * 1000, finish)
+
+    def on_login_timeout() -> None:
+        nonlocal exit_code
+        if not registered:
+            print("login/registration timed out after 60 seconds", file=sys.stderr)
+            exit_code = 2
+            app.quit()
 
     control.OnEventConnect.connect(on_connect)
     control.OnReceiveRealData.connect(on_real)
-    QTimer.singleShot(args.seconds * 1000, finish)
+    QTimer.singleShot(60_000, on_login_timeout)
     result = control.dynamicCall("CommConnect()")
     if result != 0:
         print(f"login request failed: {result}", file=sys.stderr)
