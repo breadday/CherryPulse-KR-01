@@ -1,5 +1,17 @@
 # D03 가상 손절 보호 진행 기록
 
+## 출근 전 로그인 후 장중 무인 시세 관찰 — 2026-09-26
+
+직장 근무로 장중 직접 조작할 수 없는 운영 조건에 맞춰 독립 관찰 도구에 `--start-at HH:MM`을 추가했다. 지정 PC에서 **거래일 아침**, Windows에 로그인한 사용자 세션에서 도구를 실행하고 키움 로그인 창이 나오면 출근 전에 완료한다. 도구는 같은 날 PC 로컬 시각이 지정 시간에 도달할 때까지 대기한 뒤 한 종목의 실시간 등록을 시작한다. 시작 시간이 이미 지났거나 8시간 넘게 남았으면 거절하며, PC 절전 등으로 지정 시간을 30초 넘게 놓치면 등록하지 않는다. 이후 기존 `--seconds`(최대 120초)가 지나면 해제를 요청하고 종료한다. 이 기능은 실제 시장 개장 여부를 판정하지 않는다.
+
+PowerShell에서 `git pull origin main` 후 다음을 **출근 전 한 번만** 실행하는 예시다. 아래 경로는 사용자 프로필의 바탕화면 파일이며 운영 DB가 아니다. 저장된 출력에는 `fid10`·`fid20` 원문이 포함될 수 있으므로 공유 전 계좌·개인 정보가 없는지 확인한다.
+
+```powershell
+py -3.10-32 tools\inspect_kiwoom_realtime.py 005930 --start-at 09:05 --seconds 120 2>&1 | Tee-Object -FilePath "$env:USERPROFILE\Desktop\CherryPulse-quote-$(Get-Date -Format yyyyMMdd).txt"
+```
+
+PC 전원과 사용자 세션을 유지하고 절전은 해제해야 한다. 보안 프로그램·키움 로그인이 다시 필요해지면 이 방식은 무인 실행을 보장하지 않으므로 해당 오류만 기록하고 종료한다. 계정 비밀번호 저장이나 Windows 작업 스케줄러의 비대화형 계정 실행을 전제로 하지 않는다. 설치 PC에서 이 새 대기 경로의 실제 실행은 아직 미검증이다. `python -m unittest tests.test_realtime_probe -v`의 예약시각 검증과 기존 모의 콜백 검사 **2 tests OK**(Linux Python 3.12), `git diff --check` 통과. 키움 원문, 정규장, 실제 주문, 운영 DB는 확인·변경하지 않았다.
+
 ## 실시간 관찰 도구의 반복 가능한 경계 검사 — 2026-09-26
 
 `tests/test_realtime_probe.py`에 Windows OCX 없이 실행하는 모의 이벤트 검사를 추가했다. 다른 종목·다른 실시간 타입을 무시하고 지정 종목 `주식체결` 두 콜백에서 FID 원문을 `repr`로 출력하는지, 등록 성공 뒤 30초 타이머가 설정되는지, 종료 때 실시간 등록을 한 번 해제하는지 검사한다. 주문·TR·계좌조회 메서드 호출이 없다는 조건도 검사한다. Linux Python 3.12에서 `python -m unittest tests.test_realtime_probe -v` **1 test OK**, `git diff --check` 통과. Windows Python 3.10 32비트 및 실제 키움 OCX 실행은 아직 미검증이며, 모의 검사를 시세 원문 규격이나 거래소 세션의 근거로 승격하지 않는다.
