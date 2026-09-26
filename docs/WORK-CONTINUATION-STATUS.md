@@ -1,5 +1,12 @@
 # CherryPulse-KR-01 개발 이어가기 기록
 
+## 2026-09-26 재개 체크포인트 — D02 저장 경계
+
+- 시작 `main` `8e4c927`, clean. D03 관찰 도구는 다음 거래일 장중 원문을 기다린다. 출근 전 로그인과 `--start-at` 예약은 `docs/D03-VIRTUAL-STOP-PROGRESS.md`의 최신 기록을 따른다. 실제 시세의 정규화, 거래소 세션과 틱 고유성은 아직 미검증이며 실제 손절 어댑터로 연결하지 않는다.
+- 병행 가능한 D02 작업으로 브라우저 초안의 저장 실패 후 메모리 유출과 여러 탭 덮어쓰기 경로를 수정했다. 종목·패턴 변경은 브라우저 저장 성공 뒤 화면 상태로 반영하며, 저장소 원문이 다른 탭에서 바뀌었으면 이번 편집은 거절하고 새로고침을 안내한다.
+- 검증: Node 보드 **16 passed**, `node --check web/board/board.js`, `git diff --check` 통과. Windows Python 전체 회귀·실제 모바일 브라우저는 이번 변경에 대해 실행하지 않았다. 변경 파일은 `web/board/board.js`, `web/board/board.test.js`, `docs/D02-BOARD-PROGRESS.md`, 이 기록이다. 키움 로그인·주문/조회, 운영 DB, 배포는 실행하지 않았다.
+- 다음 착수: 먼저 `git status`와 원격 `main`을 확인한다. D02는 Q12 매수 패턴 명세, 물리 모바일 확인, 서버 인증·desired/accepted/applied 계약이 남았다. D03은 장중 FID 10·20 원문을 받은 뒤 형식·수신 시각·중복 근거를 검토한다. D04 주문 실패/미체결은 증권사 조회 근거 전에는 실제 실행에 연결하지 않는다. 완료 판단은 각 단계 계획의 종료 조건과 실증 결과로 따로 한다.
+
 지정 Windows PC의 주문 없는 검사 및 향후 키움 읽기 전용 증거 수집 준비는
 [키움 로컬 검증 안내](KIWOOM-LOCAL-VERIFICATION-GUIDE.md)에 정리했다.
 
