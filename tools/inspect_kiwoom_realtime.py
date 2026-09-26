@@ -6,6 +6,7 @@ import argparse
 import re
 import sys
 from datetime import datetime
+from time import monotonic_ns
 
 
 def main() -> int:
@@ -46,13 +47,15 @@ def main() -> int:
         if code != args.symbol or real_type != "주식체결":
             return
         event_count += 1
+        received = datetime.now().astimezone().isoformat(timespec="microseconds")
+        callback_monotonic_ns = monotonic_ns()
         # Read FIDs inside the event callback as prescribed by the installed guide.
         price = control.dynamicCall("GetCommRealData(QString, int)", code, 10)
         trade_time = control.dynamicCall("GetCommRealData(QString, int)", code, 20)
         market = control.dynamicCall("GetCommRealData(QString, int)", code, 290)
         exchange = control.dynamicCall("GetCommRealData(QString, int)", code, 9081)
-        received = datetime.now().astimezone().isoformat(timespec="microseconds")
         print(
+            f"event_seq={event_count} monotonic_ns={callback_monotonic_ns} "
             f"received={received} code={code!r} type={real_type!r} "
             f"fid10={price!r} fid20={trade_time!r} "
             f"fid290={market!r} fid9081={exchange!r}",
