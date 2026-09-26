@@ -1,5 +1,21 @@
 # D03 가상 손절 보호 진행 기록
 
+## 체크포인트 시세의 읽기 전용 상태 — 2026-09-26
+
+`Ledger.virtual_quote_status(symbol, timing)`은 마지막으로 수락한 가상
+시세 checkpoint를 읽어 `NO_QUOTE`, `FRESH`, `STALE`, `CLOCK_UNCERTAIN`을
+표시한다. 수신 시각과 평가 시각을 반환하고 수신 이후 2초 경계 및 시계
+역행을 구분한다. checkpoint의 존재는 실시간 연결·거래소 정규장이나 휴장일의
+근거가 아니므로 `connection`과 `exchange_session`은 항상 `UNVERIFIED`다.
+조회는 주문·손절 발동·원장 기록을 생성하지 않는다. 재시작 후 상태,
+다른 종목 미수신, 오래된 시세, 역행한 시계와 읽기 전용 동작을 검증했다.
+
+Linux Python 3.12에서 Windows 잠금을 임시 대체한 관련 테스트 **17 passed**,
+잠금·프로세스 검사가 필요한 4개 파일을 제외한 회귀 **153 passed**.
+Ruff 검사·포맷 및 `git diff --check` 통과. 이번 변경 이후 Windows 3.10
+32비트 전체 회귀와 키움 시세 연결은 미실행이다. 기존 checkpoint는 최신값만
+남기므로 이 조회는 연결 장애 이력이나 틱 전체의 감사 자료가 아니다.
+
 ## 2026-09-26 시세 입력에서 가상 평가까지의 원자 경계 — 기준 `fc6f334`
 
 작업 시작 시 `git fetch origin main` 후 `HEAD`와 `origin/main`은 모두

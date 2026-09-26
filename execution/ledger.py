@@ -52,6 +52,7 @@ from execution.projection import (
     order,
     portfolio,
 )
+from execution.quote_status import VirtualQuoteStatus, virtual_quote_status
 from execution.stop_obligations import StopObligationView, stop_obligation_views
 from execution.storage import Entry, Journal, Storage
 from execution.validation import check_command, check_fact
@@ -515,6 +516,12 @@ class Ledger:
             return VirtualStopInputResult(
                 accepted=True, observation=observation, latch=latch
             )
+
+    def virtual_quote_status(
+        self, symbol: str, timing: ObserveAt
+    ) -> VirtualQuoteStatus:
+        """Read checkpoint freshness; no connection or session claim is made."""
+        return virtual_quote_status(self.snapshot(), symbol, timing)
 
     @staticmethod
     def _observe_virtual_cost_stop(
