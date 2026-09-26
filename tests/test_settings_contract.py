@@ -1,5 +1,6 @@
 """D01 desired settings cannot silently become active trading instructions."""
 
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -8,7 +9,17 @@ import pytest
 from pydantic import ValidationError
 
 from contracts.inbox import CommandConflictError, ConfigInbox
-from contracts.settings import Actor, ConfigCommand, Pattern, Settings, StopRule, decide
+from contracts.settings import (
+    Actor,
+    ConfigCommand,
+    Pattern,
+    Settings,
+    StopRule,
+    decide,
+    digest,
+)
+
+AUTH_CONTEXT = "verified-test-context"
 
 
 def command(now: datetime) -> ConfigCommand:
@@ -35,13 +46,29 @@ def command(now: datetime) -> ConfigCommand:
 
 
 def actor() -> Actor:
-    """Simulate claims received from an authenticated adapter."""
+    """Claims returned by the test-only authentication adapter."""
     return Actor(
         actor_id="owner",
         account_id="DEMO",
         environment="PAPER",
         permissions=frozenset({"CONFIG_WRITE"}),
     )
+
+
+class FakeConfigAuthenticator:
+    """Test seam only; production has no configured identity provider."""
+
+    def __init__(self, verified_actor: Actor | None = None) -> None:
+        self.verified_actor = verified_actor or actor()
+
+    def authenticate(self, request: ConfigCommand, context: object) -> Actor | None:
+        _ = request
+        return self.verified_actor if context == AUTH_CONTEXT else None
+
+
+def inbox(path: Path) -> ConfigInbox:
+    """Create an inbox with a deliberately test-only verifier."""
+    return ConfigInbox(path, authenticator=FakeConfigAuthenticator())
 
 
 def test_desired_settings_acceptance_is_only_a_pure_decision() -> None:
@@ -102,12 +129,14 @@ def test_inbox_replays_after_restart_without_advancing_version(tmp_path: Path) -
     now = datetime(2026, 9, 24, tzinfo=timezone.utc)
     request = command(now)
     path = tmp_path / "desired-settings.sqlite3"
-    inbox = ConfigInbox(path)
-    accepted = inbox.receive(request, actor(), now)
+    settings_inbox = inbox(path)
+    accepted = settings_inbox.receive(request, now, auth_context=AUTH_CONTEXT)
     assert accepted.state == "ACCEPTED"
     assert (
-        ConfigInbox(path).receive(
-            request, actor(), request.expires_at + timedelta(days=1)
+        inbox(path).receive(
+            request,
+            request.expires_at + timedelta(days=1),
+            auth_context=AUTH_CONTEXT,
         )
         == accepted
     )
@@ -120,31 +149,52 @@ def test_inbox_replays_after_restart_without_advancing_version(tmp_path: Path) -
             "settings": request.settings.model_copy(update={"version": 2}),
         }
     )
-    assert ConfigInbox(path).receive(newer, actor(), now).state == "ACCEPTED"
+    assert (
+        inbox(path).receive(newer, now, auth_context=AUTH_CONTEXT).state == "ACCEPTED"
+    )
     stale = newer.model_copy(
         update={"command_id": uuid4(), "idempotency_key": "setting-3"}
     )
-    assert inbox.receive(stale, actor(), now).reason == "STALE_CONFIG_VERSION"
+    assert (
+        settings_inbox.receive(stale, now, auth_context=AUTH_CONTEXT).reason
+        == "STALE_CONFIG_VERSION"
+    )
 
 
 def test_inbox_rejects_changed_identity_and_unauthorized_replay(tmp_path: Path) -> None:
     now = datetime(2026, 9, 24, tzinfo=timezone.utc)
     request = command(now)
-    inbox = ConfigInbox(tmp_path / "desired-settings.sqlite3")
-    assert inbox.receive(request, actor(), now).state == "ACCEPTED"
+    settings_inbox = inbox(tmp_path / "desired-settings.sqlite3")
+    assert (
+        settings_inbox.receive(request, now, auth_context=AUTH_CONTEXT).state
+        == "ACCEPTED"
+    )
     with pytest.raises(CommandConflictError, match="CONFLICT_CONFIG_COMMAND_IDENTITY"):
-        _ = inbox.receive(
-            request.model_copy(update={"command_id": uuid4()}), actor(), now
+        _ = settings_inbox.receive(
+            request.model_copy(update={"command_id": uuid4()}),
+            now,
+            auth_context=AUTH_CONTEXT,
         )
-    unauthorized = actor().model_copy(update={"permissions": frozenset()})
-    assert inbox.receive(request, unauthorized, now).reason == "CONFIG_UNAUTHORIZED"
+    unauthorized_inbox = ConfigInbox(
+        tmp_path / "unauthorized-settings.sqlite3",
+        authenticator=FakeConfigAuthenticator(
+            actor().model_copy(update={"permissions": frozenset()})
+        ),
+    )
+    assert (
+        unauthorized_inbox.receive(request, now, auth_context=AUTH_CONTEXT).reason
+        == "CONFIG_UNAUTHORIZED"
+    )
 
 
 def test_inbox_rejects_command_id_reused_for_another_symbol(tmp_path: Path) -> None:
     now = datetime(2026, 9, 24, tzinfo=timezone.utc)
     request = command(now)
-    inbox = ConfigInbox(tmp_path / "desired-settings.sqlite3")
-    assert inbox.receive(request, actor(), now).state == "ACCEPTED"
+    settings_inbox = inbox(tmp_path / "desired-settings.sqlite3")
+    assert (
+        settings_inbox.receive(request, now, auth_context=AUTH_CONTEXT).state
+        == "ACCEPTED"
+    )
     other = request.model_copy(
         update={
             "idempotency_key": "another-symbol",
@@ -152,5 +202,66 @@ def test_inbox_rejects_command_id_reused_for_another_symbol(tmp_path: Path) -> N
         }
     )
     with pytest.raises(CommandConflictError, match="CONFLICT_CONFIG_COMMAND_IDENTITY"):
-        _ = inbox.receive(other, actor(), now)
-    assert inbox.receive(request, actor(), now).state == "ACCEPTED"
+        _ = settings_inbox.receive(other, now, auth_context=AUTH_CONTEXT)
+    assert (
+        settings_inbox.receive(request, now, auth_context=AUTH_CONTEXT).state
+        == "ACCEPTED"
+    )
+
+
+def test_legacy_actor_claim_acceptance_is_blocked_during_apply_state_migration(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "legacy-inbox.sqlite3"
+    request = command(datetime(2026, 9, 24, tzinfo=timezone.utc))
+    with sqlite3.connect(path) as connection:
+        _ = connection.execute(
+            """CREATE TABLE config_commands (
+              account_id TEXT NOT NULL, environment TEXT NOT NULL,
+              symbol TEXT NOT NULL, idempotency_key TEXT NOT NULL,
+              command_id TEXT NOT NULL, payload TEXT NOT NULL,
+              digest TEXT NOT NULL, decision TEXT NOT NULL,
+              reason TEXT NOT NULL, accepted_version INTEGER,
+              actor_id TEXT NOT NULL,
+              PRIMARY KEY (account_id, environment, symbol, idempotency_key),
+              UNIQUE (account_id, environment, command_id))"""
+        )
+        _ = connection.execute(
+            """INSERT INTO config_commands VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                request.settings.account_id,
+                request.settings.environment,
+                request.settings.symbol,
+                request.idempotency_key,
+                str(request.command_id),
+                request.model_dump_json(),
+                digest(request),
+                "ACCEPTED",
+                "ACCEPTED",
+                request.settings.version,
+                "legacy-actor-claim",
+            ),
+        )
+
+    migrated = inbox(path).application(request.command_id)
+    assert (migrated.state, migrated.reason) == (
+        "APPLY_BLOCKED",
+        "LEGACY_AUTHENTICATION_UNVERIFIED",
+    )
+    assert inbox(path).begin_apply(request.command_id, retry_blocked=True).state == (
+        "APPLY_BLOCKED"
+    )
+    replacement_now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    replacement = command(replacement_now).model_copy(
+        update={"command_id": uuid4(), "idempotency_key": "replacement-after-migration"}
+    )
+    assert (
+        inbox(path)
+        .receive(
+            replacement,
+            replacement_now,
+            auth_context=AUTH_CONTEXT,
+        )
+        .state
+        == "ACCEPTED"
+    )

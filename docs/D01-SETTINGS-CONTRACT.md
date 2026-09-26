@@ -1,5 +1,92 @@
 # D01 설정·패턴·명령 계약 진행 기록
 
+## 2026-09-26 desired·accepted·local applied 적용 경계
+
+시작 기준은 `git fetch origin main` 뒤 `HEAD`와 `origin/main` 모두
+`c147e69138b7551b8af0cad971812c31aa4636dd`, 브랜치 `main`, 작업 트리 clean이다.
+
+기존 `ConfigInbox`와 `Ledger`는 서로 다른 SQLite 파일을 사용한다. 이 둘을
+단일 원자 트랜잭션이라고 표현할 수 없다. 다음의 재개 가능한 교차 DB 상태로
+구현했다.
+
+1. `ConfigInbox.receive`는 명령 모델을 다시 검증하고 주입된 인증기의 검증
+결과, 계좌/환경 범위, `CONFIG_WRITE`, 기대 버전, 만료 및 idempotency를
+확인한 뒤 desired payload와 `ACCEPTED` 결정을 inbox 한 트랜잭션에 보관한다.
+   인증 context 자체는 저장하지 않는다.
+2. 수락만으로는 원장이나 감시 상태를 바꾸지 않는다. 적용 요청은 inbox에서
+   먼저 `APPLYING`으로 기록한다.
+3. 로컬 원장은 command ID와 digest를 가진 `AppliedConfig`와 해당 설정의
+   `VirtualStopBinding`을 한 원장 트랜잭션에 기록한다. 같은 command ID/digest의
+   재호출은 기존 원장 근거를 반환하고, ID 내용 충돌·버전 충돌은 거절한다.
+   `Settings.version`은 실행 설정/체결 배정 버전이고 `Pattern.version`은 패턴
+   자체의 버전이다. 둘을 같다고 가정하지 않으며, stop binding은 기존 fill
+   assignment가 참조하는 settings version으로 기록한다. 원본 command digest는
+   별도 inbox payload와 대조할 연결 근거다.
+4. 원장 적용 결과를 받은 뒤에만 inbox를 `APPLIED`로 표시한다. inbox의
+   `APPLIED`는 **로컬 설정 기록 완료**이고 감시 활성화나 주문 허가가 아니다.
+   Settings가 강제하는 `monitoring_enabled=False`, `entry_enabled=False`는
+   그대로 유지한다.
+
+프로세스가 inbox의 `APPLYING` 기록 뒤 원장 기록 전에 종료되면 재시작 시
+`resume_pending()`이 원장 적용을 다시 시도한다. 원장 기록 뒤 inbox 완료 표기
+전에 종료된 경우에도 같은 command ID/digest를 원장에서 찾아 중복 적용하지
+않고 inbox 상태를 수렴시킨다. 명확한 버전·scope 충돌은 `APPLY_BLOCKED`와
+사유로 남기며, 재시도는 `retry_blocked=True`인 명시 호출만 허용한다. 로컬
+계좌/실행 lease의 대조 gate가 닫혀 있을 때는 inbox를 `APPLYING`으로 바꾸지
+않고 적용을 거부한다.
+
+기존 holdings의 `StopRuleAssignment` 및 이전 규칙 binding은 수정·삭제하지
+않는다. 새 설정은 새 local version/binding으로 추가되고, 기존 보유는 체결
+당시 버전으로 조회된다. 실행 원장의 초기 암묵 버전 1과 desired inbox의
+초기 기대 버전 0은 새 계좌·종목의 첫 적용에서만 대응시킨다. 이미 로컬
+설정/규칙이 존재해 현재 버전이 기대 버전과 다르면 적용을 차단한다.
+
+인증 제공자/검증기는 아직 없다. 기본 `ConfigInbox(path)`는
+`CONFIG_AUTHENTICATION_UNAVAILABLE`로 fail-closed이고, caller가 만든 `Actor`
+단독으로 수락을 만들 수 없다. `ConfigAuthenticator`는 신뢰된 ingress가
+주입할 인터페이스일 뿐 실제 인증 구현이 아니다. 저장소의 수락 테스트는
+test-only fake authenticator만 사용한다. 과거 스키마에서 Actor 주장만으로
+`ACCEPTED`였던 행은 마이그레이션 후 `APPLY_BLOCKED` /
+`LEGACY_AUTHENTICATION_UNVERIFIED`가 되고 accepted-version 계산에서 제외된다.
+실제 인증된 재전달 또는 운영자 검토 전에는 이를 재개하지 않는다.
+
+이 변경은 inbox와 원장 SQLite 파일에 대한 application protocol이며 두 파일
+사이 원자성을 보장하지 않는다. 중간 상태는 inbox의 `APPLYING`/`APPLY_BLOCKED`
+및 원장의 command ID/digest로 식별·재개한다. 운영 설정 DB에 마이그레이션을
+실행하지 않았고 실제 인증 공급자·웹/Windows 동기화 연결도 구현하지 않았다.
+
+### D01 상태와 검증
+
+- **desired**: 검증된 `ConfigCommand` payload, 별도 inbox DB에 저장.
+- **accepted**: inbox의 권한/범위·만료·기대 버전·멱등성 판정을 통과한 결정.
+- **applying/applied**: 서로 다른 원장 적용 진행/로컬 영속 완료. applied만으로
+  감시나 주문이 켜지지 않는다.
+- 의미 있는 가상 검사: 기본 인증 차단, 인증 context 누락/실패, 범위 권한,
+  만료·버전·중복·identity conflict, 역순 apply 차단 및 순서 수정 뒤 명시 재시도,
+  inbox→원장 양쪽 commit 경계의 재시작, 기존 설정 충돌 보존, 기존 보유의
+  규칙 버전 보존, inbox schema 이전 수락의 fail-closed 차단.
+
+2026-09-26 Windows Python 3.10.8 32비트 결과:
+
+| 명령 | 결과 |
+|---|---|
+| `py -3.10-32 -m pytest -q --tb=line --basetemp <고유 임시 경로> tests/test_settings_contract.py tests/test_config_apply.py tests/test_command_freshness.py` | 종료 0, **27 passed** |
+| `py -3.10-32 -m pytest -q --tb=line --basetemp <고유 임시 경로>` | 종료 0, **177 passed, 4 subtests passed** (`8.37s`) |
+| 변경 파일 Ruff check / format check | 각각 종료 0 |
+| `py -3.10-32 -m execution` | 종료 0, 가상 데모 정상 |
+| `git diff --check` | 종료 0 |
+
+전체 `ruff check execution contracts tests`와 전체 format check는 기존
+`tests/test_realtime_probe.py`의 기존 lint/format 진단으로 각각 종료 코드 1이다.
+해당 파일은 이번 diff에서 수정하지 않았다. basedpyright는 설치되지 않아
+미실행이다. 키움 실증·운영 DB·주문·배포는 실행하지 않았다.
+
+**D01은 미완료**다. 다음에는 실제 신뢰 가능한 인증 제공자와 계좌/환경 권한
+검증기를 연결하고, 인증된 환경에서만 inbox 입력이 가능하도록 배치해야 한다.
+그 전까지 기본 inbox가 차단되는 것이 정상 동작이다. 이어서 Windows 3.10
+32비트 고정 `.venv` 기반 회귀, 적용 경계 실패 주입/재시작 및 운영자 대조
+경로를 검증하되 실제 계좌·운영 DB에는 실행하지 않는다.
+
 ## 2026-09-24 추가 검증
 
 같은 계좌·환경에서 다른 종목의 명령 ID를 재사용하면 SQLite 고유 제약 오류 대신

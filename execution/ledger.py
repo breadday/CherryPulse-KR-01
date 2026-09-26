@@ -10,7 +10,8 @@ from uuid import UUID, uuid4, uuid5
 
 from typing_extensions import assert_never
 
-from contracts.settings import StopRule
+from contracts.settings import ConfigCommand, StopRule
+from contracts.settings import digest as config_digest
 from contracts.stop_evaluation import (
     ManagedPosition,
     ObserveAt,
@@ -189,6 +190,52 @@ def _evaluate_virtual_quote(
     )
 
 
+def _existing_inbox_application(
+    journal: Journal,
+    command: ConfigCommand,
+    command_digest: str,
+    binding: VirtualStopBinding,
+) -> AppliedConfig | None:
+    """Return an exact prior application or reject a reused command identity."""
+    existing = next(
+        (item for item in journal.configs if item.command_id == command.command_id),
+        None,
+    )
+    if existing is None:
+        return None
+    existing_binding = next(
+        (
+            item
+            for item in journal.stop_bindings
+            if item.symbol == binding.symbol and item.version == binding.version
+        ),
+        None,
+    )
+    if (
+        existing.symbol != binding.symbol
+        or existing.version != binding.version
+        or existing.command_digest != command_digest
+        or existing_binding != binding
+    ):
+        raise LedgerError("CONFLICT_CONFIG_APPLY_IDENTITY")
+    return existing
+
+
+def _check_inbox_apply_version(journal: Journal, command: ConfigCommand) -> None:
+    """Compare accepted desired revision to current local config before mutation."""
+    settings = command.settings
+    configured = any(item.symbol == settings.symbol for item in journal.configs)
+    current_version = applied_version(journal, settings.symbol)
+    if configured:
+        if current_version != command.expected_version:
+            raise LedgerError("STALE_CONFIG_VERSION")
+    elif command.expected_version != 0 or current_version != 1:
+        # The simulator's implicit baseline is v1; desired config starts at 0.
+        raise LedgerError("STALE_CONFIG_VERSION")
+    if settings.version <= command.expected_version:
+        raise LedgerError("CONFIG_VERSION_MUST_ADVANCE")
+
+
 class Ledger:
     """Each mutation is one durable transaction; no broker I/O is available."""
 
@@ -281,6 +328,68 @@ class Ledger:
                     binding.model_dump_json(),
                 ),
             )
+
+    def apply_inbox_config(
+        self, command: ConfigCommand, *, command_digest: str
+    ) -> AppliedConfig:
+        """Apply one accepted inert stop setting idempotently to the local ledger.
+
+        The caller must be the trusted inbox coordinator. This transaction records
+        the command identity, local config version and stop binding together.
+        Existing fill assignments and their stop-rule versions are never rewritten.
+        """
+        command = ConfigCommand.model_validate_json(command.model_dump_json())
+        settings = command.settings
+        scope = self.storage.lease.scope
+        if (settings.account_id, settings.environment) != (
+            scope.account_id,
+            scope.environment,
+        ):
+            raise LedgerError("CONFIG_EXECUTION_SCOPE_MISMATCH")
+        if settings.entry_enabled or settings.monitoring_enabled:
+            raise LedgerError("CONFIG_EXECUTION_MUST_REMAIN_DISABLED")
+        if config_digest(command) != command_digest:
+            raise LedgerError("CONFIG_COMMAND_DIGEST_MISMATCH")
+        binding = VirtualStopBinding(
+            symbol=settings.symbol,
+            version=settings.version,
+            rule_kind=settings.stop_pattern.stop.kind,
+            threshold=format(settings.stop_pattern.stop.threshold, "f"),
+        )
+        with self.storage.transaction() as connection:
+            self.storage.lease.require_ready()
+            journal = self.storage.read(connection)
+            existing = _existing_inbox_application(
+                journal, command, command_digest, binding
+            )
+            if existing is not None:
+                return existing
+            _check_inbox_apply_version(journal, command)
+            if any(
+                item.symbol == settings.symbol and item.version == settings.version
+                for item in journal.stop_bindings
+            ):
+                raise LedgerError("CONFLICT_CONFIG_APPLY_VERSION")
+
+            applied = AppliedConfig(
+                symbol=settings.symbol,
+                version=settings.version,
+                command_id=command.command_id,
+                command_digest=command_digest,
+            )
+            self.storage.append(
+                connection,
+                Entry("config", str(command.command_id), applied.model_dump_json()),
+            )
+            self.storage.append(
+                connection,
+                Entry(
+                    "stop_binding",
+                    f"{binding.symbol}:{binding.version}",
+                    binding.model_dump_json(),
+                ),
+            )
+            return applied
 
     def virtual_stop_binding(self, symbol: str) -> VirtualStopBinding | None:
         """Read the last bound rule without activating monitoring or orders."""

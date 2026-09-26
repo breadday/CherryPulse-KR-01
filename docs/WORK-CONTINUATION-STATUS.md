@@ -1,5 +1,24 @@
 # CherryPulse-KR-01 개발 이어가기 기록
 
+## 2026-09-26 D01 설정 적용·복구 경계
+
+- 시작 기준: fetch 후 `HEAD`/`origin/main` 모두
+  `c147e69138b7551b8af0cad971812c31aa4636dd`, `main`, 시작 시 clean.
+- inbox와 engine ledger가 각각 독립 SQLite임을 확인했다. 두 DB 간 원자성 대신
+  inbox `APPLYING` → ledger의 config+stop binding 단일 트랜잭션 → inbox
+  `APPLIED`의 재개 프로토콜을 추가했다. command ID/digest, stale version,
+  explicit retry, legacy acceptance fail-closed를 검사하며 기존 체결의 rule
+  assignment는 교체하지 않는다. `APPLIED`는 로컬 기록 상태이며 monitoring은 계속 false다.
+- 인증 제공자/검증기는 현 저장소에 없다. 기본 `ConfigInbox`는 인증 불가 시
+  거절한다. 테스트용 fake authenticator만 있으며 실제 Actor claim을 인증 증거로
+  가장하지 않는다. legacy accepted rows는 `APPLY_BLOCKED`로 격리한다.
+- Windows 사용자 Python 3.10.8 32비트: D01 관련 pytest **27 passed**,
+  전체 pytest **177 passed, 4 subtests passed**, 변경 파일 Ruff 검사·포맷,
+  가상 데모 및 `git diff --check` 통과. 저장소 전체 Ruff는 기존
+  `tests/test_realtime_probe.py`의 lint/format 오류로 실패. basedpyright는 미설치.
+- 변경/검증 상세와 D01 완료 전 차단사항은 [D01 진행 기록](D01-SETTINGS-CONTRACT.md)에 있다.
+  실인증, 실/모의 키움 주문, 운영 DB, 배포는 하지 않았고 커밋·푸시도 하지 않았다.
+
 ## 2026-09-26 재개 체크포인트 — D02 저장 경계
 
 - 시작 `main` `8e4c927`, clean. D03 관찰 도구는 다음 거래일 장중 원문을 기다린다. 출근 전 로그인과 `--start-at` 예약은 `docs/D03-VIRTUAL-STOP-PROGRESS.md`의 최신 기록을 따른다. 실제 시세의 정규화, 거래소 세션과 틱 고유성은 아직 미검증이며 실제 손절 어댑터로 연결하지 않는다.

@@ -144,10 +144,19 @@ class Request(Boundary):
 
 
 class AppliedConfig(Boundary):
-    """Accepted local simulator configuration revision for one symbol."""
+    """Locally persisted configuration revision with optional desired-command proof."""
 
     symbol: Key
     version: PositiveQty
+    command_id: UUID | None = None
+    command_digest: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")] | None = None
+
+    @model_validator(mode="after")
+    def paired_command_proof(self) -> Self:
+        """Never retain only half of the desired-command idempotency proof."""
+        if (self.command_id is None) != (self.command_digest is None):
+            raise ValueError("APPLIED_CONFIG_COMMAND_PROOF_INCOMPLETE")
+        return self
 
 
 class VirtualStopBinding(Boundary):

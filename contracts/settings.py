@@ -7,7 +7,7 @@ This module never submits an order or activates the virtual ledger's version.
 from datetime import datetime
 from decimal import Decimal
 from hashlib import sha256
-from typing import Annotated, ClassVar, Literal
+from typing import Annotated, ClassVar, Literal, Protocol
 from uuid import UUID
 
 from pydantic import (
@@ -98,6 +98,13 @@ class ConfigCommand(Contract):
     expected_version: Annotated[int, Field(strict=True, ge=0)]
     expires_at: AwareDatetime
     settings: Settings
+
+
+class ConfigAuthenticator(Protocol):
+    """Trusted ingress adapter; no concrete authenticator is configured here."""
+
+    def authenticate(self, command: ConfigCommand, context: object) -> Actor | None:
+        """Return verified claims for this request, or no authenticated actor."""
 
 
 class Decision(Contract):
