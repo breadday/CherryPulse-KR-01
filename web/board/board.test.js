@@ -238,6 +238,50 @@ test("new versions require an explicit supported order type", () => {
   assert.equal(draft.patterns[1].orderType, "LIMIT");
 });
 
+test("failed draft writes do not leak unsaved edits into a later successful write", () => {
+  const original = {
+    symbols: [{code: "005930", name: "삼성전자", patternId: "pattern-a", archived: false}],
+    patterns: [{id: "pattern-a", name: "손절", kind: "PRICE_AT_OR_BELOW", threshold: "9800"}],
+  };
+  const fixture = boardWithDraft(original);
+  fixture.setStorageFailure(true);
+  const symbolCard = fixture.getElement("symbol-list").children[0];
+  const select = descendants(symbolCard).find((item) => item.tagName === "select");
+  select.value = "";
+  select.dispatch("change");
+  assert.equal(select.value, "pattern-a");
+  descendants(symbolCard).find((item) => item.className === "archive-button").click();
+  descendants(fixture.getElement("pattern-list").children[0])
+    .find((item) => item.className === "pattern-toggle").click();
+  assert.deepEqual(fixture.getDraft(), original);
+  assert.match(fixture.getElement("notice").textContent, /기존 초안은 유지/);
+
+  fixture.setStorageFailure(false);
+  fixture.getElement("symbol-name").value = "SK하이닉스";
+  fixture.getElement("symbol-input").value = "000660";
+  fixture.getElement("symbol-form").dispatch("submit");
+  const saved = fixture.getDraft();
+  assert.equal(saved.symbols.length, 2);
+  assert.deepEqual(saved.symbols[0], original.symbols[0]);
+  assert.deepEqual(saved.patterns[0], original.patterns[0]);
+});
+
+test("a stale tab refuses to overwrite a draft saved by another tab", () => {
+  const original = {symbols: [], patterns: []};
+  const fixture = boardWithDraft(original);
+  const updated = {
+    symbols: [{code: "005930", name: "삼성전자", patternId: ""}], patterns: [],
+  };
+  fixture.setExternalDraft(updated);
+  fixture.getElement("symbol-name").value = "SK하이닉스";
+  fixture.getElement("symbol-input").value = "000660";
+  fixture.getElement("symbol-form").dispatch("submit");
+  assert.deepEqual(fixture.getDraft(), updated);
+  assert.match(fixture.getElement("notice").textContent, /다른 탭.*새로고침/);
+  assert.equal(fixture.getElement("symbol-list").children[0].textContent,
+    "등록한 종목이 없습니다. 외부에서 선택한 종목코드를 직접 입력하세요.");
+});
+
 test("JSON and CSV imports normalize supported fields and preserve quoted CSV data", () => {
   const json = parseSymbolImport("watch.json", JSON.stringify([
     {code: "005930", name: " 삼성전자 ", source: "https://example.com/a", note: " memo "},
