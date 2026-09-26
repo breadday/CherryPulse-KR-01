@@ -1,5 +1,68 @@
 # D03 가상 손절 보호 진행 기록
 
+## KOA 설치 자료의 실시간 체결 규격 확인 및 정규화 보류 — 2026-09-26
+
+시작 기준은 `git fetch origin main` 뒤 `HEAD`/`origin/main` 모두
+`521e993d32d6bfd50c6454d031c840fec4ce0f76`, 브랜치 `main`, 작업 트리 clean이다.
+
+지정 PC의 설치 자료를 읽기 전용으로 확인했다. `C:\OpenAPI\KOAStudioSA.exe`와
+`khopenapi.ocx`의 Windows 파일 버전은 각각 `1.0.0.1`이며 파일 수정일은 각각
+2025-02-27, 2026-03-26이다. `koa_devguide.xml`의 내부 문서 버전은 **1.57**,
+파일 수정일은 2026-09-12다. 문서 XML은 EUC-KR로 읽어 확인했다.
+`system\koarealtime.dat`와 `system\realtime.dat`가 설치되어 있으나
+`apiinitrsc.lst`가 `koarealtime.dat`를 암호화 설치 리소스로 열거한다. 해당
+실시간 목록 내용을 독립적으로 판독하지는 못했다.
+
+설치 개발가이드 1.57의 정적 근거:
+
+- 실시간 이벤트는 `OnReceiveRealData(BSTR sCode, BSTR sRealType,
+  BSTR sRealData)`이며 `sCode`가 종목코드, `sRealType`이 실시간 타입이다.
+  문서는 `sRealData` 전문을 사용 불가로 표시하고, FID별 데이터는 이벤트
+  콜백 중 `GetCommRealData(sCode, fid)`로 읽도록 안내한다.
+- 타입 `주식체결` 예시의 FID 10은 현재가, FID 20은 체결시간이다. 같은 예시는
+  FID 13 누적거래량과 FID 228 체결강도도 제시하지만 손절 가격 입력에는
+  포함하지 않는다. 이 자료만으로 FID 10의 부호/문자 표현 및 FID 20의
+  날짜·시간대 표현까지 확정하지 않았다.
+- `SetRealReg(screen, code_list, fid_list, option)`은 실시간 등록 함수이며
+  옵션 `0`은 해당 화면 등록 교체, `1`은 기존 등록에 추가로 설명되어 있다.
+  문서상 한 번의 등록 한도는 종목 100개, FID 100개다. `SetRealRemove(screen,
+  code)`는 종목 단위 해제 예제가 있고, `DisconnectRealData(screen)`는 해당
+  화면 등록 해제를 요청하되 다른 화면에도 등록된 종목은 계속 수신된다고
+  설명한다.
+- 설치 입력 범례와 가이드에는 KRX 6자리 코드와 NXT `_NX`, ATS `_AL` 접미
+  코드가 구분되어 있다. 현재 손절 `Quote` 계약은 6자리 코드만 허용하므로
+  거래소/코드 범위는 어댑터에서 임의로 넓히지 않는다.
+
+**구현 보류:** 현재 자료는 이벤트·FID 이름과 등록/해제 호출 경계는 확인하지만,
+가격 원문을 안전하게 `Quote.price`로 정규화할 표현 규칙과 체결시각의 날짜·시간대
+해석을 증명하지 않는다. 문서화된 별도 틱 고유 ID도 찾지 못했다. 따라서 동일
+가격·시각의 두 이벤트가 중복인지 별개의 유효 체결인지 안전하게 판정할 수 없다.
+원문·FID 값의 KOA Studio 실시간 목록 확인 또는 비밀값을 제거한 허용 자료가
+필요하다. 그 전까지 실제 OpenAPI 연결, 필드 정규화, 중복 식별 및 가상 손절
+전달 어댑터를 구현하지 않는다. 로그인/계좌 선택 화면이 나타날 수 있는 KOA
+Studio 실행은 하지 않았으며 로그인·TR·실시간 등록도 호출하지 않았다.
+
+기준 커밋의 `virtual_quote_status` 검사는 이미 미수신(`NO_QUOTE`), 신선
+(`FRESH`), 2초 초과(`STALE`), 평가시계 역행(`CLOCK_UNCERTAIN`), 종목 간
+미수신, SQLite 재시작 후 checkpoint 복원 및 조회의 revision 불변성을 다룬다.
+connection과 exchange_session은 항상 `UNVERIFIED`다.
+
+Windows Python **3.10.8 32비트** (`py -3.10-32`, 사용자 설치 환경) 검증:
+
+| 검사 명령 | 결과 |
+|---|---|
+| `py -3.10-32 -m pytest -q --tb=line --basetemp <고유 임시 경로> tests/test_virtual_quote_status.py` | 종료 0, **1 passed** |
+| `py -3.10-32 -m pytest -q --tb=line --basetemp <고유 임시 경로>` | 종료 0, **164 passed** (`10.68s`) |
+| `py -3.10-32 -m ruff check execution contracts tests` | 종료 0, All checks passed |
+| `py -3.10-32 -m ruff format --check execution contracts tests` | 종료 0, **46 files already formatted** |
+| `py -3.10-32 -m execution` | 종료 0, 데모 정상 (`virtual_calls=2`, `replay_changes=0`) |
+| `git diff --check` | 종료 0 |
+
+테스트는 임시 SQLite DB를 사용했다. 로그인·계좌 선택, `SendOrder`, 정정·취소,
+운영 DB 변경, 배포는 실행하지 않았다. 실시간 이벤트 수신·Disconnect 처리의
+실제 서버 동작과 KOA UI 안의 현재 실시간 목록은 미검증이며, 확인된 문서 규격을
+실제 체결 가격·시각 의미의 완전 검증으로 간주하지 않는다.
+
 ## 체크포인트 시세의 읽기 전용 상태 — 2026-09-26
 
 `Ledger.virtual_quote_status(symbol, timing)`은 마지막으로 수락한 가상
