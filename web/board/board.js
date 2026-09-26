@@ -8,18 +8,30 @@ let symbolView = "active";
 let pendingBoardRestore = null;
 let restoreBaseline = null;
 let restoreRequest = 0;
+let persistedDraft = null;
 try {
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+  persistedDraft = localStorage.getItem(STORAGE_KEY);
+  const saved = JSON.parse(persistedDraft || "null");
   state = saved && Array.isArray(saved.symbols) && Array.isArray(saved.patterns) ? saved : initial;
 } catch { state = initial; }
 const $ = (id) => document.getElementById(id);
 const notice = (message) => { $("notice").textContent = message; };
-function save() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
-  catch { notice("브라우저 저장이 차단되어 이 창을 닫으면 초안이 사라집니다."); return false; }
-}
-function saveAndNotify(message) {
-  if (save()) notice(message);
+function commitDraft(change, message) {
+  const next = JSON.parse(JSON.stringify(state));
+  change(next);
+  const serialized = JSON.stringify(next);
+  try {
+    if (localStorage.getItem(STORAGE_KEY) !== persistedDraft) {
+      notice("다른 탭에서 초안이 변경되었습니다. 새로고침 후 다시 수정하세요.");
+      return false;
+    }
+    localStorage.setItem(STORAGE_KEY, serialized);
+  }
+  catch { notice("브라우저 저장에 실패했습니다. 기존 초안은 유지했습니다."); return false; }
+  state = next;
+  persistedDraft = serialized;
+  notice(message);
+  return true;
 }
 function detail(pattern) {
   const condition = pattern.kind === "PRICE_AT_OR_BELOW"
@@ -104,8 +116,10 @@ function render() {
     }
     select.value = state.patterns.some((p) => p.id === item.patternId) ? item.patternId : "";
     select.addEventListener("change", () => {
-      item.patternId = select.value;
-      saveAndNotify(`${item.code}의 초안을 저장했습니다. 엔진에는 적용되지 않았습니다.`);
+      const selected = select.value;
+      if (commitDraft((next) => { next.symbols.find((entry) => entry.code === item.code).patternId = selected; },
+        `${item.code}의 초안을 저장했습니다. 엔진에는 적용되지 않았습니다.`)) render();
+      else select.value = item.patternId || "";
     });
     card.append(label, select);
     const edit = document.createElement("details"); edit.className = "symbol-edit";
@@ -133,18 +147,19 @@ function render() {
         notice("종목명을 입력하고 참고 링크는 http 또는 https 주소를 사용하세요.");
         return;
       }
-      item.name = nameValue; item.source = sourceValue; item.note = noteInput.value.trim();
-      saveAndNotify(`${item.code}의 종목 정보를 수정했습니다. 엔진에는 적용되지 않았습니다.`);
-      render();
+      if (commitDraft((next) => {
+        const entry = next.symbols.find((candidate) => candidate.code === item.code);
+        entry.name = nameValue; entry.source = sourceValue; entry.note = noteInput.value.trim();
+      }, `${item.code}의 종목 정보를 수정했습니다. 엔진에는 적용되지 않았습니다.`)) render();
     });
     edit.append(summary, editForm); card.append(edit);
     const archive = document.createElement("button");
     archive.type = "button"; archive.className = "archive-button";
     archive.textContent = item.archived === true ? "관심 목록으로 복원" : "보관";
     archive.addEventListener("click", () => {
-      item.archived = item.archived !== true;
-      saveAndNotify(item.archived ? "종목 초안을 보관했습니다. 엔진 상태는 변경되지 않았습니다." : "종목 초안을 관심 목록으로 복원했습니다.");
-      render();
+      const archived = item.archived !== true;
+      if (commitDraft((next) => { next.symbols.find((entry) => entry.code === item.code).archived = archived; },
+        archived ? "종목 초안을 보관했습니다. 엔진 상태는 변경되지 않았습니다." : "종목 초안을 관심 목록으로 복원했습니다.")) render();
     });
     card.append(archive);
     symbols.append(card);
@@ -205,22 +220,22 @@ function render() {
         notice("패턴 이름·기준값·주문 방식을 확인하세요. 하락률은 0과 1 사이여야 합니다."); return;
       }
       const version = nextPatternVersion(pattern);
-      state.patterns.push({
+      const nextPattern = {
         id: crypto.randomUUID(), patternId: patternFamily(pattern), version, active: true,
         name: nameInput.value.trim(), kind: kindInput.value, threshold: thresholdInput.value.trim(),
         orderType: orderTypeInput.value,
-      });
-      saveAndNotify(`손절 패턴 v${version} 초안을 저장했습니다. 기존 연결은 유지되며 새 버전은 종목에 다시 연결해야 합니다.`);
-      render();
+      };
+      if (commitDraft((next) => { next.patterns.push(nextPattern); },
+        `손절 패턴 v${version} 초안을 저장했습니다. 기존 연결은 유지되며 새 버전은 종목에 다시 연결해야 합니다.`)) render();
     });
     edit.append(summary, form);
     const toggle = document.createElement("button"); toggle.type = "button";
     toggle.className = "pattern-toggle";
     toggle.textContent = patternIsActive(pattern) ? "새 연결에서 비활성화" : "다시 활성화";
     toggle.addEventListener("click", () => {
-      pattern.active = !patternIsActive(pattern);
-      saveAndNotify(pattern.active ? "패턴 버전을 다시 활성화했습니다. 기존 종목 연결은 유지됩니다." : "패턴 버전을 비활성화했습니다. 기존 연결과 이력은 유지됩니다.");
-      render();
+      const active = !patternIsActive(pattern);
+      if (commitDraft((next) => { next.patterns.find((entry) => entry.id === pattern.id).active = active; },
+        active ? "패턴 버전을 다시 활성화했습니다. 기존 종목 연결은 유지됩니다." : "패턴 버전을 비활성화했습니다. 기존 연결과 이력은 유지됩니다.")) render();
     });
     card.append(title, description, edit, toggle); patterns.append(card);
   }
@@ -370,6 +385,7 @@ $("confirm-board-restore").addEventListener("click", () => {
   pendingBoardRestore = null;
   restoreBaseline = null;
   state = restored;
+  persistedDraft = JSON.stringify(restored);
   symbolView = "active";
   $("symbol-search").value = "";
   restoreConfirmation.hidden = true;
@@ -417,9 +433,10 @@ $("bulk-import-form").addEventListener("submit", async (event) => {
     notice(importErrorMessage(error));
     return;
   }
-  state.symbols.push(...imported);
-  const saved = save(); form.reset(); render();
-  if (saved) notice(`${imported.length}개 종목을 브라우저 초안에 추가했습니다. 감시나 주문은 시작되지 않았습니다.`);
+  if (commitDraft((next) => { next.symbols.push(...imported); },
+    `${imported.length}개 종목을 브라우저 초안에 추가했습니다. 감시나 주문은 시작되지 않았습니다.`)) {
+    form.reset(); render();
+  }
 });
 
 $("symbol-form").addEventListener("submit", (event) => {
@@ -432,9 +449,11 @@ $("symbol-form").addEventListener("submit", (event) => {
   if (!name) { notice("종목명을 직접 입력하세요."); return; }
   if (source && !safeSourceUrl(source)) { notice("참고 링크는 http 또는 https 주소만 사용할 수 있습니다."); return; }
   if (state.symbols.some((item) => item.code === code)) { notice("이미 등록한 종목입니다."); return; }
-  state.symbols.push({code, name, source, note, patternId: "", archived: false});
-  const saved = save(); event.target.reset(); render();
-  if (saved) notice(`${name} (${code})을 초안에 추가했습니다. 감시는 시작되지 않았습니다.`);
+  if (commitDraft((next) => {
+    next.symbols.push({code, name, source, note, patternId: "", archived: false});
+  }, `${name} (${code})을 초안에 추가했습니다. 감시는 시작되지 않았습니다.`)) {
+    event.target.reset(); render();
+  }
 });
 $("pattern-kind").addEventListener("change", () => {
   const ratio = $("pattern-kind").value === "AVERAGE_COST_DROP";
@@ -455,8 +474,10 @@ $("pattern-form").addEventListener("submit", (event) => {
     notice("패턴 이름, 기준값과 시장가·지정가 주문 방식을 확인하세요. 하락률은 0과 1 사이여야 합니다."); return;
   }
   const id = crypto.randomUUID();
-  state.patterns.push({id, patternId: id, version: 1, active: true, name, kind, threshold, orderType});
-  const saved = save(); event.target.reset(); $("pattern-kind").dispatchEvent(new Event("change")); render();
-  if (saved) notice("패턴 초안을 저장했습니다. 종목에 연결해도 엔진에는 적용되지 않습니다.");
+  if (commitDraft((next) => {
+    next.patterns.push({id, patternId: id, version: 1, active: true, name, kind, threshold, orderType});
+  }, "패턴 초안을 저장했습니다. 종목에 연결해도 엔진에는 적용되지 않습니다.")) {
+    event.target.reset(); $("pattern-kind").dispatchEvent(new Event("change")); render();
+  }
 });
 render();
