@@ -8,13 +8,24 @@ import runpy
 import sys
 import types
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, cast
 from unittest.mock import patch
 
+from tools.inspect_kiwoom_realtime import seconds_until_start_at
+
 
 class ProbeBoundaryTest(unittest.TestCase):
     """An event callback can only inspect quotes and remove its subscription."""
+
+    def test_manual_login_can_wait_for_a_same_day_market_observation(self) -> None:
+        morning = datetime(2026, 9, 28, 7, 0, tzinfo=timezone(timedelta(hours=9)))
+        target, delay = seconds_until_start_at("09:05", morning)
+        self.assertEqual((target.hour, target.minute, delay), (9, 5, 7_500))
+        for invalid in ("9:05", "25:00", "06:59", "23:59"):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                seconds_until_start_at(invalid, morning)
 
     def test_trade_callbacks_are_filtered_and_never_call_order_api(self) -> None:
         calls: list[tuple[str, tuple[object, ...]]] = []
