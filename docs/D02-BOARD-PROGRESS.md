@@ -1,5 +1,14 @@
 # D02 관심종목·손절 패턴 보드 진행 기록
 
+## 토글 터치 영역 44px 확보 — 2026-10-11
+
+모바일 체크리스트 6번 대조에서 `.pattern-toggle`·`.archive-button`의
+계산 높이가 약 35px로 44px 기준에 미달함을 확인했다. `styles.css`에
+`min-height:44px` 1줄을 추가했다. 기존 padding·레이아웃은 유지되며
+1~5번 항목에 영향이 없다. 검증: Node 보드 **22 passed**,
+`git diff --check` 통과. CSS 수치상 정적 6/6 Pass이며, iOS Safari·
+Android Chrome 실기기 확인은 체크리스트에 pending으로 남는다.
+
 ## 매수 패턴 폼 구현 — Q12 확정 반영 — 2026-10-11
 
 기준 `main`은 `c139327`, 작업 시작 시 clean·원격 일치. Q12 확정 13건의

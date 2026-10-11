@@ -1,5 +1,12 @@
 # CherryPulse-KR-01 개발 이어가기 기록
 
+## 2026-10-11 토글 44px 패치
+
+- 체크리스트 6번 대조에서 토글 2종의 계산 높이가 약 35px임을 확인하고
+  `web/board/styles.css`에 `min-height:44px` 1줄을 추가했다. Node 보드
+  **22 passed**, `git diff --check` 통과. 정적 6/6 Pass, 실기기 pending
+  유지. 키움·운영 DB·배포는 실행하지 않았다.
+
 ## 2026-10-11 D02 모바일 체크리스트 고정
 
 - `docs/D02-MOBILE-CHECKLIST.md`를 만들었다. 6항목 × 2기기(iOS Safari,
