@@ -1,5 +1,18 @@
 # CherryPulse-KR-01 개발 이어가기 기록
 
+## 2026-10-11 D05 QB1·QB2 가상 검증
+
+- Q12 확정값으로 매수 가상 시나리오를 구현·검증했다. 새 파일은
+  `contracts/buy_evaluation.py`(순수 평가기, 주문·전송 없음)와
+  `tests/test_virtual_buy_qb.py`(QB1 체결·QB2 취소·평가기 경계)다. 기존
+  원장·dispatcher 계약을 재사용했고 새 전송 경로·주문 API는 없다.
+- 검증: 신규 **3 passed**, 전체 pytest **180 passed, 4 subtests passed**
+  (`7.84s`), 관련 파일 Ruff check·format 통과, `git diff --check` 통과.
+  상세와 실행 로그는 `docs/D05-BUY-PROGRESS.md`에 있다. 키움·운영 DB·
+  배포는 실행하지 않았다.
+- 남은 D05: 전량 청산 후 당일 재진입, 만료 강제, D01 인증 연결. D02 물리
+  모바일, D03 세션·실시세, D06·D07은 계속 차단·대기다.
+
 ## 2026-10-11 D02 매수 폼 구현·검증
 
 - Q12 확정 스펙으로 매수 패턴 폼을 바닐라 JS로 구현했다. TSX 초안은
