@@ -13,9 +13,12 @@
   `web/board/board.js`, `web/board/board.test.js`,
   `docs/D02-BOARD-PROGRESS.md`, 이 기록이다.
 - 검증: Node 보드 **18 passed** (기존 16 + 신규 2), `node --check` 4파일,
-  `git diff --check` 통과 (Node `v26.7.0`). 이 환경에 실제 Python이 없어
-  Python 전체 회귀·Ruff·가상 데모는 미실행이며 지정 PC에서 재실행한다.
-  키움 로그인·주문/조회, 운영 DB, 배포는 실행하지 않았다.
+  `git diff --check` 통과 (Node `v26.7.0`). 지정 PC에 Python 3.10.8
+  32비트를 새로 설치하고 전체 회귀를 실행했다: pytest **177 passed,
+  4 subtests passed** (`7.81s`), `python -m execution` 가상 데모 정상,
+  Ruff check/format은 기존 `tests/test_realtime_probe.py` 1파일의 기존
+  진단만 남고 변경 파일은 통과다. 키움 로그인·주문/조회, 운영 DB, 배포는
+  실행하지 않았다.
 - 이후 개발용 차단 목록 (근거·완료 기준은 기존 문서 유지):
   D01 실인증 제공자·권한 검증기, Q12 매수 패턴 명세, 장중 FID 10·20 원문과
   수신 순번 (D03 관찰 도구는 `docs/D03-VIRTUAL-STOP-PROGRESS.md` 절차 대기),

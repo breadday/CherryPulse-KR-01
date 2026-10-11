@@ -22,10 +22,12 @@ HTML `maxLength`에만 의존했다. 입력 요소의 길이 제한은 붙여넣
 신규 2: 종목 4경로 초과 거절·패턴 2경로 초과 거절, 모두 초안 무변경과 안내
 문구 확인). `node --check` 4파일(`board.js`, `board.test.js`,
 `draft-import.js`, `board-backup.js`) 및 `git diff --check` 통과. 실행
-환경 Node `v26.7.0`. Windows Python 전체 회귀는 이 작업 환경에 실제
-Python이 없어(스토어 shim만 존재) 미실행이며, 지정 PC에서 최신 커밋 기준
-재실행이 필요하다. 물리 모바일·실제 브라우저 할당량 초과·키움 로그인·
-주문/조회·운영 DB·배포는 실행하지 않았다.
+환경 Node `v26.7.0`. 지정 PC의 Windows Python 3.10.8 32비트 전체 회귀:
+`pytest -q --tb=line` **177 passed, 4 subtests passed** (`7.81s`),
+`python -m execution` 가상 데모 정상 종료, Ruff check/format은 기존
+`tests/test_realtime_probe.py` 1파일의 기존 진단만 남고 변경 파일은
+통과다. 해당 파일은 이번 diff에서 수정하지 않았다. 물리 모바일·실제
+브라우저 할당량 초과·키움 로그인·주문/조회·운영 DB·배포는 실행하지 않았다.
 
 ## 초안 저장 실패와 여러 탭의 변경 충돌 방지 — 2026-09-26
 
