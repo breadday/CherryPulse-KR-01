@@ -68,6 +68,7 @@ function boardWithDraft(draft) {
     "pattern-list", "symbol-form", "pattern-kind", "pattern-order-type", "threshold-label",
     "threshold-hint", "pattern-threshold", "pattern-name", "pattern-form",
     "symbol-input", "symbol-name", "symbol-source", "symbol-note",
+    "buy-pattern-form", "buy-pattern-name", "buy-target-price", "buy-pattern-list",
   ];
   const elements = new Map(ids.map((id) => [id, new Element("div", id)]));
   const stored = new Map([["cherrypulse-board-draft-v1", JSON.stringify(draft)]]);
@@ -654,4 +655,80 @@ test("restore refuses to overwrite a draft changed in another tab after validati
   assert.deepEqual(fixture.getDraft(), newDraft);
   assert.equal(fixture.getElement("restore-confirmation").hidden, true);
   assert.match(fixture.getElement("notice").textContent, /다시 검사/);
+});
+
+test("buy pattern form saves a fixed-spec local draft", () => {
+  const fixture = boardWithDraft({symbols: [], patterns: []});
+  fixture.getElement("buy-pattern-name").value = "돌파 매수";
+  fixture.getElement("buy-target-price").value = "70000";
+  fixture.getElement("buy-pattern-form").dispatch("submit");
+  const draft = fixture.getDraft();
+  assert.equal(draft.patterns.length, 1);
+  assert.deepEqual(
+    {...draft.patterns[0]},
+    {
+      id: "generated-1", patternId: "generated-1", version: 1, active: true,
+      name: "돌파 매수", kind: "BUY_PRICE_AT_OR_BELOW", threshold: "70000", orderType: "LIMIT",
+    },
+  );
+  assert.match(fixture.getElement("notice").textContent, /엔진에는 적용되지 않습니다/);
+  const buyCard = fixture.getElement("buy-pattern-list").children[0];
+  assert.match(
+    descendants(buyCard).find((item) => item.className === "pattern-detail").textContent,
+    /70000원 이하 매수/,
+  );
+});
+
+test("buy pattern form rejects invalid targets and names without mutation", () => {
+  const original = {symbols: [], patterns: []};
+  const fixture = boardWithDraft(structuredClone(original));
+  const form = fixture.getElement("buy-pattern-form");
+  const cases = [
+    ["", "70000", /100자 이내/],
+    ["나".repeat(101), "70000", /100자 이내/],
+    ["돌파 매수", "", /0보다 큰 숫자/],
+    ["돌파 매수", "0", /0보다 큰 숫자/],
+    ["돌파 매수", "-100", /0보다 큰 숫자/],
+    ["돌파 매수", "abc", /0보다 큰 숫자/],
+    ["돌파 매수", "100001", /10만원/],
+  ];
+  for (const [name, target, expected] of cases) {
+    fixture.getElement("buy-pattern-name").value = name;
+    fixture.getElement("buy-target-price").value = target;
+    form.dispatch("submit");
+    assert.deepEqual(fixture.getDraft(), original);
+    assert.match(fixture.getElement("notice").textContent, expected);
+  }
+});
+
+test("buy patterns stay out of sell linkage and support the active toggle", () => {
+  const fixture = boardWithDraft({
+    symbols: [{code: "005930", name: "삼성전자", patternId: "", archived: false}],
+    patterns: [
+      {id: "buy-a", patternId: "buy-a", version: 1, active: true, name: "매수", kind: "BUY_PRICE_AT_OR_BELOW", threshold: "70000", orderType: "LIMIT"},
+      {id: "stop-a", patternId: "stop-a", version: 1, active: true, name: "손절", kind: "PRICE_AT_OR_BELOW", threshold: "9800", orderType: "MARKET"},
+    ],
+  });
+  const symbolCard = fixture.getElement("symbol-list").children[0];
+  const select = descendants(symbolCard).find((item) => item.tagName === "select");
+  assert.deepEqual(
+    select.children.map((option) => option.value),
+    ["", "stop-a"],
+  );
+  const buyCard = fixture.getElement("buy-pattern-list").children[0];
+  descendants(buyCard).find((item) => item.className === "pattern-toggle").dispatch("click");
+  assert.equal(fixture.getDraft().patterns[0].active, false);
+  assert.equal(fixture.getDraft().symbols[0].patternId, "");
+});
+
+test("full backup round-trips buy patterns with price thresholds", () => {
+  const backup = {
+    format: "cherrypulse-board-draft",
+    schemaVersion: 1,
+    symbols: [],
+    patterns: [
+      {id: "buy-a", patternId: "buy-a", version: 1, active: true, name: "매수", kind: "BUY_PRICE_AT_OR_BELOW", threshold: "70000", orderType: "LIMIT"},
+    ],
+  };
+  assert.deepEqual(parseBoardBackup(serializeBoardBackup(backup)), backup);
 });

@@ -106,10 +106,18 @@
       <section class="panel" aria-labelledby="entry-patterns-heading">
         <div class="panel-heading">
           <h2 id="entry-patterns-heading">매수 패턴</h2>
-          <span>규칙 명세 대기</span>
+          <span>초안 · Q12 확정값</span>
         </div>
-        <p class="hint">매수 조건, 수량·금액, 주문 방식, 거래 시간과 재진입 규칙이 정해지지 않아 아직 초안을 저장할 수 없습니다.</p>
-        <p class="empty">사용자 패턴 규격(Q12)을 확정한 뒤 입력 폼을 연결합니다. 이 화면은 매수 감시나 주문을 시작하지 않습니다.</p>
+        <form id="buy-pattern-form" class="stack-form">
+          <label for="buy-pattern-name">패턴 이름</label>
+          <input id="buy-pattern-name" name="name" maxlength="100" placeholder="예: 돌파 매수" required>
+          <label for="buy-target-price">매수 목표가 (원)</label>
+          <input id="buy-target-price" name="targetPrice" type="number" min="0.000001" step="any" placeholder="예: 70000" required>
+          <p class="hint">조건: 최근 체결가 ≤ 목표가, 틱 즉시 1회 발동. 지정가·1주 고정, 보호는 체결된 평균가 대비 -3%(체결 후 확정). 09:00~15:20·당일 만료. 목표가 10만원 초과는 저장할 수 없습니다.</p>
+          <button type="submit">매수 패턴 초안 저장</button>
+        </form>
+        <p class="hint">저장한 초안은 브라우저에만 보관되며 엔진에는 적용되지 않습니다. 감시·주문을 시작하지 않습니다.</p>
+        <div id="buy-pattern-list" class="pattern-list"></div>
       </section>
     </div>
     <p class="footnote">이 화면은 입력·연결 기능을 확인하는 초안입니다. Windows 엔진의 적용 설정은 연결되지 않았으며, 여기서 주문이 생성되지 않습니다.</p>

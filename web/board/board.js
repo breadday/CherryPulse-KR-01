@@ -37,6 +37,9 @@ function commitDraft(change, message) {
   return true;
 }
 function detail(pattern) {
+  if (pattern.kind === "BUY_PRICE_AT_OR_BELOW") {
+    return `최근 체결가 ${pattern.threshold}원 이하 매수 · 지정가 1주 고정 · 보호 평균가 대비 -3%(체결 후 확정)`;
+  }
   const condition = pattern.kind === "PRICE_AT_OR_BELOW"
     ? `최근 체결가 ${pattern.threshold}원 이하`
     : `확인된 평균 매수가 대비 ${Number(pattern.threshold) * 100}% 하락`;
@@ -112,6 +115,7 @@ function render() {
     const select = document.createElement("select"); select.setAttribute("aria-label", `${item.code} 손절 패턴`);
     const none = document.createElement("option"); none.value = ""; none.textContent = "연결하지 않음"; select.append(none);
     for (const pattern of state.patterns) {
+      if (pattern.kind === "BUY_PRICE_AT_OR_BELOW") continue;
       const option = document.createElement("option"); option.value = pattern.id;
       option.textContent = `${pattern.name} · v${patternVersion(pattern)}${patternIsActive(pattern) ? "" : " · 비활성"} · ${detail(pattern)}`;
       option.disabled = !patternIsActive(pattern) && item.patternId !== pattern.id;
@@ -245,6 +249,33 @@ function render() {
         active ? "패턴 버전을 다시 활성화했습니다. 기존 종목 연결은 유지됩니다." : "패턴 버전을 비활성화했습니다. 기존 연결과 이력은 유지됩니다.")) render();
     });
     card.append(title, description, edit, toggle); patterns.append(card);
+  }
+  renderBuyPatterns();
+}
+function renderBuyPatterns() {
+  const buyList = $("buy-pattern-list");
+  const buyPatterns = state.patterns.filter((pattern) => pattern.kind === "BUY_PRICE_AT_OR_BELOW");
+  buyList.replaceChildren();
+  if (!buyPatterns.length) {
+    const empty = document.createElement("p"); empty.className = "empty";
+    empty.textContent = "저장한 매수 패턴이 없습니다.";
+    buyList.append(empty);
+    return;
+  }
+  for (const pattern of buyPatterns) {
+    const card = document.createElement("article"); card.className = "card";
+    const title = document.createElement("div"); title.className = "pattern-title";
+    title.textContent = `${pattern.name}${patternIsActive(pattern) ? "" : " · 비활성"}`;
+    const description = document.createElement("p"); description.className = "pattern-detail"; description.textContent = detail(pattern);
+    const toggle = document.createElement("button"); toggle.type = "button";
+    toggle.className = "pattern-toggle";
+    toggle.textContent = patternIsActive(pattern) ? "새 연결에서 비활성화" : "다시 활성화";
+    toggle.addEventListener("click", () => {
+      const active = !patternIsActive(pattern);
+      if (commitDraft((next) => { next.patterns.find((entry) => entry.id === pattern.id).active = active; },
+        active ? "매수 패턴을 다시 활성화했습니다." : "매수 패턴을 비활성화했습니다.")) render();
+    });
+    card.append(title, description, toggle); buyList.append(card);
   }
 }
 $("active-filter").addEventListener("click", () => { symbolView = "active"; render(); });
@@ -486,6 +517,22 @@ $("pattern-form").addEventListener("submit", (event) => {
     next.patterns.push({id, patternId: id, version: 1, active: true, name, kind, threshold, orderType});
   }, "패턴 초안을 저장했습니다. 종목에 연결해도 엔진에는 적용되지 않습니다.")) {
     event.target.reset(); $("pattern-kind").dispatchEvent(new Event("change")); render();
+  }
+});
+const MAX_BUY_TARGET_PRICE = 100000;
+$("buy-pattern-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = $("buy-pattern-name").value.trim();
+  const target = $("buy-target-price").value.trim();
+  const value = Number(target);
+  if (!name || name.length > MAX_NAME_LENGTH) { notice("매수 패턴 이름은 100자 이내로 입력하세요."); return; }
+  if (!target || !Number.isFinite(value) || value <= 0) { notice("매수 목표가는 0보다 큰 숫자로 입력하세요."); return; }
+  if (value > MAX_BUY_TARGET_PRICE) { notice("목표가가 금액 상한(10만원)을 초과해 저장할 수 없습니다."); return; }
+  const id = crypto.randomUUID();
+  if (commitDraft((next) => {
+    next.patterns.push({id, patternId: id, version: 1, active: true, name, kind: "BUY_PRICE_AT_OR_BELOW", threshold: target, orderType: "LIMIT"});
+  }, "매수 패턴 초안을 저장했습니다. 엔진에는 적용되지 않습니다.")) {
+    event.target.reset(); render();
   }
 });
 render();

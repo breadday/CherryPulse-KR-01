@@ -15,7 +15,7 @@
   const patternFields = new Set([
     "id", "name", "kind", "threshold", "orderType", "patternId", "version", "active",
   ]);
-  const patternKinds = new Set(["PRICE_AT_OR_BELOW", "AVERAGE_COST_DROP"]);
+  const patternKinds = new Set(["PRICE_AT_OR_BELOW", "AVERAGE_COST_DROP", "BUY_PRICE_AT_OR_BELOW"]);
   const orderTypes = new Set(["MARKET", "LIMIT"]);
   const decimalPattern = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
 

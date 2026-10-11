@@ -1,5 +1,20 @@
 # CherryPulse-KR-01 개발 이어가기 기록
 
+## 2026-10-11 D02 매수 폼 구현·검증
+
+- Q12 확정 스펙으로 매수 패턴 폼을 바닐라 JS로 구현했다. TSX 초안은
+  저장소에 빌드 파이프라인이 없어 채택하지 않았고, 목표가 기반 예상가
+  계산(6.1 위반)과 `execution_configs` 미리보기 명칭(경계 혼동)은 제외·
+  개명했다. 변경 파일은 `web/board/index.html`, `web/board/board.js`,
+  `web/board/board-backup.js`, `web/board/board.test.js`, 이 기록과
+  `docs/D02-BOARD-PROGRESS.md`다.
+- 검증: `node --test` **22 passed**, `node --check` 4파일,
+  `git diff --check` 통과. 첫 실행 신규 2건 실패(하네스 id 미등록)는
+  기존 관례(id 등록)대로 수정 후 재통과했다. Python 전체 회귀는 지정
+  PC에서 재실행한다. 키움·운영 DB·배포는 실행하지 않았다.
+- D02 남은 조건은 지정 모바일 물리 확인과 D01/D08 서버 동기화다. 다음은
+  D05 QB1·QB2 가상 시나리오 검증이다.
+
 ## 2026-10-11 Q12 확정·계약 반영
 
 - Q12 질문지의 제안 13건이 사용자 확정 13건으로 승격됐다. 2.2 근거는
