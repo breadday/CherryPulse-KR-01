@@ -3,6 +3,9 @@ const STORAGE_KEY = "cherrypulse-board-draft-v1";
 const initial = {symbols: [], patterns: []};
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
+const MAX_NAME_LENGTH = 100;
+const MAX_NOTE_LENGTH = 1000;
+const MAX_SOURCE_LENGTH = 2048;
 let state;
 let symbolView = "active";
 let pendingBoardRestore = null;
@@ -143,13 +146,16 @@ function render() {
       event.preventDefault();
       const nameValue = nameInput.value.trim();
       const sourceValue = sourceInput.value.trim();
-      if (!nameValue || (sourceValue && !safeSourceUrl(sourceValue))) {
-        notice("종목명을 입력하고 참고 링크는 http 또는 https 주소를 사용하세요.");
+      const noteValue = noteInput.value.trim();
+      if (!nameValue || nameValue.length > MAX_NAME_LENGTH ||
+        (sourceValue && (sourceValue.length > MAX_SOURCE_LENGTH || !safeSourceUrl(sourceValue))) ||
+        noteValue.length > MAX_NOTE_LENGTH) {
+        notice("종목명은 100자 이내로 입력하고 참고 링크는 2048자 이내의 http 또는 https 주소, 메모는 1000자 이내로 사용하세요.");
         return;
       }
       if (commitDraft((next) => {
         const entry = next.symbols.find((candidate) => candidate.code === item.code);
-        entry.name = nameValue; entry.source = sourceValue; entry.note = noteInput.value.trim();
+        entry.name = nameValue; entry.source = sourceValue; entry.note = noteValue;
       }, `${item.code}의 종목 정보를 수정했습니다. 엔진에는 적용되지 않았습니다.`)) render();
     });
     edit.append(summary, editForm); card.append(edit);
@@ -214,10 +220,11 @@ function render() {
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       const value = Number(thresholdInput.value);
-      if (!nameInput.value.trim() || !Number.isFinite(value) || value <= 0 ||
+      if (!nameInput.value.trim() || nameInput.value.trim().length > MAX_NAME_LENGTH ||
+        !Number.isFinite(value) || value <= 0 ||
         (kindInput.value === "AVERAGE_COST_DROP" && value >= 1) ||
         !["MARKET", "LIMIT"].includes(orderTypeInput.value)) {
-        notice("패턴 이름·기준값·주문 방식을 확인하세요. 하락률은 0과 1 사이여야 합니다."); return;
+        notice("패턴 이름(100자 이내)·기준값·주문 방식을 확인하세요. 하락률은 0과 1 사이여야 합니다."); return;
       }
       const version = nextPatternVersion(pattern);
       const nextPattern = {
@@ -446,8 +453,9 @@ $("symbol-form").addEventListener("submit", (event) => {
   const source = $("symbol-source").value.trim();
   const note = $("symbol-note").value.trim();
   if (!/^\d{6}$/.test(code)) { notice("종목코드 6자리를 입력하세요."); return; }
-  if (!name) { notice("종목명을 직접 입력하세요."); return; }
-  if (source && !safeSourceUrl(source)) { notice("참고 링크는 http 또는 https 주소만 사용할 수 있습니다."); return; }
+  if (!name || name.length > MAX_NAME_LENGTH) { notice("종목명은 100자 이내로 직접 입력하세요."); return; }
+  if (source && (source.length > MAX_SOURCE_LENGTH || !safeSourceUrl(source))) { notice("참고 링크는 2048자 이내의 http 또는 https 주소만 사용할 수 있습니다."); return; }
+  if (note.length > MAX_NOTE_LENGTH) { notice("메모는 1000자 이내로 입력하세요."); return; }
   if (state.symbols.some((item) => item.code === code)) { notice("이미 등록한 종목입니다."); return; }
   if (commitDraft((next) => {
     next.symbols.push({code, name, source, note, patternId: "", archived: false});
@@ -469,9 +477,9 @@ $("pattern-form").addEventListener("submit", (event) => {
   const threshold = $("pattern-threshold").value.trim();
   const orderType = $("pattern-order-type").value;
   const value = Number(threshold);
-  if (!name || !Number.isFinite(value) || value <= 0 || (kind === "AVERAGE_COST_DROP" && value >= 1) ||
+  if (!name || name.length > MAX_NAME_LENGTH || !Number.isFinite(value) || value <= 0 || (kind === "AVERAGE_COST_DROP" && value >= 1) ||
     !["MARKET", "LIMIT"].includes(orderType)) {
-    notice("패턴 이름, 기준값과 시장가·지정가 주문 방식을 확인하세요. 하락률은 0과 1 사이여야 합니다."); return;
+    notice("패턴 이름은 100자 이내로 입력하고 기준값과 시장가·지정가 주문 방식을 확인하세요. 하락률은 0과 1 사이여야 합니다."); return;
   }
   const id = crypto.randomUUID();
   if (commitDraft((next) => {

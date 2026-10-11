@@ -577,6 +577,70 @@ test("invalid full backup and storage failure leave the existing draft untouched
   assert.doesNotMatch(fixture.getElement("notice").textContent, /복원했습니다/);
 });
 
+test("symbol forms reject overlong fields without changing the draft", () => {
+  const original = {
+    symbols: [{code: "005930", name: "삼성전자", source: "", note: "", patternId: "", archived: false}],
+    patterns: [],
+  };
+  const fixture = boardWithDraft(structuredClone(original));
+  const form = fixture.getElement("symbol-form");
+
+  fixture.getElement("symbol-input").value = "000660";
+  fixture.getElement("symbol-name").value = "가".repeat(101);
+  fixture.getElement("symbol-source").value = "";
+  fixture.getElement("symbol-note").value = "";
+  form.dispatch("submit");
+  assert.deepEqual(fixture.getDraft(), original);
+  assert.match(fixture.getElement("notice").textContent, /100자 이내/);
+
+  fixture.getElement("symbol-name").value = "하이닉스";
+  fixture.getElement("symbol-source").value = `https://example.com/${"p".repeat(2048)}`;
+  form.dispatch("submit");
+  assert.deepEqual(fixture.getDraft(), original);
+  assert.match(fixture.getElement("notice").textContent, /2048자 이내/);
+
+  fixture.getElement("symbol-source").value = "";
+  fixture.getElement("symbol-note").value = "메".repeat(1001);
+  form.dispatch("submit");
+  assert.deepEqual(fixture.getDraft(), original);
+  assert.match(fixture.getElement("notice").textContent, /1000자 이내/);
+
+  const symbolCard = fixture.getElement("symbol-list").children[0];
+  const editForm = descendants(symbolCard)
+    .find((item) => item.className === "stack-form symbol-edit-form");
+  const editFields = descendants(editForm);
+  editFields.find((item) => item.name === "name").value = "나".repeat(101);
+  editForm.dispatch("submit");
+  assert.deepEqual(fixture.getDraft(), original);
+  assert.match(fixture.getElement("notice").textContent, /100자 이내/);
+});
+
+test("pattern forms reject overlong names without changing the draft", () => {
+  const original = {
+    symbols: [],
+    patterns: [{id: "pattern-a", name: "손절", kind: "PRICE_AT_OR_BELOW", threshold: "9800", orderType: "MARKET"}],
+  };
+  const fixture = boardWithDraft(structuredClone(original));
+
+  fixture.getElement("pattern-name").value = "패".repeat(101);
+  fixture.getElement("pattern-kind").value = "PRICE_AT_OR_BELOW";
+  fixture.getElement("pattern-threshold").value = "9700";
+  fixture.getElement("pattern-order-type").value = "MARKET";
+  fixture.getElement("pattern-form").dispatch("submit");
+  assert.deepEqual(fixture.getDraft(), original);
+  assert.match(fixture.getElement("notice").textContent, /100자 이내/);
+
+  const patternCard = fixture.getElement("pattern-list").children[0];
+  const versionForm = descendants(patternCard)
+    .find((item) => item.className === "stack-form pattern-version-form");
+  const versionFields = descendants(versionForm);
+  versionFields.find((item) => item.name === "name").value = "버".repeat(101);
+  versionFields.find((item) => item.name === "threshold").value = "9700";
+  versionFields.find((item) => item.name === "orderType").value = "MARKET";
+  versionForm.dispatch("submit");
+  assert.deepEqual(fixture.getDraft(), original);
+  assert.match(fixture.getElement("notice").textContent, /100자 이내/);
+});
 test("restore refuses to overwrite a draft changed in another tab after validation", async () => {
   const oldDraft = {symbols: [{code: "111111", name: "기존"}], patterns: []};
   const newDraft = {symbols: [{code: "222222", name: "다른 탭 변경"}], patterns: []};
