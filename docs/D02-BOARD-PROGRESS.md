@@ -1,5 +1,22 @@
 # D02 관심종목·손절 패턴 보드 진행 기록
 
+## 실브라우저 검증·캐시버스터 — 2026-10-12
+
+`c60994f`(`board.js?v=20261012-id-fallback` 캐시버스터 1줄, 폴백 수정 뒤
+구 브라우저 캐시로 낡은 스크립트가 도는 것을 방지)가 `main`에 있다.
+Codex 실행 검증(코드 수정·주문·DB·배포·커밋 없음)과 자체 재실행이 일치했다.
+
+- 자동: Node 보드 **23 passed**, `node --check` 5파일, pytest **180 passed,
+  4 subtests passed**, `python -m execution` 정상(`replay_changes: 0`),
+  `git diff --check` 통과. Ruff는 기존 `tests/test_realtime_probe.py` 1파일의
+  기존 19건만 남는다. Python 3.10.8 32비트, Node 24.20.0(지정 PC).
+- 실브라우저(PC Chrome, localhost:8000, 실제 클릭): 1) 100001 차단 문구,
+  2) 70000 저장·카드·detail, 3) 손절 select 매수 제외, 4) 토글 비활성/재활성,
+  5) 백업 JSON에 매수 kind 포함, 6) 390×844 가로 스크롤 없음(clientWidth·
+  scrollWidth 375px) — **6/6 Pass**.
+- 위 6번은 PC 실브라우저 결과이며 물리 모바일(iOS·Android 실기기)은 여전히
+  pending이다. 체크리스트 결과란은 미기입 유지.
+
 ## 비보안 오리진 저장 실패 수정 — 2026-10-11
 
 PC 화면 검증에서 매수 폼 저장이 동작하지 않았다. 콘솔 근거는

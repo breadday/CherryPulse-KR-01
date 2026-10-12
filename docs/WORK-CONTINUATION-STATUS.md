@@ -1,5 +1,13 @@
 # CherryPulse-KR-01 개발 이어가기 기록
 
+## 2026-10-12 실브라우저 검증·캐시버스터
+
+- `c60994f` 캐시버스터 1줄이 `main`에 있다. Codex 검증과 자체 재실행이
+  일치했다: Node **23 passed**, pytest **180 passed, 4 subtests passed**,
+  데모 정상, diff clean, Ruff 기존 1파일만. 실브라우저(PC Chrome)
+  6/6 Pass. 변경 파일은 이 기록과 `docs/D02-BOARD-PROGRESS.md`뿐이다.
+- 다음: 물리 모바일(iOS·Android 실기기) → D02 기록 → D01/D08 서버 동기화.
+
 ## 2026-10-11 비보안 오리진 저장 수정
 
 - PC 화면 검증에서 `crypto.randomUUID is not a function`으로 매수·손절
