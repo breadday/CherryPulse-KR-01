@@ -1,5 +1,23 @@
 # D02 관심종목·손절 패턴 보드 진행 기록
 
+## 비보안 오리진 저장 실패 수정 — 2026-10-11
+
+PC 화면 검증에서 매수 폼 저장이 동작하지 않았다. 콘솔 근거는
+`Uncaught TypeError: crypto.randomUUID is not a function (board.js:531)`이다.
+`crypto.randomUUID`는 보안 컨텍스트(localhost·HTTPS)에서만 동작하고,
+LAN IP(`http://172.17.32.1:8000`) 같은 비보안 오리진에서는 없다. 10만원
+초과 차단이 통과한 것은 검증이 ID 생성보다 먼저라서이며, 저장은 매수 폼뿐
+아니라 기존 손절 패턴 저장 3곳 전부 같은 주소에서 깨진다. node 테스트는
+하네스가 가짜 crypto를 넣어줘서 못 잡았고, 예전 headless 확인은 localhost라
+안 터졌다.
+
+`newDraftId()`를 추가했다. `crypto.randomUUID`가 있으면 쓰고, 없으면
+브라우저 초안용 로컬 v4 ID를 만든다. 로컬 ID는 초안 식별용이며 보안 용도가
+아니다. 호출 3곳(손절 생성·손절 새 버전·매수 생성)을 전부 교체했다.
+검증: 폴백 전용 테스트(매수 저장+손절 새 버전, UUID 형식·고유성 확인) 포함
+`node --test web/board/board.test.js` **23 passed**, `node --check` 2파일,
+`git diff --check` 통과. 같은 LAN 주소에서 저장 재확인이 필요하다.
+
 ## 토글 터치 영역 44px 확보 — 2026-10-11
 
 모바일 체크리스트 6번 대조에서 `.pattern-toggle`·`.archive-button`의

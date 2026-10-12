@@ -36,6 +36,18 @@ function commitDraft(change, message) {
   notice(message);
   return true;
 }
+function newDraftId() {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+  } catch { /* fall through to the local generator below */ }
+  const bytes = Array.from({length: 16}, () => Math.floor(Math.random() * 256));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.map((part) => part.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 function detail(pattern) {
   if (pattern.kind === "BUY_PRICE_AT_OR_BELOW") {
     return `최근 체결가 ${pattern.threshold}원 이하 매수 · 지정가 1주 고정 · 보호 평균가 대비 -3%(체결 후 확정)`;
@@ -232,7 +244,7 @@ function render() {
       }
       const version = nextPatternVersion(pattern);
       const nextPattern = {
-        id: crypto.randomUUID(), patternId: patternFamily(pattern), version, active: true,
+        id: newDraftId(), patternId: patternFamily(pattern), version, active: true,
         name: nameInput.value.trim(), kind: kindInput.value, threshold: thresholdInput.value.trim(),
         orderType: orderTypeInput.value,
       };
@@ -512,7 +524,7 @@ $("pattern-form").addEventListener("submit", (event) => {
     !["MARKET", "LIMIT"].includes(orderType)) {
     notice("패턴 이름은 100자 이내로 입력하고 기준값과 시장가·지정가 주문 방식을 확인하세요. 하락률은 0과 1 사이여야 합니다."); return;
   }
-  const id = crypto.randomUUID();
+  const id = newDraftId();
   if (commitDraft((next) => {
     next.patterns.push({id, patternId: id, version: 1, active: true, name, kind, threshold, orderType});
   }, "패턴 초안을 저장했습니다. 종목에 연결해도 엔진에는 적용되지 않습니다.")) {
@@ -528,7 +540,7 @@ $("buy-pattern-form").addEventListener("submit", (event) => {
   if (!name || name.length > MAX_NAME_LENGTH) { notice("매수 패턴 이름은 100자 이내로 입력하세요."); return; }
   if (!target || !Number.isFinite(value) || value <= 0) { notice("매수 목표가는 0보다 큰 숫자로 입력하세요."); return; }
   if (value > MAX_BUY_TARGET_PRICE) { notice("목표가가 금액 상한(10만원)을 초과해 저장할 수 없습니다."); return; }
-  const id = crypto.randomUUID();
+  const id = newDraftId();
   if (commitDraft((next) => {
     next.patterns.push({id, patternId: id, version: 1, active: true, name, kind: "BUY_PRICE_AT_OR_BELOW", threshold: target, orderType: "LIMIT"});
   }, "매수 패턴 초안을 저장했습니다. 엔진에는 적용되지 않습니다.")) {

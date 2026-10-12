@@ -1,5 +1,17 @@
 # CherryPulse-KR-01 개발 이어가기 기록
 
+## 2026-10-11 비보안 오리진 저장 수정
+
+- PC 화면 검증에서 `crypto.randomUUID is not a function`으로 매수·손절
+  패턴 저장이 전부 실패함을 콘솔로 확인했다. 비보안 LAN 오리진이 원인이다.
+  `newDraftId()` 폴백을 추가하고 호출 3곳을 교체했다. 변경 파일은
+  `web/board/board.js`, `web/board/board.test.js`, 이 기록과
+  `docs/D02-BOARD-PROGRESS.md`다.
+- 검증: Node 보드 **23 passed** (신규 폴백 1 포함), `node --check`,
+  `git diff --check` 통과. Python 회귀는 지정 PC에서 재실행한다.
+  같은 LAN 주소에서 저장 재확인이 남았다. 키움·운영 DB·배포는 실행하지
+  않았다.
+
 ## 2026-10-11 물리 모바일 확인 차단
 
 - 실기기 확인이 망 분리(PC·폰 서로 다른 네트워크, 같은 와이파이 불가)로

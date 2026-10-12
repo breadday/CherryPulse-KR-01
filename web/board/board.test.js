@@ -59,7 +59,7 @@ function descendants(element) {
   return element.children.flatMap((child) => [child, ...descendants(child)]);
 }
 
-function boardWithDraft(draft) {
+function boardWithDraft(draft, options = {}) {
   const ids = [
     "notice", "symbol-count", "active-filter", "archived-filter", "symbol-search", "symbol-list",
     "bulk-import-form", "symbol-import-file", "export-symbols-json", "export-symbols-csv",
@@ -100,7 +100,7 @@ function boardWithDraft(draft) {
         stored.set(key, value);
       },
     },
-    crypto: {randomUUID: () => `generated-${++sequence}`},
+    crypto: options.withoutCrypto ? undefined : {randomUUID: () => `generated-${++sequence}`},
     CherryPulseDraftImport: require("./draft-import.js"),
     CherryPulseBoardBackup: require("./board-backup.js"),
     URL: TestURL,
@@ -719,6 +719,33 @@ test("buy patterns stay out of sell linkage and support the active toggle", () =
   descendants(buyCard).find((item) => item.className === "pattern-toggle").dispatch("click");
   assert.equal(fixture.getDraft().patterns[0].active, false);
   assert.equal(fixture.getDraft().symbols[0].patternId, "");
+});
+
+test("pattern saves fall back to a local id without crypto.randomUUID", () => {
+  const fixture = boardWithDraft({
+    symbols: [],
+    patterns: [{id: "pattern-a", name: "손절", kind: "PRICE_AT_OR_BELOW", threshold: "9800"}],
+  }, {withoutCrypto: true});
+  fixture.getElement("buy-pattern-name").value = "돌파 매수";
+  fixture.getElement("buy-target-price").value = "70000";
+  fixture.getElement("buy-pattern-form").dispatch("submit");
+
+  const patternCard = fixture.getElement("pattern-list").children[0];
+  const versionForm = descendants(patternCard)
+    .find((item) => item.className === "stack-form pattern-version-form");
+  const versionFields = descendants(versionForm);
+  versionFields.find((item) => item.name === "name").value = "손절 조정";
+  versionFields.find((item) => item.name === "threshold").value = "9700";
+  versionFields.find((item) => item.name === "orderType").value = "MARKET";
+  versionForm.dispatch("submit");
+
+  const draft = fixture.getDraft();
+  assert.equal(draft.patterns.length, 3);
+  const shape = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+  assert.match(draft.patterns[1].id, shape);
+  assert.match(draft.patterns[2].id, shape);
+  assert.notEqual(draft.patterns[1].id, draft.patterns[2].id);
+  assert.equal(draft.patterns[1].patternId, draft.patterns[1].id);
 });
 
 test("full backup round-trips buy patterns with price thresholds", () => {
