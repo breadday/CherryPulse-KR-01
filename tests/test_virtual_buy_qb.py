@@ -1,6 +1,6 @@
 """Virtual Q12 first-version buy scenarios; no brokerage calls."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
@@ -14,13 +14,14 @@ from execution.outcomes import effect_confirmed, request_state
 from execution.ownership import AccountLease
 from execution.virtual import VirtualDispatcher
 
-SESSION_END = datetime(2026, 10, 11, 6, 20, tzinfo=timezone.utc)
-SESSION_EXPIRY = datetime(2026, 10, 11, 6, 20, tzinfo=timezone.utc)
+SESSION_NOW = datetime(2026, 10, 12, 0, 30, tzinfo=timezone.utc)
+SESSION_END = datetime(2026, 10, 12, 6, 20, tzinfo=timezone.utc)
+SESSION_EXPIRY = datetime(2026, 10, 12, 6, 20, tzinfo=timezone.utc)
 
 
 def _qb_book(tmp_path: Path, lease: AccountLease, name: str) -> Ledger:
     """Open a virtual ledger bound to the Q12 rule-B revision."""
-    book = Ledger(tmp_path / name, lease)
+    book = Ledger(tmp_path / name, lease, clock=lambda: SESSION_NOW)
     book.approve_virtual_reconciliation(0)
     book.apply_virtual_stop_config(
         VirtualStopBinding(
@@ -36,8 +37,7 @@ def _qb_book(tmp_path: Path, lease: AccountLease, name: str) -> Ledger:
 
 def _qb_timing() -> tuple[ObserveAt, datetime]:
     """Pin one virtual evaluation instant inside the allowed session."""
-    now = datetime(2026, 10, 11, 0, 30, tzinfo=timezone.utc)
-    return ObserveAt(now=now, max_quote_age_seconds=2), now
+    return ObserveAt(now=SESSION_NOW, max_quote_age_seconds=2), SESSION_NOW
 
 
 def _qb_buy(book: Ledger) -> Request:
@@ -53,6 +53,7 @@ def _qb_buy(book: Ledger) -> Request:
             price="70000",
             session="REGULAR",
             validity="DAY",
+            expires_at=SESSION_EXPIRY,
         )
     ).request
 
@@ -104,6 +105,7 @@ def test_qb1_buy_fill_assigns_protection_and_blocks_same_day_rebuy(
         qty=1,
         remaining=0,
         price="70000",
+        trading_date=date(2026, 10, 12),
         evidence_version=1,
     )
     assert book.ingest(fill)
@@ -140,11 +142,7 @@ def test_qb1_buy_fill_assigns_protection_and_blocks_same_day_rebuy(
     assert len(dispatcher.calls) == 1
     assert len(book.snapshot().stop_assignments) == 1
 
-    filled_today = sum(
-        f.qty
-        for f in book.snapshot().facts
-        if isinstance(f, Fill) and f.order_id == buy.order_id
-    )
+    filled_today = book.filled_buy_qty_on("005930", date(2026, 10, 12))
     assert filled_today == 1
     blocked = evaluate_virtual_buy(
         symbol="005930",

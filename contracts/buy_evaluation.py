@@ -48,10 +48,14 @@ def _expiry_block_reason(
     return None
 
 
-def _standing_block_reason(managed_qty: int, filled_today_qty: int) -> str | None:
+def _standing_block_reason(
+    managed_qty: int, filled_today_qty: int | None
+) -> str | None:
     """Block buys against held shares or an earlier completed buy cycle."""
     if managed_qty > 0:
         return "HOLDING_BLOCKS_BUY"
+    if filled_today_qty is None:
+        return "BUY_DAY_EVIDENCE_INCOMPLETE"
     if filled_today_qty > 0:
         return "DAY_REENTRY_BLOCKED"
     return None
@@ -76,7 +80,7 @@ def evaluate_virtual_buy(  # noqa: PLR0913 - eight explicit keyword-only contrac
     quote: Quote | None,
     timing: ObserveAt,
     managed_qty: int,
-    filled_today_qty: int,
+    filled_today_qty: int | None,
     expires_at: datetime | None,
     session_end: datetime,
 ) -> BuyDecision:
@@ -85,8 +89,9 @@ def evaluate_virtual_buy(  # noqa: PLR0913 - eight explicit keyword-only contrac
     Holdings short-circuit before any quote inspection: with managed shares the
     buy condition is not evaluated (Q12 4.2/6.2). A completed buy cycle earlier
     the same day blocks re-entry even back at zero holdings (Q12 4.1); the
-    day boundary reset stays with the caller-side session layer. Every virtual
-    buy carries an explicit expiry inside the session (Q12 2.2/2.3).
+    same-day fill quantity is derived from explicit exchange trading dates;
+    missing dates fail closed. Every virtual buy carries an explicit expiry
+    inside the session (Q12 2.2/2.3).
     """
     blocked = _target_block_reason(target_price)
     if blocked is not None:

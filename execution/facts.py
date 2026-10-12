@@ -1,5 +1,6 @@
 """Normalized virtual evidence; no claim about real brokerage event semantics."""
 
+from datetime import date
 from decimal import Decimal
 from typing import Annotated, Final, Literal
 from uuid import UUID
@@ -33,11 +34,12 @@ class Observation(Evidence):
 
 
 class Fill(Observation):
-    """Unique execution fact; optional exact price retains legacy compatibility."""
+    """Unique execution fact with explicit trading date and optional exact price."""
 
     kind: Literal["FILL"] = "FILL"
     qty: PositiveQty
     price: Price | None = None
+    trading_date: date | None = None
 
     @field_validator("price")
     @classmethod

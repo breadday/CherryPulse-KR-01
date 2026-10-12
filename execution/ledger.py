@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from hashlib import sha256
 from pathlib import Path
@@ -565,6 +565,32 @@ class Ledger:
     def buy_order_average_cost(self, order_id: UUID) -> Decimal | None:
         """Read exact buy cost, or report missing execution prices as unknown."""
         return buy_order_average_cost(self.snapshot(), order_id)
+
+    def filled_buy_qty_on(self, symbol: str, trading_date: date) -> int:
+        """Count confirmed buy fills by explicit exchange trading date.
+
+        A fill without a trading date makes the day total unknowable. Callers
+        must block same-day entry until that evidence is reviewed; receive time
+        is never substituted for the exchange trading date.
+        """
+        journal = self.snapshot()
+        buy_orders = {
+            request.order_id
+            for request in journal.requests
+            if isinstance(request.command, New)
+            and request.command.side == "BUY"
+            and request.command.symbol == symbol
+        }
+        fills = [
+            fact
+            for fact in journal.facts
+            if isinstance(fact, Fill) and fact.order_id in buy_orders
+        ]
+        if any(fill.trading_date is None for fill in fills):
+            raise LedgerError("BUY_FILL_TRADING_DATE_UNKNOWN")
+        return sum(
+            fill.qty for fill in fills if fill.trading_date == trading_date
+        )
 
     def confirmed_stop_cost_basis(self, symbol: str) -> StopCostBasis | None:
         """Read a conservative cost basis for assigned and unsold buy fills."""
