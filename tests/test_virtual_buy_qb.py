@@ -14,6 +14,9 @@ from execution.outcomes import effect_confirmed, request_state
 from execution.ownership import AccountLease
 from execution.virtual import VirtualDispatcher
 
+SESSION_END = datetime(2026, 10, 11, 6, 20, tzinfo=timezone.utc)
+SESSION_EXPIRY = datetime(2026, 10, 11, 6, 20, tzinfo=timezone.utc)
+
 
 def _qb_book(tmp_path: Path, lease: AccountLease, name: str) -> Ledger:
     """Open a virtual ledger bound to the Q12 rule-B revision."""
@@ -66,6 +69,9 @@ def test_qb1_buy_fill_assigns_protection_and_blocks_same_day_rebuy(
         quote=Quote(symbol="005930", price="69000", received_at=now),
         timing=timing,
         managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert (decision.status, decision.reason, decision.qty) == (
         "BUY_CANDIDATE",
@@ -134,12 +140,21 @@ def test_qb1_buy_fill_assigns_protection_and_blocks_same_day_rebuy(
     assert len(dispatcher.calls) == 1
     assert len(book.snapshot().stop_assignments) == 1
 
+    filled_today = sum(
+        f.qty
+        for f in book.snapshot().facts
+        if isinstance(f, Fill) and f.order_id == buy.order_id
+    )
+    assert filled_today == 1
     blocked = evaluate_virtual_buy(
         symbol="005930",
         target_price="70000",
         quote=Quote(symbol="005930", price="68000", received_at=now),
         timing=timing,
         managed_qty=book.portfolio("005930").managed,
+        filled_today_qty=filled_today,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert (blocked.status, blocked.reason, blocked.qty) == (
         "BUY_BLOCKED",
@@ -178,6 +193,9 @@ def test_qb2_unfilled_buy_cancels_without_reorder(
         quote=Quote(symbol="005930", price="69000", received_at=now),
         timing=timing,
         managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert decision.status == "BUY_CANDIDATE"
 
@@ -235,7 +253,14 @@ def test_buy_evaluator_blocks_without_holdings_or_stale_evidence() -> None:
     fresh = Quote(symbol="005930", price="69000", received_at=now)
 
     above = evaluate_virtual_buy(
-        symbol="005930", target_price="68000", quote=fresh, timing=timing, managed_qty=0
+        symbol="005930",
+        target_price="68000",
+        quote=fresh,
+        timing=timing,
+        managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert (above.status, above.reason) == ("BUY_BLOCKED", "PRICE_ABOVE_TARGET")
 
@@ -245,6 +270,9 @@ def test_buy_evaluator_blocks_without_holdings_or_stale_evidence() -> None:
         quote=fresh,
         timing=timing,
         managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert (equal.status, equal.qty) == ("BUY_CANDIDATE", 1)
 
@@ -256,6 +284,9 @@ def test_buy_evaluator_blocks_without_holdings_or_stale_evidence() -> None:
         ),
         timing=timing,
         managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert edge.status == "BUY_CANDIDATE"
 
@@ -267,6 +298,9 @@ def test_buy_evaluator_blocks_without_holdings_or_stale_evidence() -> None:
         ),
         timing=timing,
         managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert (stale.status, stale.reason) == ("BUY_BLOCKED", "QUOTE_NOT_FRESH")
 
@@ -278,11 +312,21 @@ def test_buy_evaluator_blocks_without_holdings_or_stale_evidence() -> None:
         ),
         timing=timing,
         managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert (future.status, future.reason) == ("BUY_BLOCKED", "QUOTE_NOT_FRESH")
 
     missing = evaluate_virtual_buy(
-        symbol="005930", target_price="70000", quote=None, timing=timing, managed_qty=0
+        symbol="005930",
+        target_price="70000",
+        quote=None,
+        timing=timing,
+        managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert (missing.status, missing.reason) == (
         "BUY_BLOCKED",
@@ -295,6 +339,9 @@ def test_buy_evaluator_blocks_without_holdings_or_stale_evidence() -> None:
         quote=Quote(symbol="000660", price="69000", received_at=now),
         timing=timing,
         managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert (wrong_symbol.status, wrong_symbol.reason) == (
         "BUY_BLOCKED",
@@ -307,6 +354,9 @@ def test_buy_evaluator_blocks_without_holdings_or_stale_evidence() -> None:
         quote=fresh,
         timing=timing,
         managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert (over_budget.status, over_budget.reason) == (
         "BUY_BLOCKED",
@@ -319,6 +369,9 @@ def test_buy_evaluator_blocks_without_holdings_or_stale_evidence() -> None:
         quote=Quote(symbol="005930", price="99999", received_at=now),
         timing=timing,
         managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert at_budget.status == "BUY_CANDIDATE"
 
@@ -329,6 +382,9 @@ def test_buy_evaluator_blocks_without_holdings_or_stale_evidence() -> None:
             quote=fresh,
             timing=timing,
             managed_qty=0,
+            filled_today_qty=0,
+            expires_at=SESSION_EXPIRY,
+            session_end=SESSION_END,
         )
         assert (invalid.status, invalid.reason) == (
             "BUY_BLOCKED",
@@ -343,8 +399,88 @@ def test_buy_evaluator_blocks_without_holdings_or_stale_evidence() -> None:
         ),
         timing=timing,
         managed_qty=1,
+        filled_today_qty=1,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
     )
     assert (short_circuit.status, short_circuit.reason) == (
         "BUY_BLOCKED",
         "HOLDING_BLOCKS_BUY",
     )
+
+
+def test_buy_evaluator_enforces_expiry_and_day_reentry() -> None:
+    timing, now = _qb_timing()
+    fresh = Quote(symbol="005930", price="69000", received_at=now)
+
+    missing_expiry = evaluate_virtual_buy(
+        symbol="005930",
+        target_price="70000",
+        quote=fresh,
+        timing=timing,
+        managed_qty=0,
+        filled_today_qty=0,
+        expires_at=None,
+        session_end=SESSION_END,
+    )
+    assert (missing_expiry.status, missing_expiry.reason) == (
+        "BUY_BLOCKED",
+        "EXPIRY_REQUIRED",
+    )
+
+    naive_expiry = evaluate_virtual_buy(
+        symbol="005930",
+        target_price="70000",
+        quote=fresh,
+        timing=timing,
+        managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_END.replace(tzinfo=None),
+        session_end=SESSION_END,
+    )
+    assert (naive_expiry.status, naive_expiry.reason) == (
+        "BUY_BLOCKED",
+        "EXPIRY_REQUIRED",
+    )
+
+    already_expired = evaluate_virtual_buy(
+        symbol="005930",
+        target_price="70000",
+        quote=fresh,
+        timing=timing,
+        managed_qty=0,
+        filled_today_qty=0,
+        expires_at=now - timedelta(seconds=1),
+        session_end=SESSION_END,
+    )
+    assert (already_expired.status, already_expired.reason) == (
+        "BUY_BLOCKED",
+        "COMMAND_EXPIRED",
+    )
+
+    beyond_session = evaluate_virtual_buy(
+        symbol="005930",
+        target_price="70000",
+        quote=fresh,
+        timing=timing,
+        managed_qty=0,
+        filled_today_qty=0,
+        expires_at=SESSION_END + timedelta(hours=1),
+        session_end=SESSION_END,
+    )
+    assert (beyond_session.status, beyond_session.reason) == (
+        "BUY_BLOCKED",
+        "EXPIRY_BEYOND_SESSION",
+    )
+
+    reentry = evaluate_virtual_buy(
+        symbol="005930",
+        target_price="70000",
+        quote=fresh,
+        timing=timing,
+        managed_qty=0,
+        filled_today_qty=1,
+        expires_at=SESSION_EXPIRY,
+        session_end=SESSION_END,
+    )
+    assert (reentry.status, reentry.reason) == ("BUY_BLOCKED", "DAY_REENTRY_BLOCKED")

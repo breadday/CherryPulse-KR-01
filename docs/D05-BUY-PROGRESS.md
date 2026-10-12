@@ -3,6 +3,24 @@
 - 기준: Q12 확정 13건(`REBUILD-02-Q12-DECISION-QUESTIONNAIRE.md`), Q12 매수 계약(`REBUILD-02-CONTRACTS.md`), QB 문서 시나리오(`REBUILD-02-TEST-MATRIX.md`)
 - 상태: **가상 검증 부분 구현**. 실주문·실시세·감시 활성화가 아니다.
 
+## D05 확장: 당일 재진입·만료 강제 — 2026-10-11
+
+평가기에 당일 누적 체결량(`filled_today_qty`)과 명시 만료(`expires_at`,
+세션 끝 `session_end`)를 필수 입력으로 추가했다. 보유 Short-circuit 다음으로
+전량 청산 뒤 0 보유에서도 당일 체결 이력이 있으면 `DAY_REENTRY_BLOCKED`로
+차단한다(Q12 4.1). 날짜 경계 리셋은 호출자 측 세션 책임이며 원장에 날짜를
+새기지 않았다. 만료가 없거나 timezone이 없으면 `EXPIRY_REQUIRED`, 이미
+지났으면 `COMMAND_EXPIRED`, 세션 끝을 넘으면 `EXPIRY_BEYOND_SESSION`이다
+(Q12 2.2/2.3). QB1은 원장 사실에서 구한 당일 누적량으로 보유 차단을
+재확인했고, 만료·재진입은 평가기 경계 5종으로 검증했다.
+
+- 검증: 신규 포함 `tests/test_virtual_buy_qb.py` **4 passed**, 전체 pytest
+  **181 passed, 4 subtests passed** (`7.83s`), 관련 파일 Ruff check·format
+  통과. 첫 린트 21건(포맷·반환 수·인자 수·naive 시각)은 포맷 적용과 헬퍼
+  분리(`_standing`·`_market`), 명시 8인자 `noqa` 근거 표기, 선례대로
+  `replace(tzinfo=None)`로 해소했다. `git diff --check` 통과. 키움·운영 DB·
+  배포는 실행하지 않았다.
+
 ## QB1·QB2 가상 구현 — 2026-10-11
 
 `contracts/buy_evaluation.py`에 Q12 첫 버전 전용 순수 평가기를 추가했다.
@@ -48,7 +66,8 @@ tests/test_virtual_buy_qb.py::test_buy_evaluator_blocks_without_holdings_or_stal
 
 ## 남은 D05 조건
 
-- 전량 청산 후 당일 재진입(보유 0·당일 체결 이력) 차단, 만료 15:20의 제출
-  시점 강제, D01 인증된 명령과의 연결은 미구현이다.
+- 위 확장으로 당일 재진입·만료 강제의 평가기 강제까지 완료했다. 남은 것은
+  날짜 경계 리셋과 만료의 제출 시점 강제를 포함한 세션·동기화 연결, D01
+  인증된 명령과의 연결이다(모두 미구현).
 - 자동 시세·검증 세션(D03), 키움 읽기 근거(D06), 실제 주문 경계(D07),
   물리 모바일(D02)은 계속 차단·대기다.
