@@ -50,6 +50,7 @@
 
 ## 미정 항목과 구현 경계
 
-- Telegram을 외부 알림 채널로 선택했다. 로컬 봇 토큰/개인 채팅 ID와 송신기 연결 전에는 Telegram 전송을 비활성화하며, 로컬 상태 기록·보드 경고는 구현 가능하다.
+- `sync/polling.py`에는 5초 주기, 3초 timeout, 지수 백오프 및 4xx 운영자 확인 전환을 분류하는 순수 정책 함수가 있다. HTTP 호출·서버 순번·expected_version·outbox 적용은 아직 연결되지 않았다.
+- `notifications/telegram.py`에는 환경변수로만 자격 정보를 받는 송신 어댑터가 있다. 호출자와 로컬 실패 상태 기록은 미연결이며, 실제 전송은 수행하지 않았다.
 - 서버 테이블, 저장소 계정 설정 및 RLS 정책은 사용자 계정이 연결된 후 적용한다. 이 계약은 schema 또는 migration을 실행했다는 뜻이 아니다.
-- D08 로컬 fake transport/가상 재생은 구현 가능하다. 실제 Supabase credentials, 운영 테이블, 네트워크 연결은 사용하지 않는다.
+- D08 로컬 fake transport/가상 재생은 다음 구현 단계다. 실제 Supabase credentials, 운영 테이블, 네트워크 연결은 사용하지 않는다.
