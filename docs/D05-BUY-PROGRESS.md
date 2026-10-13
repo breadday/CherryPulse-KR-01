@@ -2,6 +2,9 @@
 
 - 기준: Q12 확정 13건(`REBUILD-02-Q12-DECISION-QUESTIONNAIRE.md`), Q12 매수 계약(`REBUILD-02-CONTRACTS.md`), QB 문서 시나리오(`REBUILD-02-TEST-MATRIX.md`)
 - 상태: **가상 검증 부분 구현**. 실주문·실시세·감시 활성화가 아니다.
+- 2026-10-13 추가: 병렬 커밋이 리플레이 `New`에 `expires_at`을 빠뜨려 QB1이
+  빨개졌고(`CONFLICT_IDEMPOTENCY_MISMATCH`), 동일 리터럴에 만료를 추가해
+  복구했다. 전체 **182 passed**(관찰 테스트 분리로 +1).
 
 ## 2026-10-12 일반 매도 정책 확정
 

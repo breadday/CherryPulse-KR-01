@@ -1,5 +1,20 @@
 # CherryPulse-KR-01 개발 이어가기 기록
 
+## 2026-10-13 병렬 작업 통합·QB1 복구·probe 정리
+
+- 같은 작업 공간의 병렬 커밋 3건(6733b35·2822772·05e1106: 일반 매도 계약·
+  trading_date·폴링·Telegram)을 확인했다. 비밀값 하드코딩은 없다(env만).
+  그쪽 파일의 Ruff 진단은 그쪽 범위로 남기고 손대지 않았다.
+- 병렬 편집이 QB1 리플레이 `New`의 `expires_at`을 빠뜨려 suite가 빨개졌고,
+  동일 리터럴에 만료를 추가해 복구했다. `test_realtime_probe.py` 기존 Ruff
+  19건은 해소했다(Qt 실명 3건만 `noqa`, 테스트 둘로 분리, 파손 1건 복구).
+- 검증: 전체 pytest **182 passed**, 내 파일 Ruff check·format 통과,
+  `git diff --check` 통과. D08 TBD 질문지는 2026-10-12 정책 결정으로
+  불필요해져 만들지 않았다. 키움·운영 DB·배포는 실행하지 않았다.
+- 변경 파일은 `tests/test_realtime_probe.py`,
+  `tests/test_virtual_buy_qb.py`, 이 기록과 `docs/D03-...`,
+  `docs/D05-...`뿐이다. 다음: 물리 모바일, FID 원문 대기.
+
 ## 2026-10-13 D08 정책 코드와 알림 어댑터
 
 - `sync/polling.py`에 5초 정상 주기, 3초 요청 제한값, 5초~5분 백오프,

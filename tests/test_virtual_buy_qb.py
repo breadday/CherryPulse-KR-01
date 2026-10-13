@@ -134,6 +134,7 @@ def test_qb1_buy_fill_assigns_protection_and_blocks_same_day_rebuy(
             price="70000",
             session="REGULAR",
             validity="DAY",
+            expires_at=SESSION_EXPIRY,
         )
     )
     assert not replayed.created
