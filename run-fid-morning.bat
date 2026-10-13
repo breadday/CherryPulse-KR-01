@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 echo ===============================================
 echo  CherryPulse FID morning capture (09:05, 120s)
 echo ===============================================
