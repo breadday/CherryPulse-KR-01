@@ -151,3 +151,13 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - `git diff --check`: 통과.
 - basedpyright 로컬 미설치로 미검증, 원격 CI에서 확인한다.
 - 주문 전송은 실행하지 않았다. 사용자 PC 실증 전이다.
+
+## R05 실증 도구 원격 CI — 2026-10-14, PR #8 병합 완료
+
+- CI: https://github.com/breadday/CherryPulse-KR-01/actions/runs/38548771036 (head `7c15f40`, success)
+- PR: https://github.com/breadday/CherryPulse-KR-01/pull/8 (squash 병합, main `cd0d0a8`)
+- 초회 CI는 basedpyright 엄격 `reportUnknown*` 5건으로 실패했고 타입 캐스트 수정 후 재성공했다.
+  실패 기록도 보존한다: https://github.com/breadday/CherryPulse-KR-01/actions/runs/38548451513
+- Windows 전체 회귀 **327 passed**, 가상 데모 통과.
+- 오프라인 REST 145·보드 23·Ruff/format·production 타입 0 errors·verifier 통과.
+- 사용자 PC 실증(제출·연결 확인)은 미실행이다.

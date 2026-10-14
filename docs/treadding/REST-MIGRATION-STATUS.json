@@ -2,7 +2,7 @@
   "schema_version": 1,
   "updated_on": "2026-10-14",
   "baseline_commit": "1ec7966",
-  "branch": "feature/rest-r05-order-demo",
+  "branch": "main",
   "orders_enabled": false,
   "current_task": "R04",
   "tasks": {
@@ -32,12 +32,12 @@
     "클라우드 인증·동기화"
   ],
   "software_verification": {
-    "windows_ci_pytest": 315,
+    "windows_ci_pytest": 327,
     "rest_offline_pytest": 145,
     "board_node_tests": 23,
     "virtual_demo": "PASS",
     "new_files_ruff": "PASS",
-    "workflow_run": 38539745699,
+    "workflow_run": 38548771036,
     "rest_production_type_errors": 0
   }
 }
