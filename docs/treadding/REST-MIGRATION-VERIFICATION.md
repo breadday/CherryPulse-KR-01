@@ -133,3 +133,10 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - Windows 전체 회귀 **315 passed**(기존 307 + 신규 8), 가상 데모 통과.
 - 오프라인 REST 133·보드 23·Ruff/format·production 타입 0 errors·verifier 통과.
 - R05 이후는 모의계좌 실측·허용된 주문 실증 뒤에 착수한다.
+
+## R04 모의계좌 실측 — 2026-10-14, 사용자 PC
+
+- 명령: `probe_kiwoom_rest --execute-read-only --max-pages 3 --include-history`, 3회 실행.
+- 결과: exit 0, 5건 모두 `complete:true`·1페이지·`observed_rows:0`. 빈 모의계좌 확인.
+- 확정: 연결·입력 승인·행 테이블·페이지 완전성. 미확정: Q01/Q02/Q08 식별 의미.
+- 키·토큰·계좌번호·원문은 수신·저장하지 않았다. 주문 호출 없음.
