@@ -172,3 +172,10 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - Windows 전체 회귀 **327 passed**, 가상 데모 통과.
 - 오프라인 REST 145·보드 23·Ruff/format·production 타입 0 errors·verifier 통과.
 - 사용자 PC 실증(제출·연결 확인)은 미실행이다.
+
+## R05 거절 메시지 원격 CI — 2026-10-14, PR #9 병합 완료
+
+- CI: https://github.com/breadday/CherryPulse-KR-01/actions/runs/38554188630 (head `3eb2c3f`, success)
+- PR: https://github.com/breadday/CherryPulse-KR-01/pull/9 (squash 병합, main `66061fd`)
+- Windows 전체 회귀·오프라인 REST·보드·Ruff/format·타입 검사 통과.
+- 사용자 PC 재제출(거절 사유 확인)은 미실행이다.
