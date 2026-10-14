@@ -26,6 +26,7 @@ FILES = [
     ],
     "tools/verify_rest_migration.py",
     "tools/probe_kiwoom_rest.py",
+    "tools/probe_kiwoom_ws.py",
 ]
 
 

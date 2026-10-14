@@ -4,19 +4,19 @@
   "baseline_commit": "1ec7966",
   "branch": "feature/rest-auth-stream",
   "orders_enabled": false,
-  "current_task": "R03",
+  "current_task": "R04",
   "tasks": {
     "R00": "DOCUMENTED",
     "R01": "OFFLINE_VERIFIED_ACCOUNT_UNVERIFIED",
     "R02": "OFFLINE_VERIFIED_ACCOUNT_UNVERIFIED",
-    "R03": "IN_PROGRESS",
-    "R04": "TODO",
+    "R03": "OFFLINE_VERIFIED_LIVE_UNVERIFIED",
+    "R04": "TODO_REAL_EVIDENCE_GATED",
     "R05": "TODO_ORDERS_DISABLED",
     "R06": "VIRTUAL_ONLY_REST_UNCONNECTED",
     "R07": "TODO",
     "R08": "TODO"
   },
-  "next_action": "WebSocket LOGIN/PING/REG/REAL·재접속·신선도 경계와 오프라인 재생 검사 구현",
+  "next_action": "REST 조회근거와 실제 계좌 scope를 별도로 설계·가상검사; 사용자 PC의 R02/R03 결과 확인 전 실행원장 연결 금지",
   "verification_command": "python tools/verify_rest_migration.py",
   "known_baseline": {
     "ruff_errors": 47,
@@ -32,11 +32,12 @@
     "클라우드 인증·동기화"
   ],
   "software_verification": {
-    "windows_ci_pytest": 210,
-    "rest_offline_pytest": 28,
+    "windows_ci_pytest": 241,
+    "rest_offline_pytest": 102,
     "board_node_tests": 23,
     "virtual_demo": "PASS",
     "new_files_ruff": "PASS",
-    "workflow_run": 38510395015
+    "workflow_run": 38513088606,
+    "rest_production_type_errors": 0
   }
 }
