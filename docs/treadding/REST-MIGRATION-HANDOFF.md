@@ -7,6 +7,7 @@
 
 1. `git status --short`, `git branch --show-current`, `git log -5 --oneline` 확인.
 2. 원격을 fetch하고 divergence를 확인한다. 사용자 변경은 보존한다.
+   PR #3 병합 후 main에 이 기반이 있다면 최신 main에서 새 작업 브랜치를 만든다.
 3. 루트 `AGENTS.md`, 전환 계획, 실행 계약·테스트 매트릭스·미확인 사항을 읽는다.
 4. 상태 JSON에서 첫 미완료 작업을 선택하고 `in_progress`로 기록한다.
 5. 관련 코드를 읽고 최소 단위부터 구현한다. 기존 가상 엔진과 실제 scope를 섞지 않는다.

@@ -36,3 +36,14 @@ TRANSPORT_UNCONFIRMED로 종료했다. 위치를 수정한 최종 검사는 실�
 
 R02부터 인계 문서 순서대로 진행한다. R01 모의 연결은 실제 사용을 위한 완성형 실행기가 아니다.
 Windows CI의 실제 결과·원격 SHA·병합 상태는 아래 후속 기록에 추가한다.
+
+## 원격 후속 검증
+
+- PR: https://github.com/breadday/CherryPulse-KR-01/pull/3
+- CI: https://github.com/breadday/CherryPulse-KR-01/actions/runs/38510395015
+- Windows Python 3.10 x64: **210 passed**, 가상 데모 통과. 사용자 PC·32비트 OCX 검증은 아님.
+- Linux Python 3.10: REST 28개·보드 23개·신규 파일 Ruff 0.16.7·format·diff 통과.
+- 최초 Windows CI는 results 부모 경로 미생성으로 81 passed/129 errors.
+  workflow에 폴더 생성을 추가한 후 위 결과로 해결했다. 실패 기록도 보존한다.
+- 위 CI는 구현+workflow 수정 커밋 기준. 이 후속 기록은 증권사 계좌 검증을 추가하지 않는다.
+- 인증·속도제어·WebSocket·실제 주문 연결 미구현은 상태 JSON에 유지한다.
