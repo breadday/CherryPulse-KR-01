@@ -63,3 +63,12 @@ Q02 체결번호 유일성과 누적·단위 의미, Q08 접수 전 체결 연�
 `probe_kiwoom_rest --include-history`로 5건 조회 실측이 가능하다.
 기본 프로브 2건 동작은 그대로다. 5건 배치가 모여도 `can_reconcile`은 false이며
 사유는 `BROKER_IDENTITY_MAPPING_UNVERIFIED`다.
+
+## REST scope 설계 — 2026-10-14, `feature/rest-r04-scope-gates`
+
+`execution.models.Scope`의 virtual-only 제한을 풀지 않았다. 대신
+`adapters/kiwoom_rest_scope.py`에 활성화 전제조건을 코드로 고정했다.
+`RestScopeProposal`은 PAPER 별칭 범위에 Q01/Q02/Q08·실측 4개 게이트와
+별도 운용자 승인을 요구한다. 기본값은 전부 미확인이며 변환 함수가 없어
+소프트웨어 스스로 실행 스코프를 만들 수 없다. 5건 조회 완전성과 별개로
+게이트가 비어 있으면 첫 미충족 사유를 노출한다.

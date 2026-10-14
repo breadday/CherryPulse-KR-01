@@ -114,3 +114,14 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - Windows 전체 회귀 **307 passed**(기존 303 + 신규 4), 가상 데모 통과.
 - 오프라인 REST 125·보드 23·Ruff/format·production 타입 0 errors·verifier 통과.
 - 모의계좌 실측·Q01/Q02/Q08 식별 확정·REST scope 설계는 여전히 미완료다.
+
+## R04 scope 게이트 로컬 검증 — 2026-10-14, `feature/rest-r04-scope-gates`
+
+로컬 Windows Python 3.10.8 32-bit, pytest 9.1.1, Ruff 0.16.7, Node 보드 검사.
+
+- `py -3.10-32 -m pytest --confcutdir=tests/rest tests/rest -q`: **133 passed** (기존 125 + 신규 8).
+- `ruff check` 검증 범위·`ruff format --check`: 통과.
+- `node --test web/board/board.test.js`: 23 passed.
+- `git diff --check`: 통과.
+- basedpyright 로컬 미설치로 미검증, 원격 CI에서 확인한다.
+- `execution.models.Scope` 변경 없음. 실제 로그인·계좌조회·주문·운영 DB 변경 없음.

@@ -21,6 +21,13 @@ R04 이력 TR 식별(`kt00007/kt00009/ka10076`, `POST /api/dostk/acnt`)은
 다음은 모의계좌 실측(`probe_kiwoom_rest --execute-read-only --include-history`)으로
 세 이력 TR의 실제 응답·페이지헤더를 확인하고, Q01/Q02/Q08 식별 근거를 확정한 뒤
 REST 전용 scope를 설계한다.
+
+## R05 이후 차단 기록
+
+R04 scope 게이트 이후는 실측 없이는 오프라인으로 진행하지 않는다.
+R05 주문 dispatcher, R06 패턴·보호 연결, R07 무인 운영, R08 보드 인수는
+모의계좌 실측(Q01/Q02/Q08 확정)과 허용된 주문 실증 뒤에 착수한다.
+차단 사유와 재개 조건은 상태 JSON의 `external_pending`을 따른다.
 현재 잔고/미체결 두 조회만으로 orders/fills 근거를 만들지 않는다.
 Q01~Q11 REST 식별·수량 의미가 실제 근거로 확인되기 전 실제 dispatcher를 활성화하지 않는다.
 주식체결 가격 수신은 주문체결 사실이 아니다. 거래일·세션을 수신시각에서 만들지 않는다.
