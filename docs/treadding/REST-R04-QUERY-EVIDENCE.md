@@ -27,3 +27,16 @@
 
 실제 API 출력이 없으므로 주문번호·체결번호 유일성, 누적/단위 체결수량, 취소수량,
 매도가능량·예약 반영을 추정하지 않았다. R04는 부분 구현이며 R05 주문은 미연결이다.
+
+## 이력 TR 식별 기록 — 2026-10-14, `feature/rest-r04-history-spec`
+
+공식 REST API 가이드 국내주식 계좌 TR 목록에서 이력 3건의 식별자를 확정했다.
+`kt00007` 계좌별주문체결내역상세요청(orders),
+`kt00009` 계좌별주문체결현황요청(orders),
+`ka10076` 체결요청(fills). 모두 `POST /api/dostk/acnt`다.
+기록 위치는 `adapters/kiwoom_rest_history_spec.py`이며 전송 허용 목록이 아니다.
+`RestQuery` 허용 집합과 겹치지 않음을 검사하고, 해당 ID의 `capture_query`
+호출은 전송 전에 `QUERY_NOT_READ_ONLY`로 차단됨을 확인했다.
+필수 입력·출력 행·페이지 헤더·Q01/Q02/Q08 식별 의미는 여전히 미확정이므로
+`inputs_confirmed/outputs_confirmed`는 false를 유지하고 `can_reconcile`도
+false다. 실측 없이는 R05 주문·원장 연결로 진행하지 않는다.

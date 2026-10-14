@@ -12,14 +12,15 @@
 4. 상태 JSON에서 첫 미완료 작업을 선택하고 `in_progress`로 기록한다.
 5. 관련 코드를 읽고 최소 단위부터 구현한다. 기존 가상 엔진과 실제 scope를 섞지 않는다.
 
-## 다음 작업: R04
+## 다음 작업: R04 계속
 
-R02 인증·읽기 실행기와 R03 모의 WebSocket 관측/재접속 경계는 오프라인 검증했다.
-실제 모의 계좌·장중 WebSocket은 미검증이다. R02/R03 문서의 PC 검증 결과를 구분한다.
+R04 이력 TR 식별(`kt00007/kt00009/ka10076`, `POST /api/dostk/acnt`)은
+`feature/rest-r04-history-spec`에 문서 경계로 기록했다. 전송 허용·원장 연결은
+하지 않았고 `can_reconcile`은 false다. R02/R03 문서의 PC 검증 결과를 구분한다.
 `execution.models.Scope`는 아직 virtual만 허용한다. 이 제한을 단순히 REST 문자열로 풀지 않는다.
-REST 조회 시작/종료 시각·원장 revision 경계·앱/계좌 별칭과 조회 종류별 완전성 모델은
-`adapters/kiwoom_rest_evidence.py`에 오프라인 검증했다. [R04 기록](REST-R04-QUERY-EVIDENCE.md)을 읽고
-주문/체결 이력 API 규격·범위를 확정해 읽기 경계를 확장한다. 현재 잔고/미체결 두 조회만으로 orders/fills 근거를 만들지 않는다.
+다음은 모의계좌 실측으로 세 이력 TR의 필수 입력·출력 행·페이지 헤더를 확정하고,
+Q01/Q02/Q08 식별 근거를 확인한 뒤 REST 전용 scope를 설계한다.
+현재 잔고/미체결 두 조회만으로 orders/fills 근거를 만들지 않는다.
 Q01~Q11 REST 식별·수량 의미가 실제 근거로 확인되기 전 실제 dispatcher를 활성화하지 않는다.
 주식체결 가격 수신은 주문체결 사실이 아니다. 거래일·세션을 수신시각에서 만들지 않는다.
 가상 reconciliation을 실제 계좌 대조 완료로 재사용하지 않는다.
