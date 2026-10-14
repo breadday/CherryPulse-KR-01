@@ -125,3 +125,11 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - `git diff --check`: 통과.
 - basedpyright 로컬 미설치로 미검증, 원격 CI에서 확인한다.
 - `execution.models.Scope` 변경 없음. 실제 로그인·계좌조회·주문·운영 DB 변경 없음.
+
+## R04 scope 게이트 원격 CI — 2026-10-14, PR #7 병합 완료
+
+- CI: https://github.com/breadday/CherryPulse-KR-01/actions/runs/38539745699 (head `91a36c1`, success)
+- PR: https://github.com/breadday/CherryPulse-KR-01/pull/7 (squash 병합, main `69206cc`)
+- Windows 전체 회귀 **315 passed**(기존 307 + 신규 8), 가상 데모 통과.
+- 오프라인 REST 133·보드 23·Ruff/format·production 타입 0 errors·verifier 통과.
+- R05 이후는 모의계좌 실측·허용된 주문 실증 뒤에 착수한다.
