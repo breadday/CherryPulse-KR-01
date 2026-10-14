@@ -73,3 +73,16 @@ R04 조회 interval/revision 범위 경계를 구현했다.
 Windows Python3.10 x64 전체 **297 passed**, 가상 데모 통과.
 Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과.
 이 결과는 R02/R03 소프트웨어와 R04 근거 경계 준비를 검증하며 실제 계좌/PC 인수가 아니다.
+
+## R04 이력 식별 후속 검증 — 2026-10-14, `feature/rest-r04-history-spec`
+
+로컬 Windows Python 3.10.8 32-bit, pytest 9.1.1, Ruff 0.16.7, Node 보드 검사.
+
+- `py -3.10-32 -m pytest --confcutdir=tests/rest tests/rest -q`: **121 passed** (기존 115 + 신규 6).
+- `ruff check` 신규 2파일 + 전체 REST 경계: 통과. `ruff format --check`: 통과.
+- `node --test web/board/board.test.js`: 23 passed.
+- `git diff --check`: 통과.
+- `tools/verify_rest_migration.py`: basedpyright 미설치(`No module named basedpyright`,
+  pip 설치 시 `nodejs-wheel-binaries` 빌드 실패)로 해당 1건만 실패, 나머지 5건 통과.
+  신규 production 파일 타입 검사는 원격 CI에서 확인한다.
+- 실제 로그인·계좌조회·시세·주문·운영 DB 변경 없음. `orders_enabled=false` 유지.
