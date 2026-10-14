@@ -1,5 +1,9 @@
 # CherryPulse-KR-01 남은 개발 작업 계획
 
+> 2026-10-14: 증권사 연결은 REST/WebSocket 전환으로 결정했다. 최신 작업 순서·재개 기준은
+> [REST 전환 계획](treadding/REST-MIGRATION-PLAN.md)과 [인계](treadding/REST-MIGRATION-HANDOFF.md)를 따른다.
+> 아래 OCX 설치·FID 선행 조건은 REST 전환 완료 조건에 적용하지 않는다.
+
 - 작성일: 2026-09-24
 - 기준: `main`의 `f41cd5e` (2026-09-16), 저장소 문서와 코드 확인
 - 용도: 후속 개발의 작업 목록·순서·완료 기준. 이 문서 자체는 구현 완료나 실제 주문 허가가 아니다.

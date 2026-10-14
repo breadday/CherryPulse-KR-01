@@ -1,5 +1,9 @@
 # CherryPulse-KR-01 개발 지침
 
+2026-10-14 REST 전환의 최신 사용자 결정은 `docs/treadding/REST-MIGRATION-PLAN.md`를 먼저 읽는다.
+중단·재개 시 `REST-MIGRATION-HANDOFF.md`와 `REST-MIGRATION-STATUS.json`을 확인하고 단계마다 갱신한다.
+현재 사용자 요청은 계획·개발·검증·한글 커밋·push·CI 통과 후 반영을 포함한다. 주문 활성화와 구별한다.
+
 개발 기준은 다음 문서 순서로 읽는다.
 
 1. docs/CherryPulse-KR-01-Development-Direction.md
