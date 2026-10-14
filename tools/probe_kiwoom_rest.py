@@ -24,6 +24,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute-read-only", action="store_true")
     parser.add_argument("--max-pages", type=int, default=3)
+    parser.add_argument(
+        "--include-history",
+        action="store_true",
+        help="also read kt00007/kt00009/ka10076 history",
+    )
     args = parser.parse_args(argv)
     if not 1 <= args.max_pages <= 10:  # noqa: PLR2004 -- Bound total runtime.
         parser.error("max-pages must be between 1 and 10")
@@ -53,6 +58,25 @@ def main(argv: list[str] | None = None) -> int:
             RestQuery.POSITIONS: {"qry_tp": "2", "dmst_stex_tp": "KRX"},
             RestQuery.UNFILLED: {"all_stk_tp": "0", "trde_tp": "0", "stex_tp": "0"},
         }
+        if args.include_history:
+            specs.update(
+                {
+                    RestQuery.ORDER_DETAIL: {
+                        "qry_tp": "1",
+                        "stk_bond_tp": "0",
+                        "sell_tp": "0",
+                        "dmst_stex_tp": "%",
+                    },
+                    RestQuery.ORDER_STATUS: {
+                        "stk_bond_tp": "0",
+                        "mrkt_tp": "0",
+                        "sell_tp": "0",
+                        "qry_tp": "0",
+                        "dmst_stex_tp": "KRX",
+                    },
+                    RestQuery.FILLS: {"qry_tp": "0", "sell_tp": "0", "stex_tp": "0"},
+                }
+            )
         captures = []
         for query, body in specs.items():
             capture = capture_query(transport, query, body, max_pages=args.max_pages)

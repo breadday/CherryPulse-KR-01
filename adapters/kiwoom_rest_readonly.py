@@ -20,6 +20,9 @@ class RestQuery(str, Enum):
 
     POSITIONS = "kt00018"
     UNFILLED = "ka10075"
+    ORDER_DETAIL = "kt00007"
+    ORDER_STATUS = "kt00009"
+    FILLS = "ka10076"
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,11 +61,30 @@ class RestCapture:
 ROW_KEYS = {
     RestQuery.POSITIONS: "acnt_evlt_remn_indv_tot",
     RestQuery.UNFILLED: "oso",
+    RestQuery.ORDER_DETAIL: "acnt_ord_cntr_prps_dtl",
+    RestQuery.ORDER_STATUS: "acnt_ord_cntr_prst_array",
+    RestQuery.FILLS: "cntr",
 }
-INPUT_KEYS = {
+REQUIRED_INPUT_KEYS = {
     RestQuery.POSITIONS: frozenset({"qry_tp", "dmst_stex_tp"}),
     RestQuery.UNFILLED: frozenset({"all_stk_tp", "trde_tp", "stex_tp"}),
+    RestQuery.ORDER_DETAIL: frozenset(
+        {"qry_tp", "stk_bond_tp", "sell_tp", "dmst_stex_tp"}
+    ),
+    RestQuery.ORDER_STATUS: frozenset(
+        {"stk_bond_tp", "mrkt_tp", "sell_tp", "qry_tp", "dmst_stex_tp"}
+    ),
+    RestQuery.FILLS: frozenset({"qry_tp", "sell_tp", "stex_tp"}),
 }
+OPTIONAL_INPUT_KEYS: dict[RestQuery, frozenset[str]] = {
+    RestQuery.POSITIONS: frozenset(),
+    RestQuery.UNFILLED: frozenset({"stk_cd"}),
+    RestQuery.ORDER_DETAIL: frozenset({"ord_dt", "stk_cd", "fr_ord_no"}),
+    RestQuery.ORDER_STATUS: frozenset({"ord_dt", "stk_cd", "fr_ord_no"}),
+    RestQuery.FILLS: frozenset({"stk_cd", "ord_no"}),
+}
+# Backwards-compatible alias; new code prefers the required/optional split.
+INPUT_KEYS = REQUIRED_INPUT_KEYS
 
 
 def page_error(query: RestQuery, page: RestPage) -> str | None:
@@ -90,8 +112,8 @@ def validate_query(query: RestQuery, body: dict[str, str], max_pages: int) -> No
         raise TypeError("QUERY_NOT_READ_ONLY")
     if type(max_pages) is not int or max_pages <= 0:
         raise ValueError("PAGE_LIMIT_INVALID")
-    required = INPUT_KEYS[query]
-    allowed = required | ({"stk_cd"} if query == RestQuery.UNFILLED else set[str]())
+    required = REQUIRED_INPUT_KEYS[query]
+    allowed = required | OPTIONAL_INPUT_KEYS[query]
     if not required <= body.keys() or not body.keys() <= allowed:
         raise ValueError("QUERY_INPUT_INVALID")
     if any(not isinstance(value, str) or not value for value in body.values()):

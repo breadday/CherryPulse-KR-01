@@ -60,6 +60,41 @@ def test_success_reports_counts_without_accounts_or_tokens(
     )
 
 
+def test_history_opt_in_reads_five_queries_without_secrets(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    calls: list[str] = []
+
+    def fetch(
+        _self: object, query: RestQuery, _body: dict[str, str], _cont: str, _cursor: str
+    ) -> RestPage:
+        calls.append(query.value)
+        return RestPage(
+            {
+                "return_code": 0,
+                "acnt_evlt_remn_indv_tot": [],
+                "oso": [],
+                "acnt_ord_cntr_prps_dtl": [],
+                "acnt_ord_cntr_prst_array": [],
+                "cntr": [],
+            },
+            "N",
+            "",
+        )
+
+    monkeypatch.setenv("CHERRYPULSE_PAPER_APP_KEY", "private-key")
+    monkeypatch.setenv("CHERRYPULSE_PAPER_APP_SECRET", "private-secret")
+    monkeypatch.setattr(
+        "tools.probe_kiwoom_rest.PaperReadOnlyTransport.fetch_page", fetch
+    )
+    assert main(["--execute-read-only", "--include-history"]) == 0
+    output = capsys.readouterr().out
+    assert calls == ["kt00018", "ka10075", "kt00007", "kt00009", "ka10076"]
+    assert '"account_reconciled": false' in output
+    assert "private-key" not in output
+    assert "private-secret" not in output
+
+
 def test_failed_query_returns_nonzero_without_raw_message(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
