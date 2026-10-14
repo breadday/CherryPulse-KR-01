@@ -2,7 +2,7 @@
   "schema_version": 1,
   "updated_on": "2026-10-14",
   "baseline_commit": "1ec7966",
-  "branch": "main",
+  "branch": "feature/rest-r04-scope-gates",
   "orders_enabled": false,
   "current_task": "R04",
   "tasks": {
@@ -33,7 +33,7 @@
   ],
   "software_verification": {
     "windows_ci_pytest": 307,
-    "rest_offline_pytest": 125,
+    "rest_offline_pytest": 133,
     "board_node_tests": 23,
     "virtual_demo": "PASS",
     "new_files_ruff": "PASS",
