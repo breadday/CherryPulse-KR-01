@@ -186,3 +186,11 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - 결과: `order_submitted:true`, `acked:false`, `broker_code:20`,
   `broker_message:모의투자 종료`. 전송·판정·보고 경로 정상, 거절은 환경 사유다.
 - 연결 확인은 4건 0행 `LINKAGE_UNCONFIRMED` 그대로다. Q01/Q02/Q08 미확정 유지.
+
+## R05 배치 실행 검증 — 2026-10-14, `feature/rest-r05-demo-bat`
+
+- `run-paper-demo.bat` 신규. 키 미설정 종료·연결 확인·실패 분기·바탕화면 로그를
+  더미 키로 검증했고 값 노출 없음을 확인했다. 테스트 로그는 삭제했다.
+- CMD `echo` 문구 안 괄호가 `if` 블록을 깨뜨리던 문제와 `Tee-Object -Append`
+  순서 문제를 수정했다.
+- basedpyright 로컬 미설치로 미검증, 원격 CI에서 확인한다. 예약 등록은 사용자 실행이다.
