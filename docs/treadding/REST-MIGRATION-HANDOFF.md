@@ -17,8 +17,9 @@
 R02 인증·읽기 실행기와 R03 모의 WebSocket 관측/재접속 경계는 오프라인 검증했다.
 실제 모의 계좌·장중 WebSocket은 미검증이다. R02/R03 문서의 PC 검증 결과를 구분한다.
 `execution.models.Scope`는 아직 virtual만 허용한다. 이 제한을 단순히 REST 문자열로 풀지 않는다.
-REST 조회 시작/종료 시각·원장 revision 경계·계좌/환경 식별 및 조회 종류별 완전성 모델을
-설계하고 오프라인 검사한다. 현재 잔고/미체결 두 조회만으로 orders/fills 근거를 만들지 않는다.
+REST 조회 시작/종료 시각·원장 revision 경계·앱/계좌 별칭과 조회 종류별 완전성 모델은
+`adapters/kiwoom_rest_evidence.py`에 오프라인 검증했다. [R04 기록](REST-R04-QUERY-EVIDENCE.md)을 읽고
+주문/체결 이력 API 규격·범위를 확정해 읽기 경계를 확장한다. 현재 잔고/미체결 두 조회만으로 orders/fills 근거를 만들지 않는다.
 Q01~Q11 REST 식별·수량 의미가 실제 근거로 확인되기 전 실제 dispatcher를 활성화하지 않는다.
 주식체결 가격 수신은 주문체결 사실이 아니다. 거래일·세션을 수신시각에서 만들지 않는다.
 가상 reconciliation을 실제 계좌 대조 완료로 재사용하지 않는다.
@@ -48,7 +49,7 @@ JSON과 인계 문서를 갱신하고 `git diff --check` 후 작은 한글 커�
 
 ## 다음 AI에 붙여넣을 문장
 
-CherryPulse-KR-01의 refactor/kiwoom-rest 작업을 이어서 진행해.
+CherryPulse-KR-01의 REST 전환 작업을 최신 main에서 이어서 진행해.
 AGENTS.md와 docs/treadding/REST-MIGRATION-HANDOFF.md, STATUS.json을 읽고,
 첫 미완료 단계부터 계획·구현·테스트·검증·기록·한글 커밋·push를 반복해.
 주문 전송 OFF를 유지하고 실제 증권사 검증이 필요한 부분은 구체적인 명령과 판정 기준을 남겨.

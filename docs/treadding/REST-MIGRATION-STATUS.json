@@ -10,13 +10,13 @@
     "R01": "OFFLINE_VERIFIED_ACCOUNT_UNVERIFIED",
     "R02": "OFFLINE_VERIFIED_ACCOUNT_UNVERIFIED",
     "R03": "OFFLINE_VERIFIED_LIVE_UNVERIFIED",
-    "R04": "TODO_REAL_EVIDENCE_GATED",
+    "R04": "PARTIAL_OFFLINE_QUERY_BOUNDARY_ONLY",
     "R05": "TODO_ORDERS_DISABLED",
     "R06": "VIRTUAL_ONLY_REST_UNCONNECTED",
     "R07": "TODO",
     "R08": "TODO"
   },
-  "next_action": "REST 조회근거와 실제 계좌 scope를 별도로 설계·가상검사; 사용자 PC의 R02/R03 결과 확인 전 실행원장 연결 금지",
+  "next_action": "주문/체결 이력 API 규격과 범위 확정 및 읽기 경계 추가; 실제 R02/R03 근거와 Q01/Q02/Q08 확인 후 REST scope 설계",
   "verification_command": "python tools/verify_rest_migration.py",
   "known_baseline": {
     "ruff_errors": 47,
@@ -32,12 +32,12 @@
     "클라우드 인증·동기화"
   ],
   "software_verification": {
-    "windows_ci_pytest": 241,
-    "rest_offline_pytest": 102,
+    "windows_ci_pytest": 284,
+    "rest_offline_pytest": 113,
     "board_node_tests": 23,
     "virtual_demo": "PASS",
     "new_files_ruff": "PASS",
-    "workflow_run": 38513088606,
+    "workflow_run": 38513857671,
     "rest_production_type_errors": 0
   }
 }

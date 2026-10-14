@@ -28,9 +28,9 @@ https://websockets.readthedocs.io/en/15.0.1/reference/sync/client.html
 저장소 루트, 기존 Python3.10 실행 환경에서:
 
 ```powershell
-python -m pip install -r tools/requirements-rest-probes.txt
-python -m tools.probe_kiwoom_ws
-python -m tools.probe_kiwoom_ws 005930 --seconds 30 --execute-read-only
+py -3.10-32 -m pip install -r tools/requirements-rest-probes.txt
+py -3.10-32 -m tools.probe_kiwoom_ws
+py -3.10-32 -m tools.probe_kiwoom_ws 005930 --seconds 30 --execute-read-only
 ```
 
 실제 실행 전 R02 문서의 모의 전용 환경변수 2개를 현재 프로세스에 설정한다.

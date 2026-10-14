@@ -18,7 +18,7 @@
 ## 사용자 PC 읽기 검증
 
 저장소 루트에서 Python 3.10 환경을 사용한다. PyQt·OCX 로그인 창은 사용하지 않는다.
-먼저 `python -m tools.probe_kiwoom_rest` 실행: network=false가 기대값이다.
+먼저 `py -3.10-32 -m tools.probe_kiwoom_rest` 실행: network=false가 기대값이다.
 실제 호출을 위해 **모의 전용** 앱 키를 현재 프로세스 환경의 아래 이름에 설정한다.
 키는 채팅/Git/보고서에 붙이지 않는다. 기존 KIWOOM_* 변수를 사용하지 않으므로
 다른 프로젝트 계좌 설정과 혼용되지 않는다.
@@ -27,7 +27,7 @@
 - `CHERRYPULSE_PAPER_APP_SECRET`
 
 ```powershell
-python -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3
+py -3.10-32 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3
 ```
 
 성공: exit 0, PAPER, orders_enabled=false, 두 queries.complete=true.
