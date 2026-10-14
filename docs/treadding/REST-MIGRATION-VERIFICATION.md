@@ -152,6 +152,17 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - basedpyright 로컬 미설치로 미검증, 원격 CI에서 확인한다.
 - 주문 전송은 실행하지 않았다. 사용자 PC 실증 전이다.
 
+## R05 거절 메시지 표시 로컬 검증 — 2026-10-14, `feature/rest-r05-order-message`
+
+모의 제출이 `API_SUCCESS_UNCONFIRMED`로 거절됐으나 사유 메시지를 보고하지 않아
+원인 구분이 불가했다. 보고서에 브로커 코드와 숫자 마스킹 메시지를 추가했다.
+
+- `py -3.10-32 -m pytest --confcutdir=tests/rest tests/rest -q`: **145 passed**.
+- `ruff check` 검증 범위·`ruff format --check`: 통과.
+- `node --test web/board/board.test.js`: 23 passed.
+- `git diff --check`: 통과.
+- basedpyright 로컬 미설치로 미검증, 원격 CI에서 확인한다.
+
 ## R05 실증 도구 원격 CI — 2026-10-14, PR #8 병합 완료
 
 - CI: https://github.com/breadday/CherryPulse-KR-01/actions/runs/38548771036 (head `7c15f40`, success)
