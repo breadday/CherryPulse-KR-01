@@ -40,3 +40,26 @@
 필수 입력·출력 행·페이지 헤더·Q01/Q02/Q08 식별 의미는 여전히 미확정이므로
 `inputs_confirmed/outputs_confirmed`는 false를 유지하고 `can_reconcile`도
 false다. 실측 없이는 R05 주문·원장 연결로 진행하지 않는다.
+
+## 이력 3건 입출력 확정 — 2026-10-14, `feature/rest-r04-history-reads`
+
+공식 가이드 TR 목록과 계좌 예제 3건을 대조해 필수·선택 입력과 행 테이블 키를
+확정했다. 구현 코드는 복제하지 않았고 필드명만 참고했다.
+
+- `ka10076` 체결요청: 필수 `qry_tp/sell_tp/stex_tp`, 선택 `stk_cd/ord_no`,
+  행 `cntr`. 식별 후보 열 `ord_no/orig_ord_no/ord_tm/cntr_pric/cntr_qty/oso_qty`.
+  체결번호 열이 없다.
+- `kt00007` 내역상세: 필수 `qry_tp/stk_bond_tp/sell_tp/dmst_stex_tp`,
+  선택 `ord_dt/stk_cd/fr_ord_no`, 행 `acnt_ord_cntr_prps_dtl`.
+  식별 후보 열 `ord_no/ori_ord/ord_tm/cntr_qty/ord_remnq/mdfy_cncl`. 체결번호 열이 없다.
+- `kt00009` 체결현황: 필수 `stk_bond_tp/mrkt_tp/sell_tp/qry_tp/dmst_stex_tp`,
+  선택 `ord_dt/stk_cd/fr_ord_no`, 행 `acnt_ord_cntr_prst_array`.
+  식별 후보 열 `ord_no/orig_ord_no/cntr_no/cntr_tm/cntr_qty`. 체결번호는 여기만 있다.
+- 페이지 방식은 기존과 같다. `cont-yn/next-key` 헤더·10페이지 상한·자동 재시도 없음.
+
+위 열 이름은 규격 관찰이며 매핑 확정이 아니다. Q01 주문번호 유일 범위,
+Q02 체결번호 유일성과 누적·단위 의미, Q08 접수 전 체결 연결은 모의계좌 실측
+전까지 미확인으로 유지한다. `RestQuery`에 3건을 읽기 전용으로 추가했고
+`probe_kiwoom_rest --include-history`로 5건 조회 실측이 가능하다.
+기본 프로브 2건 동작은 그대로다. 5건 배치가 모여도 `can_reconcile`은 false이며
+사유는 `BROKER_IDENTITY_MAPPING_UNVERIFIED`다.

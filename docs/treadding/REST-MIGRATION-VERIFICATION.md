@@ -95,3 +95,14 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - 오프라인 REST 121·보드 23·Ruff/format·production 타입 0 errors·verifier `passed:true`.
 - 로컬 basedpyright 미설치는 원격 타입 검사 0 errors로 해소했다.
 - 실제 계좌·장중 수신·주문 실증은 여전히 미완료다.
+
+## R04 이력 읽기 경계 로컬 검증 — 2026-10-14, `feature/rest-r04-history-reads`
+
+로컬 Windows Python 3.10.8 32-bit, pytest 9.1.1, Ruff 0.16.7, Node 보드 검사.
+
+- `py -3.10-32 -m pytest --confcutdir=tests/rest tests/rest -q`: **125 passed** (기존 121 + 신규 4).
+- `ruff check` 전체 REST 경계·프로브·테스트: 통과. `ruff format --check`: 통과.
+- `node --test web/board/board.test.js`: 23 passed.
+- `git diff --check`: 통과.
+- basedpyright 로컬 미설치로 미검증, 원격 CI에서 확인한다.
+- 실제 로그인·계좌조회·주문·운영 DB 변경 없음. `orders_enabled=false` 유지.

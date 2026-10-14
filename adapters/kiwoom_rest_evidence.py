@@ -19,7 +19,13 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 REQUIRED_SECTIONS = frozenset({"orders", "fills", "open_orders", "balances"})
-QUERY_SECTIONS = {RestQuery.POSITIONS: "balances", RestQuery.UNFILLED: "open_orders"}
+QUERY_SECTIONS = {
+    RestQuery.POSITIONS: "balances",
+    RestQuery.UNFILLED: "open_orders",
+    RestQuery.ORDER_DETAIL: "orders",
+    RestQuery.ORDER_STATUS: "orders",
+    RestQuery.FILLS: "fills",
+}
 
 
 @dataclass(frozen=True, slots=True)

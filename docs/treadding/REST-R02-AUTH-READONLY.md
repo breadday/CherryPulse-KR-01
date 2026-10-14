@@ -33,6 +33,7 @@ py -3.10-32 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3
 성공: exit 0, PAPER, orders_enabled=false, 두 queries.complete=true.
 실패: exit 1과 사유. 인증/네트워크 오류는 UNCONFIRMED이며 계좌가 비었다는 뜻이 아니다.
 PAGE_LIMIT_REACHED이면 페이지가 남았고 불완전하다. 필요하면 상한 10까지 늘려 재조회한다.
+이력 3건 실측은 `--include-history`를 붙인다. 성공 기준은 5건 모두 complete=true다.
 토큰·키 입력이 없어도 오프라인 개발과 테스트는 진행할 수 있다.
 
 ## 한계
