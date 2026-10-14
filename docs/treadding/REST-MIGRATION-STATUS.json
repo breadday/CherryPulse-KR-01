@@ -2,21 +2,21 @@
   "schema_version": 1,
   "updated_on": "2026-10-14",
   "baseline_commit": "1ec7966",
-  "branch": "refactor/kiwoom-rest",
+  "branch": "feature/rest-auth-stream",
   "orders_enabled": false,
-  "current_task": "R02",
+  "current_task": "R04",
   "tasks": {
     "R00": "DOCUMENTED",
     "R01": "OFFLINE_VERIFIED_ACCOUNT_UNVERIFIED",
-    "R02": "TODO",
-    "R03": "TODO",
-    "R04": "TODO",
+    "R02": "OFFLINE_VERIFIED_ACCOUNT_UNVERIFIED",
+    "R03": "OFFLINE_VERIFIED_LIVE_UNVERIFIED",
+    "R04": "PARTIAL_OFFLINE_QUERY_BOUNDARY_ONLY",
     "R05": "TODO_ORDERS_DISABLED",
     "R06": "VIRTUAL_ONLY_REST_UNCONNECTED",
     "R07": "TODO",
     "R08": "TODO"
   },
-  "next_action": "모의 토큰 발급·만료·속도제어를 오프라인 테스트로 구현하고 읽기 실행기에 연결",
+  "next_action": "주문/체결 이력 API 규격과 범위 확정 및 읽기 경계 추가; 실제 R02/R03 근거와 Q01/Q02/Q08 확인 후 REST scope 설계",
   "verification_command": "python tools/verify_rest_migration.py",
   "known_baseline": {
     "ruff_errors": 47,
@@ -32,11 +32,12 @@
     "클라우드 인증·동기화"
   ],
   "software_verification": {
-    "windows_ci_pytest": 210,
-    "rest_offline_pytest": 28,
+    "windows_ci_pytest": 297,
+    "rest_offline_pytest": 115,
     "board_node_tests": 23,
     "virtual_demo": "PASS",
     "new_files_ruff": "PASS",
-    "workflow_run": 38510395015
+    "workflow_run": 38514375059,
+    "rest_production_type_errors": 0
   }
 }

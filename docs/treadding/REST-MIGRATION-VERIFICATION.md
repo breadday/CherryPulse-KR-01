@@ -47,3 +47,29 @@ Windows CI의 실제 결과·원격 SHA·병합 상태는 아래 후속 기록�
   workflow에 폴더 생성을 추가한 후 위 결과로 해결했다. 실패 기록도 보존한다.
 - 위 CI는 구현+workflow 수정 커밋 기준. 이 후속 기록은 증권사 계좌 검증을 추가하지 않는다.
 - 인증·속도제어·WebSocket·실제 주문 연결 미구현은 상태 JSON에 유지한다.
+
+## R02/R03 및 R04 준비 후속 검증
+
+기준 main623f09f, feature/rest-auth-stream.
+R02 모의 인증·갱신·pacing·읽기 도구, R03 모의 WebSocket 관측·재접속·신선도,
+R04 조회 interval/revision 범위 경계를 구현했다.
+
+- 로컬 REST/WS 113 passed, 보드23, 신규 production6파일 basedpyright0, Ruff/format 통과.
+- R02 CI https://github.com/breadday/CherryPulse-KR-01/actions/runs/38513088606
+- R03 CI https://github.com/breadday/CherryPulse-KR-01/actions/runs/38513857671
+- R03 Windows Python3.10 전체284 및 가상 데모 통과. R04 후속 전체 검사는 PR #4 CI에서 확인한다.
+- https://github.com/breadday/CherryPulse-KR-01/pull/4
+- 테스트는 socket 연결을 차단했다. 유효한 키/토큰·계좌 없이 synthetic 응답만 사용했다.
+- REST/WS 도구 기본 실행 network=false를 실제 확인했다. websockets15.0.1 설치 및
+  사용 connect 옵션의 실제 라이브러리 signature 존재를 확인했다.
+- 실제 로그인·계좌조회·시세·주문·운영 DB·사용자 PC 예약 변경은 수행하지 않았다.
+- 실제 계좌/세션·주문/체결 mapping·원장 연결·무인 운영은 미완료다.
+
+최종 로컬 회귀: REST/WS 115 passed. 인증 실패 뒤 두 번째 조회 호출 0,
+비정상 payload 요약 실패 처리 검사를 추가했다. 새 production 타입0·보드23·Ruff/format 통과.
+최종 Windows 전체 회귀 결과는 PR #4의 최신 head CI가 기준이다.
+
+최종 원격 검증: https://github.com/breadday/CherryPulse-KR-01/actions/runs/38514375059
+Windows Python3.10 x64 전체 **297 passed**, 가상 데모 통과.
+Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과.
+이 결과는 R02/R03 소프트웨어와 R04 근거 경계 준비를 검증하며 실제 계좌/PC 인수가 아니다.

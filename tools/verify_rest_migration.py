@@ -16,10 +16,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = [
-    "adapters/kiwoom_rest_readonly.py",
-    "adapters/kiwoom_rest_transport.py",
-    "tests/rest/test_readonly.py",
+    *[
+        str(path.relative_to(ROOT))
+        for path in sorted((ROOT / "adapters").glob("kiwoom_rest*.py"))
+    ],
+    *[
+        str(path.relative_to(ROOT))
+        for path in sorted((ROOT / "tests" / "rest").glob("*.py"))
+    ],
     "tools/verify_rest_migration.py",
+    "tools/probe_kiwoom_rest.py",
+    "tools/probe_kiwoom_ws.py",
 ]
 
 
@@ -29,6 +36,15 @@ def main() -> int:
         [sys.executable, "-m", "pytest", "--confcutdir=tests/rest", "tests/rest", "-q"],
         [sys.executable, "-m", "ruff", "check", *FILES],
         [sys.executable, "-m", "ruff", "format", "--check", *FILES],
+        [
+            sys.executable,
+            "-m",
+            "basedpyright",
+            *[
+                str(path.relative_to(ROOT))
+                for path in sorted((ROOT / "adapters").glob("kiwoom_rest*.py"))
+            ],
+        ],
         ["node", "--test", "web/board/board.test.js"],
         ["git", "diff", "--check"],
     ]

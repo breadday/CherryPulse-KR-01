@@ -5,11 +5,14 @@ credentials, or the execution engine. Completion is query evidence, not account
 reconciliation or permission to trade.
 """
 
+# pyright: reportUnnecessaryIsInstance=false, reportUnreachable=false
+# Runtime validation deliberately checks untrusted injected responses.
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol
+from typing import Protocol, cast
 
 
 class RestQuery(str, Enum):
@@ -39,6 +42,7 @@ class ReadOnlyTransport(Protocol):
         next_key: str,
     ) -> RestPage:
         """Fetch one whitelisted read-only account page without automatic retry."""
+        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,7 +73,9 @@ def page_error(query: RestQuery, page: RestPage) -> str | None:
     if type(code) not in (int, str) or code not in (0, "0"):
         return "API_SUCCESS_UNCONFIRMED"
     rows = page.payload.get(ROW_KEYS[query])
-    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+    if not isinstance(rows, list) or any(
+        not isinstance(row, dict) for row in cast("list[object]", rows)
+    ):
         return "ROWS_INVALID"
     if not isinstance(page.cont_yn, str) or page.cont_yn not in {"Y", "N"}:
         return "CONTINUATION_UNCONFIRMED"
@@ -85,7 +91,7 @@ def validate_query(query: RestQuery, body: dict[str, str], max_pages: int) -> No
     if type(max_pages) is not int or max_pages <= 0:
         raise ValueError("PAGE_LIMIT_INVALID")
     required = INPUT_KEYS[query]
-    allowed = required | ({"stk_cd"} if query == RestQuery.UNFILLED else set())
+    allowed = required | ({"stk_cd"} if query == RestQuery.UNFILLED else set[str]())
     if not required <= body.keys() or not body.keys() <= allowed:
         raise ValueError("QUERY_INPUT_INVALID")
     if any(not isinstance(value, str) or not value for value in body.values()):
