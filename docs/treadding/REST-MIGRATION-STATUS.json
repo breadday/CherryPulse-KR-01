@@ -16,7 +16,7 @@
     "R07": "TODO",
     "R08": "TODO"
   },
-  "next_action": "사용자 PC에서 모의 1주 지정가 제출·연결 확인 후 Q01 게이트 확정; Q02는 체결 관측 뒤",
+  "next_action": "정규장 시간에 모의 1주 지정가 재제출·연결 확인 후 Q01 게이트 확정",
   "verification_command": "python tools/verify_rest_migration.py",
   "known_baseline": {
     "ruff_errors": 47,

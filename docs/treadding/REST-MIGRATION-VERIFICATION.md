@@ -179,3 +179,10 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - PR: https://github.com/breadday/CherryPulse-KR-01/pull/9 (squash 병합, main `66061fd`)
 - Windows 전체 회귀·오프라인 REST·보드·Ruff/format·타입 검사 통과.
 - 사용자 PC 재제출(거절 사유 확인)은 미실행이다.
+
+## R05 첫 실증 결과 — 2026-10-14 저녁, 사용자 PC
+
+- 명령: `submit_paper_buy --symbol 403870 --price 56600 --confirm-execute`.
+- 결과: `order_submitted:true`, `acked:false`, `broker_code:20`,
+  `broker_message:모의투자 종료`. 전송·판정·보고 경로 정상, 거절은 환경 사유다.
+- 연결 확인은 4건 0행 `LINKAGE_UNCONFIRMED` 그대로다. Q01/Q02/Q08 미확정 유지.
