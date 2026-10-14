@@ -19,12 +19,19 @@
 
 저장소 루트에서 Python 3.10 환경을 사용한다. PyQt·OCX 로그인 창은 사용하지 않는다.
 먼저 `py -3.10-32 -m tools.probe_kiwoom_rest` 실행: network=false가 기대값이다.
-실제 호출을 위해 **모의 전용** 앱 키를 현재 프로세스 환경의 아래 이름에 설정한다.
-키는 채팅/Git/보고서에 붙이지 않는다. 기존 KIWOOM_* 변수를 사용하지 않으므로
+실제 호출을 위해 **모의 전용** 앱 키를 아래 이름으로 설정한다.
+저장 위치: Windows 11 사용자 환경 변수 (`setx` 또는 제어판 사용자 계정 메뉴).
+한 번 저장하면 새 프로세스·예약 작업에서 읽힌다.
+값은 문서·채팅·Git·보고서에 절대 기록하지 않는다. AI도 값을 요구하지 않으며
+존재 여부만 true/false로 확인한다. 기존 KIWOOM_* 변수를 사용하지 않으므로
 다른 프로젝트 계좌 설정과 혼용되지 않는다.
 
 - `CHERRYPULSE_PAPER_APP_KEY`
 - `CHERRYPULSE_PAPER_APP_SECRET`
+
+출력 감사 규칙: 모든 도구 보고서는 키·토큰·계좌번호·주문번호 원문을 포함하지
+않는다. 숫자 4자리 이상은 마스킹하고, 검토는 true/false·사유 코드로만 한다.
+테스트는 합성 비밀값이 출력에 없음을 검사한다.
 
 ```powershell
 py -3.10-32 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3
