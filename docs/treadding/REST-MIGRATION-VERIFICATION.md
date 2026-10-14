@@ -64,3 +64,7 @@ R04 조회 interval/revision 범위 경계를 구현했다.
   사용 connect 옵션의 실제 라이브러리 signature 존재를 확인했다.
 - 실제 로그인·계좌조회·시세·주문·운영 DB·사용자 PC 예약 변경은 수행하지 않았다.
 - 실제 계좌/세션·주문/체결 mapping·원장 연결·무인 운영은 미완료다.
+
+최종 로컬 회귀: REST/WS 115 passed. 인증 실패 뒤 두 번째 조회 호출 0,
+비정상 payload 요약 실패 처리 검사를 추가했다. 새 production 타입0·보드23·Ruff/format 통과.
+최종 Windows 전체 회귀 결과는 PR #4의 최신 head CI가 기준이다.

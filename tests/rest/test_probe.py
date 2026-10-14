@@ -81,3 +81,33 @@ def test_failed_query_returns_nonzero_without_raw_message(
 def test_limits_checked_before_execution(limit: str) -> None:
     with pytest.raises(SystemExit):
         main(["--execute-read-only", "--max-pages", limit])
+
+
+def test_auth_failure_stops_before_second_query(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    calls: list[int] = []
+
+    def issue(_self: object, _credentials: object) -> dict[str, object]:
+        calls.append(1)
+        raise TimeoutError("synthetic-auth-error")
+
+    monkeypatch.setenv("CHERRYPULSE_PAPER_APP_KEY", "private-key")
+    monkeypatch.setenv("CHERRYPULSE_PAPER_APP_SECRET", "private-secret")
+    monkeypatch.setattr("tools.probe_kiwoom_rest.PaperTokenIssuer.issue", issue)
+    assert main(["--execute-read-only"]) == 1
+    assert calls == [1]
+    assert "synthetic-auth-error" not in capsys.readouterr().out
+
+
+def test_malformed_payload_still_returns_sanitized_failure(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("CHERRYPULSE_PAPER_APP_KEY", "private-key")
+    monkeypatch.setenv("CHERRYPULSE_PAPER_APP_SECRET", "private-secret")
+    monkeypatch.setattr(
+        "tools.probe_kiwoom_rest.PaperReadOnlyTransport.fetch_page",
+        lambda *_: RestPage(None, "N", ""),
+    )  # type: ignore[arg-type]
+    assert main(["--execute-read-only"]) == 1
+    assert "RESPONSE_INVALID" in capsys.readouterr().out

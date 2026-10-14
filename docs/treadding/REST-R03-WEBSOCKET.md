@@ -12,6 +12,7 @@ https://websockets.readthedocs.io/en/15.0.1/reference/sync/client.html
 - FID10 부호는 가격 방향 표기이므로 절댓값으로 관측하고 FID20은 HHMMSS clock만 보관한다.
   거래일/시장 세션/체결 고유키는 만들지 않는다. 이 가격을 execution Fill로 반영하지 않는다.
 - `kiwoom_rest_ws.py`: 고정 모의 TLS URL, 1~120초 제한, PING echo,
+  수집 구간은 최대120초이며 인증·연결·종료에는 별도 timeout 시간이 더해질 수 있다.
   transport 오류 뒤 최대 2회 재접속(설정 상한 3), 재로그인·재등록, 종료 시 close.
   재접속 시 과거 가격을 usable로 유지하지 않는다. 이전 관측 건수는 감사용으로 보존한다.
 - 로그인/등록 실패는 재시도하지 않고 종료한다. 토큰 발급 실패도 같은 실행에서 재발급 반복하지 않는다.

@@ -26,6 +26,10 @@ Q01~Q11 REST 식별·수량 의미가 실제 근거로 확인되기 전 실제 d
 
 ## 검사
 
+개발 환경에 검사 도구가 없으면 기존 격리 개발 환경에
+`python -m pip install pytest==9.1.1 ruff==0.16.7 basedpyright==1.40.2`로 준비한다.
+실제 WebSocket 도구 의존성은 `tools/requirements-rest-probes.txt`로 별도 설치한다.
+
 ```powershell
 python tools/verify_rest_migration.py
 python -m pytest -q --basetemp=results/rest-full-pytest

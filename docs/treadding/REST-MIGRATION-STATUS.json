@@ -33,7 +33,7 @@
   ],
   "software_verification": {
     "windows_ci_pytest": 284,
-    "rest_offline_pytest": 113,
+    "rest_offline_pytest": 115,
     "board_node_tests": 23,
     "virtual_demo": "PASS",
     "new_files_ruff": "PASS",

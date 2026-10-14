@@ -53,10 +53,12 @@ def main(argv: list[str] | None = None) -> int:
             RestQuery.POSITIONS: {"qry_tp": "2", "dmst_stex_tp": "KRX"},
             RestQuery.UNFILLED: {"all_stk_tp": "0", "trde_tp": "0", "stex_tp": "0"},
         }
-        captures = [
-            capture_query(transport, query, body, max_pages=args.max_pages)
-            for query, body in specs.items()
-        ]
+        captures = []
+        for query, body in specs.items():
+            capture = capture_query(transport, query, body, max_pages=args.max_pages)
+            captures.append(capture)
+            if not capture.complete:
+                break
     except Exception:  # noqa: BLE001 -- Do not echo credentials or auth exception context.
         _ = sys.stdout.write(
             json.dumps(
@@ -82,14 +84,19 @@ def main(argv: list[str] | None = None) -> int:
                 "observed_rows": sum(
                     len(page.payload.get(ROW_KEYS[capture.query], []))
                     for page in capture.pages
-                    if isinstance(page.payload.get(ROW_KEYS[capture.query]), list)
+                    if isinstance(page.payload, dict)
+                    and isinstance(page.payload.get(ROW_KEYS[capture.query]), list)
                 ),
             }
             for capture in captures
         ],
     }
     _ = sys.stdout.write(json.dumps(report) + "\n")
-    return 0 if all(capture.complete for capture in captures) else 1
+    return (
+        0
+        if len(captures) == len(specs) and all(capture.complete for capture in captures)
+        else 1
+    )
 
 
 if __name__ == "__main__":
