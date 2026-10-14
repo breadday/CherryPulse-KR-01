@@ -32,12 +32,12 @@
     "클라우드 인증·동기화"
   ],
   "software_verification": {
-    "windows_ci_pytest": 284,
+    "windows_ci_pytest": 297,
     "rest_offline_pytest": 115,
     "board_node_tests": 23,
     "virtual_demo": "PASS",
     "new_files_ruff": "PASS",
-    "workflow_run": 38513857671,
+    "workflow_run": 38514375059,
     "rest_production_type_errors": 0
   }
 }

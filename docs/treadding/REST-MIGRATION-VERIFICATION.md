@@ -68,3 +68,8 @@ R04 조회 interval/revision 범위 경계를 구현했다.
 최종 로컬 회귀: REST/WS 115 passed. 인증 실패 뒤 두 번째 조회 호출 0,
 비정상 payload 요약 실패 처리 검사를 추가했다. 새 production 타입0·보드23·Ruff/format 통과.
 최종 Windows 전체 회귀 결과는 PR #4의 최신 head CI가 기준이다.
+
+최종 원격 검증: https://github.com/breadday/CherryPulse-KR-01/actions/runs/38514375059
+Windows Python3.10 x64 전체 **297 passed**, 가상 데모 통과.
+Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과.
+이 결과는 R02/R03 소프트웨어와 R04 근거 경계 준비를 검증하며 실제 계좌/PC 인수가 아니다.
