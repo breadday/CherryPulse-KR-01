@@ -194,3 +194,9 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - CMD `echo` 문구 안 괄호가 `if` 블록을 깨뜨리던 문제와 `Tee-Object -Append`
   순서 문제를 수정했다.
 - basedpyright 로컬 미설치로 미검증, 원격 CI에서 확인한다. 예약 등록은 사용자 실행이다.
+
+## R05 배치 원격 CI — 2026-10-14, PR #10 병합 완료
+
+- CI: https://github.com/breadday/CherryPulse-KR-01/actions/runs/38579998229 (head `87b35b1`, success)
+- PR: https://github.com/breadday/CherryPulse-KR-01/pull/10 (squash 병합, main `58820f3`)
+- Python 변경 없음. 예약 등록은 아래 사용자 실행이다.
