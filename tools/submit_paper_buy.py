@@ -15,7 +15,9 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -103,15 +105,35 @@ def real_opener() -> object:
     return build_opener(NoRedirect())
 
 
-def report(
+def summarize_broker_message(payload: dict[str, object]) -> tuple[object, str | None]:
+    """Expose the broker code with a redacted message; identifiers stay hidden."""
+    code = payload.get("return_code")
+    message = payload.get("return_msg")
+    if not isinstance(message, str) or not message.strip():
+        return code, None
+    redacted = re.sub(r"\d{4,}", "<digits>", message.strip())
+    return code, redacted[:160]
+
+
+@dataclass(frozen=True, slots=True)
+class BrokerSummary:
+    """Broker code with a redacted message; no identifiers."""
+
+    code: object | None = None
+    message: str | None = None
+
+
+def report(  # noqa: PLR0913 -- Explicit chat-safe report fields; no kwargs bundle.
     *,
     submitted: bool,
     acked: bool,
     reason: str,
     preview: BuyPreview | None,
     network: bool,
+    broker: BrokerSummary | None = None,
 ) -> dict[str, object]:
     """Assemble a chat-safe report without secrets or broker identifiers."""
+    summary = broker if broker is not None else BrokerSummary()
     return {
         "mode": "PAPER",
         "network": network,
@@ -122,6 +144,8 @@ def report(
         "qty": DEMO_QUANTITY if preview else None,
         "trade_type": "LIMIT" if preview else None,
         "price": preview.price if preview else None,
+        "broker_code": summary.code,
+        "broker_message": summary.message,
     }
 
 
@@ -239,6 +263,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     else:
+        broker_code, broker_message = summarize_broker_message(payload)
         _ = sys.stdout.write(
             json.dumps(
                 report(
@@ -247,6 +272,7 @@ def main(argv: list[str] | None = None) -> int:
                     reason=reason,
                     preview=preview,
                     network=True,
+                    broker=BrokerSummary(broker_code, broker_message),
                 )
             )
             + "\n"

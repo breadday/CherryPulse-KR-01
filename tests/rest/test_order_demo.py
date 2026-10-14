@@ -160,10 +160,16 @@ def test_rejection_allows_retry_without_sentinel(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     opener = arm_submit(
-        monkeypatch, tmp_path, canned({"return_code": 3, "return_msg": "nope"})
+        monkeypatch,
+        tmp_path,
+        canned({"return_code": 3, "return_msg": "거절 사유 12345"}),
     )
     assert submit_paper_buy.main(submit_argv()) == 1
-    assert "API_SUCCESS_UNCONFIRMED" in capsys.readouterr().out
+    output = capsys.readouterr().out
+    assert "API_SUCCESS_UNCONFIRMED" in output
+    assert '"broker_code": 3' in output
+    assert "12345" not in output
+    assert "<digits>" in output
     assert len(opener.requests) == 1
     assert not (tmp_path / "results").exists()
 
