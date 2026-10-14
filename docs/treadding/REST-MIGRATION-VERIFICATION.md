@@ -140,3 +140,14 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - 결과: exit 0, 5건 모두 `complete:true`·1페이지·`observed_rows:0`. 빈 모의계좌 확인.
 - 확정: 연결·입력 승인·행 테이블·페이지 완전성. 미확정: Q01/Q02/Q08 식별 의미.
 - 키·토큰·계좌번호·원문은 수신·저장하지 않았다. 주문 호출 없음.
+
+## R05 실증 도구 로컬 검증 — 2026-10-14, `feature/rest-r05-order-demo`
+
+로컬 Windows Python 3.10.8 32-bit, pytest 9.1.1, Ruff 0.16.7, Node 보드 검사.
+
+- `py -3.10-32 -m pytest --confcutdir=tests/rest tests/rest -q`: **145 passed** (기존 133 + 신규 12).
+- `ruff check` 검증 범위·`ruff format --check`: 통과.
+- `node --test web/board/board.test.js`: 23 passed.
+- `git diff --check`: 통과.
+- basedpyright 로컬 미설치로 미검증, 원격 CI에서 확인한다.
+- 주문 전송은 실행하지 않았다. 사용자 PC 실증 전이다.

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "updated_on": "2026-10-14",
   "baseline_commit": "1ec7966",
-  "branch": "main",
+  "branch": "feature/rest-r05-order-demo",
   "orders_enabled": false,
   "current_task": "R04",
   "tasks": {
@@ -11,12 +11,12 @@
     "R02": "OFFLINE_VERIFIED_ACCOUNT_UNVERIFIED",
     "R03": "OFFLINE_VERIFIED_LIVE_UNVERIFIED",
     "R04": "LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED",
-    "R05": "TODO_ORDERS_DISABLED",
+    "R05": "DEMO_TOOL_OFFLINE_CI_ONLY",
     "R06": "VIRTUAL_ONLY_REST_UNCONNECTED",
     "R07": "TODO",
     "R08": "TODO"
   },
-  "next_action": "허용된 모의 1주 주문 실증(사용자 명시 승인 필요) 후 Q01/Q02/Q08 게이트 확정; 그 전까지 R05 이후 착수 금지",
+  "next_action": "사용자 PC에서 모의 1주 지정가 제출·연결 확인 후 Q01 게이트 확정; Q02는 체결 관측 뒤",
   "verification_command": "python tools/verify_rest_migration.py",
   "known_baseline": {
     "ruff_errors": 47,
@@ -33,7 +33,7 @@
   ],
   "software_verification": {
     "windows_ci_pytest": 315,
-    "rest_offline_pytest": 133,
+    "rest_offline_pytest": 145,
     "board_node_tests": 23,
     "virtual_demo": "PASS",
     "new_files_ruff": "PASS",
