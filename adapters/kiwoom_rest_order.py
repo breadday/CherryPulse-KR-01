@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import cast
 
 BUY_API_ID = "kt10000"
 ORDER_PATH = "/api/dostk/ordr"
@@ -59,10 +60,11 @@ def classify_order_response(payload: object) -> tuple[bool, str]:
     """Decide acknowledgement without retaining broker identifiers."""
     if not isinstance(payload, dict):
         return False, "RESPONSE_INVALID"
-    code = payload.get("return_code")
+    table = cast("dict[str, object]", payload)
+    code = table.get("return_code")
     if type(code) not in (int, str) or code not in (0, "0"):
         return False, "API_SUCCESS_UNCONFIRMED"
-    order_number = payload.get("ord_no")
+    order_number = table.get("ord_no")
     if not isinstance(order_number, str) or not order_number.strip():
         return False, "ORDER_NUMBER_MISSING"
     return True, "ORDER_ACKED"
