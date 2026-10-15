@@ -29,6 +29,9 @@
 - `CHERRYPULSE_PAPER_APP_KEY`
 - `CHERRYPULSE_PAPER_APP_SECRET`
 
+주의: `KIWOOM_APP_KEY`/`KIWOOM_APP_SECRET` 이름으로는 읽지 않는다.
+다른 프로젝트와 혼용 방지가 목적이며, 두 이름이 모두 있으면 본 문서 이름을 우선한다.
+
 출력 감사 규칙: 모든 도구 보고서는 키·토큰·계좌번호·주문번호 원문을 포함하지
 않는다. 숫자 4자리 이상은 마스킹하고, 검토는 true/false·사유 코드로만 한다.
 테스트는 합성 비밀값이 출력에 없음을 검사한다.
