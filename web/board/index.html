@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="styles.css">
   <script defer src="draft-import.js"></script>
   <script defer src="board-backup.js"></script>
+  <script defer src="log-view.js"></script>
+  <script defer src="buy-preview.js"></script>
   <script defer src="board.js?v=20261012-id-fallback"></script>
 </head>
 <body>
@@ -137,9 +139,25 @@
         </form>
         <p class="hint">저장한 초안은 브라우저에만 보관되며 엔진에는 적용되지 않습니다. 감시·주문을 시작하지 않습니다.</p>
         <div id="buy-pattern-list" class="pattern-list"></div>
+<form id="buy-preview-form" class="stack-form">
+          <label for="buy-preview-price">발동 미리보기 (원, 시세 조회 없음)</label>
+          <input id="buy-preview-price" name="price" type="number" min="0.000001" step="any" placeholder="예: 47000">
+          <button type="submit">미리보기</button>
+        </form>
+        <div id="buy-preview-result" class="pattern-list" role="status" aria-live="polite"></div>
       </section>
     </div>
     <p class="footnote">이 화면은 입력·연결 기능을 확인하는 초안입니다. Windows 엔진의 적용 설정은 연결되지 않았으며, 여기서 주문이 생성되지 않습니다.</p>
+    <section class="panel" aria-labelledby="log-view-heading">
+      <div class="panel-heading"><h2 id="log-view-heading">실측 로그 확인</h2><span>복사 없이 보기</span></div>
+      <p class="hint">바탕화면 날짜 로그 파일을 선택하면 복사 없이 결과만 보여줍니다. 주문을 보내지 않습니다.</p>
+      <form id="log-view-form" class="stack-form">
+        <label for="log-view-file">로그 파일</label>
+        <input id="log-view-file" name="file" type="file" accept=".txt,application/json,text/plain" required>
+        <button type="submit">로그 결과 보기</button>
+      </form>
+      <div id="log-view-result" class="pattern-list" role="status" aria-live="polite"></div>
+    </section>
   </main>
 </body>
 </html>

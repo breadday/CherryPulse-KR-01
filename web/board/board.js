@@ -456,6 +456,72 @@ $("confirm-board-restore").addEventListener("click", () => {
   notice("전체 보드 초안을 복원했습니다. 엔진 적용·감시·주문은 시작되지 않았습니다.");
 });
 
+$("log-view-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const box = $("log-view-result");
+  box.replaceChildren();
+  const file = $("log-view-file").files && $("log-view-file").files[0];
+  if (!file) { notice("로그 파일을 선택하세요."); return; }
+  try {
+    const api = typeof CherryPulseLogView !== "undefined"
+      ? CherryPulseLogView
+      : (typeof globalThis !== "undefined" ? globalThis.CherryPulseLogView : null);
+    const summary = api.parseLogText(await file.text());
+    const card = document.createElement("article"); card.className = "card";
+    const title = document.createElement("div"); title.className = "pattern-title";
+    title.textContent = "실측 요약 · 주문 전송 없음";
+    card.append(title);
+    if (summary.probe) {
+      for (const item of summary.probe.queries) {
+        const line = document.createElement("p"); line.className = "pattern-detail";
+        line.textContent = `${item.api_id}: ${item.complete ? "완료" : "미완료"} · ${item.pages}페이지 · ${item.observed_rows}행 · ${item.reason || "사유 없음"}`;
+        card.append(line);
+      }
+    }
+    if (summary.submit) {
+      const line = document.createElement("p"); line.className = "pattern-detail";
+      line.textContent = summary.submit.acked
+        ? "모의 주문 접수됨."
+        : summary.submit.submitted
+          ? `주문 거절(코드 ${String(summary.submit.broker_code)}) · ${summary.submit.broker_message || summary.submit.reason || "사유 없음"}.`
+          : "미리보기만(전송 없음).";
+      card.append(line);
+    }
+    if (summary.linkage) {
+      const total = Object.values(summary.linkage.row_counts).reduce((a, b) => a + b, 0);
+      const line = document.createElement("p"); line.className = "pattern-detail";
+      line.textContent = total > 0 ? `이력 ${total}행 관측 · ${summary.linkage.reason || ""}.` : `이력 0행 · ${summary.linkage.reason || ""}.`;
+      card.append(line);
+    }
+    box.append(card);
+    notice("로그 요약을 표시했습니다. 주문을 보내지 않았습니다.");
+  } catch {
+    notice("로그를 읽지 못했습니다. 바탕화면 날짜 로그 파일을 확인하세요.");
+  }
+});
+
+$("buy-preview-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const box = $("buy-preview-result");
+  box.replaceChildren();
+  const api = typeof CherryPulseBuyPreview !== "undefined"
+    ? CherryPulseBuyPreview
+    : (typeof globalThis !== "undefined" ? globalThis.CherryPulseBuyPreview : null);
+  if (!api) { notice("미리보기 모듈을 읽지 못했습니다."); return; }
+  const result = api.previewBuy(state.patterns, $("buy-preview-price").value);
+  const card = document.createElement("article"); card.className = "card";
+  const text = document.createElement("p"); text.className = "pattern-detail";
+  if (!result.ok) {
+    text.textContent = "0보다 큰 가격을 입력하세요. 시세를 조회하지 않습니다.";
+  } else if (!result.hits.length) {
+    text.textContent = "발동되는 매수 패턴 초안이 없습니다. 주문을 보내지 않았습니다.";
+  } else {
+    text.textContent = `발동 초안 ${result.hits.length}개: ${result.hits.join(", ")}. 주문을 보내지 않았습니다.`;
+  }
+  card.append(text);
+  box.append(card);
+});
+
 function safeSourceUrl(value) {
   if (!value) return "";
   try {
