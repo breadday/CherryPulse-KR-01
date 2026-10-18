@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-10-14",
+  "updated_on": "2026-10-18",
   "baseline_commit": "1ec7966",
   "branch": "main",
   "orders_enabled": false,
@@ -14,7 +14,7 @@
     "R05": "DEMO_TOOL_OFFLINE_CI_ONLY",
     "R06": "VIRTUAL_ONLY_REST_UNCONNECTED",
     "R07": "TODO",
-    "R08": "TODO"
+    "R08": "BOARD_DRAFT_OVERVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
   },
   "next_action": "정규장 시간에 모의 1주 지정가 재제출·연결 확인 후 Q01 게이트 확정",
   "verification_command": "python tools/verify_rest_migration.py",
@@ -34,7 +34,7 @@
   "software_verification": {
     "windows_ci_pytest": 327,
     "rest_offline_pytest": 145,
-    "board_node_tests": 23,
+    "board_node_tests": 24,
     "virtual_demo": "PASS",
     "new_files_ruff": "PASS",
     "workflow_run": 38548771036,

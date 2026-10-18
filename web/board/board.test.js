@@ -759,3 +759,21 @@ test("full backup round-trips buy patterns with price thresholds", () => {
   };
   assert.deepEqual(parseBoardBackup(serializeBoardBackup(backup)), backup);
 });
+
+test("overview counts draft bindings independently of list filters and updates on archive", () => {
+  const board = boardWithDraft({symbols: [
+    {code: "005930", name: "삼성전자", patternId: "stop"},
+    {code: "000660", name: "SK하이닉스", patternId: "missing"},
+    {code: "005935", name: "삼성전자우", archived: true},
+  ], patterns: [{id: "stop", name: "손절", kind: "PRICE_AT_OR_BELOW", threshold: 100, orderType: "MARKET"}]});
+  assert.equal(board.getElement("overview-active").textContent, "2");
+  assert.equal(board.getElement("overview-linked").textContent, "1");
+  assert.equal(board.getElement("overview-unlinked").textContent, "1");
+  assert.equal(board.getElement("overview-archived").textContent, "1");
+  board.getElement("archived-filter").click();
+  assert.equal(board.getElement("overview-active").textContent, "2");
+  const restore = descendants(board.getElement("symbol-list")).find((item) => item.textContent === "관심 목록으로 복원");
+  restore.click();
+  assert.equal(board.getElement("overview-active").textContent, "3");
+  assert.equal(board.getElement("overview-unlinked").textContent, "2");
+});

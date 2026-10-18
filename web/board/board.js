@@ -73,6 +73,18 @@ function nextPatternVersion(pattern) {
 function render() {
   const activeCount = state.symbols.filter((item) => item.archived !== true).length;
   const archivedCount = state.symbols.length - activeCount;
+  const linkedCount = state.symbols.filter((item) => item.archived !== true &&
+    state.patterns.some((pattern) => pattern.id === item.patternId &&
+      pattern.kind !== "BUY_PRICE_AT_OR_BELOW")).length;
+  $("overview-active").textContent = String(activeCount);
+  $("overview-linked").textContent = String(linkedCount);
+  $("overview-unlinked").textContent = String(activeCount - linkedCount);
+  $("overview-archived").textContent = String(archivedCount);
+  $("overview-next").textContent = activeCount === 0
+    ? "시작하기: 종목 관리에서 외부에서 고른 종목을 추가하세요."
+    : activeCount > linkedCount
+    ? "다음 설정: 종목 카드에서 손절 패턴 초안을 연결하세요."
+    : "초안 연결 완료 · 실제 감시는 엔진 연결·수락 확인 후 가능합니다.";
   const query = $("symbol-search").value.trim().toLowerCase();
   const scopedSymbols = state.symbols.filter((item) =>
     symbolView === "archived" ? item.archived === true : item.archived !== true
