@@ -29,6 +29,7 @@ const linkedPatterns = [
 ];
 test("linked preview checks inclusive boundaries and requires average for ratio stop", () => {
   const symbol = {buyPatternId: "buy", patternId: "stop"};
+  assert.match(previewSymbol(symbol, linkedPatterns, "5e4", "").buy, /^조건 충족/);
   assert.match(previewSymbol(symbol, linkedPatterns, "50000", "").buy, /^조건 충족/);
   assert.equal(previewSymbol(symbol, linkedPatterns, "50000", "").stop, "평균 매수가 입력 필요");
   assert.match(previewSymbol(symbol, linkedPatterns, "48500", "50000").stop, /^조건 충족/);

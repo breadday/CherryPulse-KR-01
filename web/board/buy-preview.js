@@ -31,7 +31,7 @@
 
   function positiveDecimal(value) {
     const text = String(value ?? "").trim();
-    if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(text)) return null;
+    if (!/^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text)) return null;
     const number = Number(text);
     return Number.isFinite(number) && number > 0 ? number : null;
   }
