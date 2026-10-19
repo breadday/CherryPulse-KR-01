@@ -11,7 +11,7 @@
   const BACKUP_FORMAT = "cherrypulse-board-draft";
   const BACKUP_SCHEMA_VERSION = 1;
   const rootFields = new Set(["format", "schemaVersion", "symbols", "patterns"]);
-  const symbolFields = new Set(["code", "name", "source", "note", "patternId", "archived"]);
+  const symbolFields = new Set(["code", "name", "source", "note", "patternId", "buyPatternId", "archived"]);
   const patternFields = new Set([
     "id", "name", "kind", "threshold", "orderType", "patternId", "version", "active",
   ]);
@@ -74,9 +74,11 @@
       }
       validateSource(symbol, path);
       validateOptionalText(symbol, "note", 1000, path);
-      if (Object.hasOwn(symbol, "patternId") &&
-        (typeof symbol.patternId !== "string" || symbol.patternId.length > 128)) {
-        throw new BoardBackupError("BACKUP_FIELD_INVALID", `${path}.patternId`);
+      for (const key of ["patternId", "buyPatternId"]) {
+        if (Object.hasOwn(symbol, key) &&
+          (typeof symbol[key] !== "string" || symbol[key].length > 128)) {
+          throw new BoardBackupError("BACKUP_FIELD_INVALID", `${path}.${key}`);
+        }
       }
       if (Object.hasOwn(symbol, "archived") && typeof symbol.archived !== "boolean") {
         throw new BoardBackupError("BACKUP_FIELD_INVALID", `${path}.archived`);
@@ -155,8 +157,15 @@
     validateSymbols(backup.symbols);
     const patternIds = validatePatterns(backup.patterns);
     for (const [index, symbol] of backup.symbols.entries()) {
-      if (symbol.patternId && !patternIds.has(symbol.patternId)) {
-        throw new BoardBackupError("BACKUP_PATTERN_LINK_MISSING", `symbols[${index}].patternId`);
+      for (const key of ["patternId", "buyPatternId"]) {
+        if (!symbol[key]) continue;
+        if (!patternIds.has(symbol[key])) {
+          throw new BoardBackupError("BACKUP_PATTERN_LINK_MISSING", `symbols[${index}].${key}`);
+        }
+        const pattern = backup.patterns.find((entry) => entry.id === symbol[key]);
+        if ((key === "buyPatternId") !== (pattern.kind === "BUY_PRICE_AT_OR_BELOW")) {
+          throw new BoardBackupError("BACKUP_PATTERN_LINK_KIND", `symbols[${index}].${key}`);
+        }
       }
     }
     return backup;

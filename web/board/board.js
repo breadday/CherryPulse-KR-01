@@ -143,9 +143,12 @@ function render() {
     const linked = state.patterns.find((pattern) => pattern.id === item.patternId && pattern.kind !== "BUY_PRICE_AT_OR_BELOW");
     const rule = document.createElement("p"); rule.className = "card-rule";
     rule.textContent = linked ? `손절: ${linked.name} · v${patternVersion(linked)}${patternIsActive(linked) ? "" : " · 비활성"} · ${detail(linked)}` : "손절 패턴 미연결";
+    const buyLinked = state.patterns.find((pattern) => pattern.id === item.buyPatternId && pattern.kind === "BUY_PRICE_AT_OR_BELOW");
+    const buyRule = document.createElement("p"); buyRule.className = "card-buy-rule";
+    buyRule.textContent = buyLinked ? `매수: ${buyLinked.name} · v${patternVersion(buyLinked)}${patternIsActive(buyLinked) ? "" : " · 비활성"} · ${detail(buyLinked)}` : "매수 패턴 미연결";
     const runtime = document.createElement("p"); runtime.className = "hint";
     runtime.textContent = "현재가 미수신 · 보유량·주문 미조회";
-    card.append(head, rule, runtime);
+    card.append(head, buyRule, rule, runtime);
     if (item.note) {
       const note = document.createElement("p"); note.className = "symbol-note"; note.textContent = item.note;
       body.append(note);
@@ -157,7 +160,7 @@ function render() {
       body.append(source);
     }
     const label = document.createElement("label"); label.textContent = "손절 패턴 초안";
-    const select = document.createElement("select"); select.setAttribute("aria-label", `${item.code} 손절 패턴`);
+    const select = document.createElement("select"); select.id = `stop-link-${item.code}`; label.htmlFor = select.id; select.setAttribute("aria-label", `${item.code} 손절 패턴`);
     const none = document.createElement("option"); none.value = ""; none.textContent = "연결하지 않음"; select.append(none);
     for (const pattern of state.patterns) {
       if (pattern.kind === "BUY_PRICE_AT_OR_BELOW") continue;
@@ -169,11 +172,55 @@ function render() {
     select.value = state.patterns.some((p) => p.id === item.patternId) ? item.patternId : "";
     select.addEventListener("change", () => {
       const selected = select.value;
+      const candidate = state.patterns.find((entry) => entry.id === selected);
+      if (selected && (!candidate || candidate.kind === "BUY_PRICE_AT_OR_BELOW" ||
+          (!patternIsActive(candidate) && selected !== item.patternId))) {
+        select.value = item.patternId || ""; return;
+      }
       if (commitDraft((next) => { next.symbols.find((entry) => entry.code === item.code).patternId = selected; },
         `${item.code}의 초안을 저장했습니다. 엔진에는 적용되지 않았습니다.`)) render();
       else select.value = item.patternId || "";
     });
     body.append(label, select);
+    const buyLabel = document.createElement("label"); buyLabel.textContent = "매수 패턴 초안";
+    const buySelect = document.createElement("select"); buySelect.id = `buy-link-${item.code}`; buyLabel.htmlFor = buySelect.id; buySelect.setAttribute("aria-label", `${item.code} 매수 패턴`);
+    const buyNone = document.createElement("option"); buyNone.value = ""; buyNone.textContent = "연결하지 않음"; buySelect.append(buyNone);
+    for (const pattern of state.patterns.filter((entry) => entry.kind === "BUY_PRICE_AT_OR_BELOW")) {
+      const option = document.createElement("option"); option.value = pattern.id;
+      option.textContent = `${pattern.name} · v${patternVersion(pattern)}${patternIsActive(pattern) ? "" : " · 비활성"} · ${detail(pattern)}`;
+      option.disabled = !patternIsActive(pattern) && item.buyPatternId !== pattern.id;
+      buySelect.append(option);
+    }
+    buySelect.value = buyLinked ? item.buyPatternId : "";
+    buySelect.addEventListener("change", () => {
+      const selected = buySelect.value;
+      const candidate = state.patterns.find((entry) => entry.id === selected);
+      if (selected && (!candidate || candidate.kind !== "BUY_PRICE_AT_OR_BELOW" ||
+          (!patternIsActive(candidate) && selected !== item.buyPatternId))) {
+        buySelect.value = item.buyPatternId || ""; return;
+      }
+      if (commitDraft((next) => { next.symbols.find((entry) => entry.code === item.code).buyPatternId = selected; },
+        `${item.code} 매수 패턴 초안을 저장했습니다. 감시·주문은 시작되지 않았습니다.`)) render();
+      else buySelect.value = item.buyPatternId || "";
+    });
+    body.append(buyLabel, buySelect);
+    const previewForm = document.createElement("form"); previewForm.className = "stack-form symbol-preview";
+    const priceLabel = document.createElement("label"); priceLabel.textContent = "가상 현재가 (원)"; priceLabel.htmlFor = `preview-price-${item.code}`;
+    const priceInput = document.createElement("input"); priceInput.id = priceLabel.htmlFor;
+    priceInput.type = "number"; priceInput.min = "0.000001"; priceInput.step = "any"; priceInput.required = true;
+    const avgLabel = document.createElement("label"); avgLabel.textContent = "가상 평균 매수가 (비율 손절용, 선택)"; avgLabel.htmlFor = `preview-average-${item.code}`;
+    const avgInput = document.createElement("input"); avgInput.id = avgLabel.htmlFor;
+    avgInput.type = "number"; avgInput.min = "0.000001"; avgInput.step = "any";
+    const previewButton = document.createElement("button"); previewButton.type = "submit"; previewButton.textContent = "연결한 조건 미리보기";
+    const previewResult = document.createElement("p"); previewResult.className = "symbol-preview-result";
+    previewResult.setAttribute("role", "status"); previewResult.setAttribute("aria-live", "polite");
+    previewForm.append(priceLabel, priceInput, avgLabel, avgInput, previewButton, previewResult);
+    previewForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const result = CherryPulseBuyPreview.previewSymbol(item, state.patterns, priceInput.value, avgInput.value);
+      previewResult.textContent = result.ok ? `매수: ${result.buy} / 손절: ${result.stop} · ${result.message}` : result.message;
+    });
+    body.append(previewForm);
     const edit = document.createElement("details"); edit.className = "symbol-edit";
     const summary = document.createElement("summary"); summary.textContent = "종목 정보 수정";
     const editForm = document.createElement("form"); editForm.className = "stack-form symbol-edit-form";
@@ -393,6 +440,7 @@ function boardBackupErrorMessage(error) {
     BACKUP_DUPLICATE_PATTERN_VERSION: "같은 패턴 계열에 중복된 버전이 있습니다.",
     BACKUP_THRESHOLD_INVALID: "손절 기준값이 올바르지 않습니다.",
     BACKUP_ORDER_TYPE_INVALID: "손절 주문 방식은 시장가 또는 지정가여야 합니다.",
+    BACKUP_PATTERN_LINK_KIND: "매수·손절 패턴 연결 종류가 일치하지 않습니다.",
     BACKUP_PATTERN_LINK_MISSING: "종목이 연결된 패턴 ID를 백업에서 찾을 수 없습니다.",
   };
   const message = messages[error?.code] || "전체 보드 백업을 검증하지 못했습니다.";

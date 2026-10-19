@@ -106,6 +106,7 @@ function boardWithDraft(draft, options = {}) {
     crypto: options.withoutCrypto ? undefined : {randomUUID: () => `generated-${++sequence}`},
     CherryPulseDraftImport: require("./draft-import.js"),
     CherryPulseBoardBackup: require("./board-backup.js"),
+    CherryPulseBuyPreview: require("./buy-preview.js"),
     URL: TestURL,
     Blob: class {
       constructor(parts, options) {
@@ -798,4 +799,60 @@ test("detail panel preserves its open state after saving and closes with keyboar
   next.dispatch("keydown", {key: "Escape"});
   assert.equal(next.open, false);
   assert.equal(next.children[0].focused, true);
+});
+
+test("symbol buy binding persists separately and preview evaluates only linked patterns without mutations", () => {
+  const draft = {symbols: [{code: "005930", name: "삼성전자", patternId: "stop"}], patterns: [
+    {id: "buy", name: "매수", kind: "BUY_PRICE_AT_OR_BELOW", threshold: "50000", orderType: "LIMIT"},
+    {id: "stop", name: "손절", kind: "AVERAGE_COST_DROP", threshold: "0.03", orderType: "MARKET"},
+  ]};
+  const board = boardWithDraft(draft);
+  let all = descendants(board.getElement("symbol-list"));
+  const buySelect = all.find((element) => element.id === "buy-link-005930");
+  assert.equal(buySelect.children.length, 2);
+  buySelect.value = "buy"; buySelect.dispatch("change");
+  const saved = board.getDraft();
+  assert.equal(saved.symbols[0].patternId, "stop");
+  assert.equal(saved.symbols[0].buyPatternId, "buy");
+  all = descendants(board.getElement("symbol-list"));
+  all.find((element) => element.id === "preview-price-005930").value = "48000";
+  all.find((element) => element.id === "preview-average-005930").value = "50000";
+  all.find((element) => element.className === "stack-form symbol-preview").dispatch("submit");
+  const result = all.find((element) => element.className === "symbol-preview-result").textContent;
+  assert.ok(result.includes("매수: 조건 충족"));
+  assert.ok(result.includes("손절: 조건 충족"));
+  assert.ok(result.includes("주문 없음"));
+  assert.deepEqual(board.getDraft(), saved);
+  const reloaded = boardWithDraft(saved);
+  assert.equal(descendants(reloaded.getElement("symbol-list")).find((element) => element.id === "buy-link-005930").value, "buy");
+});
+
+test("inactive buy patterns cannot gain new bindings and storage failures preserve old linkage", () => {
+  const board = boardWithDraft({symbols: [{code: "005930", name: "삼성전자"}], patterns: [
+    {id: "off", name: "꺼짐", kind: "BUY_PRICE_AT_OR_BELOW", threshold: "100", orderType: "LIMIT", active: false},
+    {id: "on", name: "켜짐", kind: "BUY_PRICE_AT_OR_BELOW", threshold: "100", orderType: "LIMIT"},
+  ]});
+  const select = descendants(board.getElement("symbol-list")).find((element) => element.id === "buy-link-005930");
+  select.value = "off"; select.dispatch("change");
+  assert.equal(board.getDraft().symbols[0].buyPatternId, undefined);
+  board.setStorageFailure(true); select.value = "on"; select.dispatch("change");
+  assert.equal(board.getDraft().symbols[0].buyPatternId, undefined);
+  assert.equal(select.value, "");
+});
+
+test("backup preserves optional buy linkage, reads legacy drafts and rejects dangling or swapped links", () => {
+  const backup = sampleBoardBackup();
+  assert.equal(parseBoardBackup(JSON.stringify(backup)).symbols[0].buyPatternId, undefined);
+  backup.patterns.push({id: "buy", name: "매수", kind: "BUY_PRICE_AT_OR_BELOW", threshold: "100", orderType: "LIMIT"});
+  backup.symbols[0].buyPatternId = "buy";
+  const parsed = parseBoardBackup(serializeBoardBackup(backup));
+  assert.equal(parsed.symbols[0].buyPatternId, "buy");
+  for (const [key, value, code] of [
+    ["buyPatternId", "missing", "BACKUP_PATTERN_LINK_MISSING"],
+    ["buyPatternId", "stop-v1", "BACKUP_PATTERN_LINK_KIND"],
+    ["patternId", "buy", "BACKUP_PATTERN_LINK_KIND"],
+  ]) {
+    const invalid = JSON.parse(JSON.stringify(backup)); invalid.symbols[0][key] = value;
+    assert.throws(() => parseBoardBackup(JSON.stringify(invalid)), (error) => error.code === code);
+  }
 });
