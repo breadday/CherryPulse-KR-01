@@ -80,6 +80,10 @@
           throw new BoardBackupError("BACKUP_FIELD_INVALID", `${path}.${key}`);
         }
       }
+      if (Object.hasOwn(symbol, "buyPatternId") &&
+        (typeof symbol.buyPatternId !== "string" || symbol.buyPatternId.length > 128)) {
+        throw new BoardBackupError("BACKUP_FIELD_INVALID", `${path}.buyPatternId`);
+      }
       if (Object.hasOwn(symbol, "archived") && typeof symbol.archived !== "boolean") {
         throw new BoardBackupError("BACKUP_FIELD_INVALID", `${path}.archived`);
       }
@@ -166,6 +170,9 @@
         if ((key === "buyPatternId") !== (pattern.kind === "BUY_PRICE_AT_OR_BELOW")) {
           throw new BoardBackupError("BACKUP_PATTERN_LINK_KIND", `symbols[${index}].${key}`);
         }
+      }
+      if (symbol.buyPatternId && !patternIds.has(symbol.buyPatternId)) {
+        throw new BoardBackupError("BACKUP_PATTERN_LINK_MISSING", `symbols[${index}].buyPatternId`);
       }
     }
     return backup;

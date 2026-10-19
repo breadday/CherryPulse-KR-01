@@ -74,6 +74,8 @@ function render() {
   const openedCode = state.symbols.find((item) => $("drawer-" + item.code)?.open)?.code;
   const activeCount = state.symbols.filter((item) => item.archived !== true).length;
   const archivedCount = state.symbols.length - activeCount;
+  if (document.getElementById("draft-count")) $("draft-count").textContent = String(activeCount);
+  if (document.getElementById("draft-archived-count")) $("draft-archived-count").textContent = String(archivedCount);
   const linkedCount = state.symbols.filter((item) => item.archived !== true &&
     state.patterns.some((pattern) => pattern.id === item.patternId &&
       pattern.kind !== "BUY_PRICE_AT_OR_BELOW")).length;
