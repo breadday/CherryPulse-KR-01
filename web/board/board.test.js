@@ -48,6 +48,7 @@ class Element {
       await callback({target: this, currentTarget: this, preventDefault() {}, ...event});
     }
   }
+  focus() { this.focused = true; }
   reset() { this.value = ""; }
   click() { this.clicked = true; this.dispatch("click"); }
   remove() {
@@ -85,6 +86,8 @@ function boardWithDraft(draft, options = {}) {
   const document = {
     body: new Element("body"),
     getElementById(id) {
+      const dynamic = [...elements.values()].flatMap((element) => descendants(element)).find((element) => element.id === id);
+      if (dynamic) return dynamic;
       if (!elements.has(id)) elements.set(id, new Element("div", id));
       return elements.get(id);
     },
@@ -776,4 +779,23 @@ test("overview counts draft bindings independently of list filters and updates o
   restore.click();
   assert.equal(board.getElement("overview-active").textContent, "3");
   assert.equal(board.getElement("overview-unlinked").textContent, "2");
+});
+
+test("detail panel preserves its open state after saving and closes with keyboard focus restored", () => {
+  const board = boardWithDraft({symbols: [{code: "005930", name: "삼성전자", patternId: ""}], patterns: [
+    {id: "stop", name: "손절", kind: "PRICE_AT_OR_BELOW", threshold: 100, orderType: "MARKET"},
+  ]});
+  const list = board.getElement("symbol-list");
+  const drawer = descendants(list).find((element) => element.className === "symbol-drawer");
+  drawer.open = true;
+  const select = descendants(drawer).find((element) => element.tagName === "select");
+  select.value = "stop";
+  select.dispatch("change");
+  assert.equal(board.getDraft().symbols[0].patternId, "stop");
+  const next = descendants(list).find((element) => element.className === "symbol-drawer");
+  assert.equal(next.open, true);
+  assert.ok(descendants(list).some((element) => element.className === "card-rule" && element.textContent.includes("손절: 손절")));
+  next.dispatch("keydown", {key: "Escape"});
+  assert.equal(next.open, false);
+  assert.equal(next.children[0].focused, true);
 });
