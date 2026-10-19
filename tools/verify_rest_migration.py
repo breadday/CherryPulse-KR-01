@@ -45,7 +45,13 @@ def main() -> int:
                 for path in sorted((ROOT / "adapters").glob("kiwoom_rest*.py"))
             ],
         ],
-        ["node", "--test", "web/board/board.test.js"],
+        [
+            "node",
+            "--test",
+            "web/board/board.test.js",
+            "web/board/buy-preview.test.js",
+            "web/board/log-view.test.js",
+        ],
         ["git", "diff", "--check"],
     ]
     results: list[dict[str, object]] = []

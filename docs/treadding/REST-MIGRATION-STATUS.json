@@ -14,7 +14,7 @@
     "R05": "DEMO_TOOL_OFFLINE_CI_ONLY",
     "R06": "VIRTUAL_ONLY_REST_UNCONNECTED",
     "R07": "TODO",
-    "R08": "BOARD_DRAFT_LAYOUT_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
+    "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
   },
   "next_action": "정규장 시간에 모의 1주 지정가 재제출·연결 확인 후 Q01 게이트 확정",
   "verification_command": "python tools/verify_rest_migration.py",
@@ -34,11 +34,11 @@
   "software_verification": {
     "windows_ci_pytest": 327,
     "rest_offline_pytest": 145,
-    "board_node_tests": 25,
+    "board_node_tests": 28,
     "virtual_demo": "PASS",
     "new_files_ruff": "PASS",
     "workflow_run": 38548771036,
     "rest_production_type_errors": 0,
-    "web_node_tests": 29
+    "web_node_tests": 35
   }
 }
