@@ -125,3 +125,4 @@ PC 확인: 최신 main을 pull하고 http://localhost:8080/ 에서 강력 새로
 
 `git fetch origin` 후 origin/main의 PR #12 병합 커밋 `f4fde1d`를 확인했다. 로컬 보드 변경은 한글 커밋으로 보존하고 해당 main 위에 재배치했다. 종목 상세 drawer, 종목별 매수·손절 연결, 조건 미리보기는 원격 구현을 사용하며, 초안 모드 경고 바·등록/보관 건수·모바일 상태 탭만 추가했다. 주문 활성화와 엔진 연결은 없다.
 검사: `node --test web/board/*.test.js` 35개 통과, 두 변경 JS 파일 `node --check` 통과, `git diff --check` 통과. REST 검증은 실행 호스트에 Python 3이 설치되지 않아 미실행이다. 화면 렌더링·모바일 실기기 확인은 대기 중이다. R04 상태 및 주문 OFF를 유지한다.
+push 커밋 `3f30ba0`의 GitHub Actions run `39259426413` 성공. 로컬 Python 3 부재로 REST 오프라인 스크립트는 로컬 미실행이며 CI에서 검증했다.
