@@ -39,6 +39,10 @@
     "new_files_ruff": "PASS",
     "workflow_run": 38548771036,
     "rest_production_type_errors": 0,
-    "web_node_tests": 35
+    "web_node_tests": 35,
+    "local_board_followup_commit": "21d7775",
+    "local_board_followup_node_tests": 35,
+    "rest_offline_followup": "NOT_RUN_PYTHON_3_UNAVAILABLE",
+    "browser_visual_acceptance": "PENDING"
   }
 }
