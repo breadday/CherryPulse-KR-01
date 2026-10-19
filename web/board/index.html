@@ -9,7 +9,7 @@
   <script defer src="board-backup.js"></script>
   <script defer src="log-view.js"></script>
   <script defer src="buy-preview.js"></script>
-  <script defer src="board.js?v=20261012-id-fallback"></script>
+  <script defer src="board.js?v=20261019-layout"></script>
 </head>
 <body>
   <header class="topbar">
@@ -26,8 +26,8 @@
       <div class="engine-state"><span class="state-dot" aria-hidden="true"></span><strong>엔진 미연결</strong><span>감시·주문 비활성</span></div>
     </section>
     <nav class="board-nav" aria-label="보드 메뉴">
-      <a href="#overview">운영 현황</a><a href="#symbols-heading">종목 관리</a>
-      <a href="#patterns-heading">손절 패턴</a><a href="#entry-patterns-heading">매수 패턴</a>
+      <a href="#symbols-heading">메인 보드</a><a href="#overview">운영 현황</a>
+      <a href="#patterns-heading">손절 패턴</a><a href="#entry-patterns-heading">매수 패턴</a><a href="#log-view-heading">실측 로그</a>
     </nav>
     <section id="overview" class="overview" aria-labelledby="overview-heading">
       <h2 id="overview-heading">설정 현황 <span class="badge">브라우저 초안</span></h2>
@@ -46,9 +46,9 @@
     </section>
     <div id="notice" role="status" aria-live="polite"></div>
     <div class="columns">
-      <section class="panel" aria-labelledby="symbols-heading">
+      <section class="panel trading-board" aria-labelledby="symbols-heading">
         <div class="panel-heading symbol-heading">
-          <div><h2 id="symbols-heading">관심종목</h2><span id="symbol-count">0개 관심 · 0개 보관</span></div>
+          <div><h2 id="symbols-heading">종목 보드</h2><span id="symbol-count">0개 관심 · 0개 보관</span></div>
           <div class="symbol-filters" role="group" aria-label="종목 목록 보기">
             <button id="active-filter" class="filter-button" type="button" aria-pressed="true" aria-controls="symbol-list">관심</button>
             <button id="archived-filter" class="filter-button" type="button" aria-pressed="false" aria-controls="symbol-list">보관</button>
@@ -56,6 +56,8 @@
         </div>
         <label class="symbol-search-label" for="symbol-search">종목 검색</label>
         <input id="symbol-search" class="symbol-search" type="search" placeholder="종목명·코드·링크·메모 검색" aria-controls="symbol-list" autocomplete="off">
+        <details id="symbol-registration" class="registration">
+          <summary>＋ 종목 등록</summary>
         <form id="symbol-form" class="stack-form">
           <label for="symbol-name">종목명</label>
           <input id="symbol-name" name="name" maxlength="100" placeholder="직접 입력" required>
@@ -67,6 +69,22 @@
           <textarea id="symbol-note" name="note" maxlength="1000" rows="3" placeholder="등록 이유나 참고 내용을 적어 두세요."></textarea>
           <button type="submit">종목 추가</button>
         </form>
+        </details>
+        <div class="board-lanes">
+          <section class="draft-lane" aria-labelledby="draft-lane-heading">
+            <h3 id="draft-lane-heading">등록·설정 / 보관 <span class="badge">초안</span></h3>
+            <p class="hint">상세·설정에서 종목 정보와 손절 패턴을 관리하세요.</p>
+            <div id="symbol-list" class="symbol-list"></div>
+          </section>
+          <section class="pending-lane" aria-labelledby="runtime-lane-heading">
+            <h3 id="runtime-lane-heading">실행 상태</h3>
+            <p class="hint">엔진 연결 후 실제 상태를 표시합니다.</p>
+            <ul><li>매수 감시 <span>미조회</span></li><li>매수 주문 중 <span>미조회</span></li><li>보유·매도 감시 <span>미조회</span></li><li>매도 주문 중 <span>미조회</span></li><li>종료 <span>미조회</span></li></ul>
+            <p class="hint">초안 저장만으로 감시가 시작되지 않습니다.</p>
+          </section>
+        </div>
+        <details class="data-tools">
+          <summary>가져오기·내보내기·백업</summary>
         <details class="bulk-import">
           <summary>JSON/CSV에서 종목 초안 가져오기</summary>
           <form id="bulk-import-form" class="stack-form">
@@ -101,7 +119,7 @@
             </div>
           </section>
         </details>
-        <div id="symbol-list" class="symbol-list"></div>
+        </details>
       </section>
       <section class="panel" aria-labelledby="patterns-heading">
         <div class="panel-heading"><h2 id="patterns-heading">손절 패턴</h2><span>초안 · 버전 관리</span></div>

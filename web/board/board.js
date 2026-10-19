@@ -71,6 +71,7 @@ function nextPatternVersion(pattern) {
     .reduce((highest, item) => Math.max(highest, patternVersion(item)), 0) + 1;
 }
 function render() {
+  const openedCode = state.symbols.find((item) => $("drawer-" + item.code)?.open)?.code;
   const activeCount = state.symbols.filter((item) => item.archived !== true).length;
   const archivedCount = state.symbols.length - activeCount;
   const linkedCount = state.symbols.filter((item) => item.archived !== true &&
@@ -123,17 +124,37 @@ function render() {
     const badge = document.createElement("span"); badge.className = "badge";
     badge.textContent = item.archived === true ? "보관 · 미적용" : "미적용";
     head.append(identity, badge);
+    const drawer = document.createElement("details"); drawer.className = "symbol-drawer";
+    drawer.id = "drawer-" + item.code;
+    const opener = document.createElement("summary"); opener.textContent = "상세·설정";
+    opener.setAttribute("aria-label", `${item.name || item.code} 상세·설정`);
+    const body = document.createElement("section"); body.className = "drawer-body";
+    body.setAttribute("aria-label", `${item.code} 종목 상세 설정`);
+    const drawerTitle = document.createElement("h3"); drawerTitle.textContent = `${item.name || "종목"} · ${item.code}`;
+    const close = document.createElement("button"); close.type = "button";
+    close.className = "drawer-close"; close.textContent = "닫기";
+    close.addEventListener("click", () => { drawer.open = false; opener.focus(); });
+    drawer.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") { drawer.open = false; opener.focus(); }
+    });
+    const draftHint = document.createElement("p"); draftHint.className = "hint";
+    draftHint.textContent = "브라우저 초안 · 엔진 미적용 · 감시·주문 비활성";
+    body.append(close, drawerTitle, draftHint);
+    const linked = state.patterns.find((pattern) => pattern.id === item.patternId && pattern.kind !== "BUY_PRICE_AT_OR_BELOW");
+    const rule = document.createElement("p"); rule.className = "card-rule";
+    rule.textContent = linked ? `손절: ${linked.name} · v${patternVersion(linked)}${patternIsActive(linked) ? "" : " · 비활성"} · ${detail(linked)}` : "손절 패턴 미연결";
+    const runtime = document.createElement("p"); runtime.className = "hint";
+    runtime.textContent = "현재가 미수신 · 보유량·주문 미조회";
+    card.append(head, rule, runtime);
     if (item.note) {
       const note = document.createElement("p"); note.className = "symbol-note"; note.textContent = item.note;
-      card.append(head, note);
-    } else {
-      card.append(head);
+      body.append(note);
     }
     if (safeSourceUrl(item.source)) {
       const source = document.createElement("a"); source.className = "source-link";
       source.href = safeSourceUrl(item.source); source.target = "_blank";
       source.rel = "noopener noreferrer"; source.textContent = "참고 링크 열기";
-      card.append(source);
+      body.append(source);
     }
     const label = document.createElement("label"); label.textContent = "손절 패턴 초안";
     const select = document.createElement("select"); select.setAttribute("aria-label", `${item.code} 손절 패턴`);
@@ -152,7 +173,7 @@ function render() {
         `${item.code}의 초안을 저장했습니다. 엔진에는 적용되지 않았습니다.`)) render();
       else select.value = item.patternId || "";
     });
-    card.append(label, select);
+    body.append(label, select);
     const edit = document.createElement("details"); edit.className = "symbol-edit";
     const summary = document.createElement("summary"); summary.textContent = "종목 정보 수정";
     const editForm = document.createElement("form"); editForm.className = "stack-form symbol-edit-form";
@@ -186,7 +207,7 @@ function render() {
         entry.name = nameValue; entry.source = sourceValue; entry.note = noteValue;
       }, `${item.code}의 종목 정보를 수정했습니다. 엔진에는 적용되지 않았습니다.`)) render();
     });
-    edit.append(summary, editForm); card.append(edit);
+    edit.append(summary, editForm); body.append(edit);
     const archive = document.createElement("button");
     archive.type = "button"; archive.className = "archive-button";
     archive.textContent = item.archived === true ? "관심 목록으로 복원" : "보관";
@@ -195,8 +216,10 @@ function render() {
       if (commitDraft((next) => { next.symbols.find((entry) => entry.code === item.code).archived = archived; },
         archived ? "종목 초안을 보관했습니다. 엔진 상태는 변경되지 않았습니다." : "종목 초안을 관심 목록으로 복원했습니다.")) render();
     });
-    card.append(archive);
+    body.append(archive);
+    drawer.append(opener, body); card.append(drawer);
     symbols.append(card);
+    if (openedCode === item.code) { drawer.open = true; close.focus(); }
   }
   if (!state.patterns.length) {
     const empty = document.createElement("p"); empty.className = "empty";
