@@ -126,3 +126,52 @@ PC 확인: 최신 main을 pull하고 http://localhost:8080/ 에서 강력 새로
 `git fetch origin` 후 origin/main의 PR #12 병합 커밋 `f4fde1d`를 확인했다. 로컬 보드 변경은 한글 커밋으로 보존하고 해당 main 위에 재배치했다. 종목 상세 drawer, 종목별 매수·손절 연결, 조건 미리보기는 원격 구현을 사용하며, 초안 모드 경고 바·등록/보관 건수·모바일 상태 탭만 추가했다. 주문 활성화와 엔진 연결은 없다.
 검사: `node --test web/board/*.test.js` 35개 통과, 두 변경 JS 파일 `node --check` 통과, `git diff --check` 통과. REST 검증은 실행 호스트에 Python 3이 설치되지 않아 미실행이다. 화면 렌더링·모바일 실기기 확인은 대기 중이다. R04 상태 및 주문 OFF를 유지한다.
 push 커밋 `3f30ba0`의 GitHub Actions run `39259426413` 성공. 로컬 Python 3 부재로 REST 오프라인 스크립트는 로컬 미실행이며 CI에서 검증했다.
+
+## 2026-10-19 HERMES TASK 경로 수정 및 게이트 점검
+
+`docs/HERMES-TASK-2026-10-19.md` TASK-1을 반영했다. `AGENTS.md`는 실제
+`docs/treadding/` HANDOFF/STATUS 경로를 가리킨다. 사용자 제공 `check.py`는
+네 루트 레거시 엔진 경로를 활성 필수 파일에서 분리하고, 보관본이 확인되면
+DEPRECATED로 표시한다. 자체 back-import 검사 오탐도 제외했다.
+
+검사: `py check.py` 필수 문서 6개·보관본 4개 확인, 미진행 및 활성 back import
+경고 0건. `tests/test_check_script.py` 1 passed. 전체 Python 회귀 328 passed,
+Node 보드·미리보기·로그 35 passed, `git diff --check` 통과.
+
+`py -3.10-32 tools/verify_rest_migration.py` 실행에서 REST 테스트 145개,
+Ruff/format, Node 35개, diff 검사는 통과했다. `basedpyright` 미설치로 타입 검사
+항목이 실패해 verifier 전체 `passed:false`다. 이는 실제 계좌 검증이 아니다.
+R04는 `LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED`, R08은
+`BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING`으로 유지한다.
+`known_baseline`의 기존 Ruff 47 / basedpyright 108은 유지했다.
+
+TASK-2의 모의계좌 조회·장중 WebSocket·1주 지정가 제출 및 주문 연결은 정규장
+밖에서 실행하지 않았다. TASK-3은 `/boards`, `/items`, `/patterns` 서버 라우트와
+CRUD 인증/요청/응답 계약이 저장소에 없어 구현 차단; 주문 실행 계약을 웹 API
+계약으로 추정하지 않았다. TASK-4 물리 iOS/Android 6/6은 실기기 접근이 없어
+pending 유지. 근거와 재개 조건은 `HERMES-TASK-2026-10-19-RESULT.md`에 기록했다.
+
+## 2026-10-20 오프라인 검증 6/6 통과 — verifier 타입검사 진입점 수정
+
+이전 세션의 `rest_offline_followup: PARTIAL_BASEDPYRIGHT_NOT_INSTALLED` 원인은
+basedpyright 미설치가 아니라 호출 방식이었다. `python -m basedpyright`는
+nodejs-wheel 의존성을 요구하고 32비트 엔진 Python(3.10.8 32bit)에서는 빌드가
+실패한다. `docs/DEVELOPMENT-ENVIRONMENT.md`가 정한 진입점은
+`node .tools/typecheck/basedpyright/index.js --pythonpath <엔진Python>`이며
+`.tools/typecheck`에 basedpyright 1.40.1을 재설치한 뒤 이 경로로 실행하면
+어댑터 9개 파일 기준 0 errors다.
+
+`tools/verify_rest_migration.py`의 타입검사 명령을 이 환경에 맞게 수정했다:
+`.tools/typecheck/basedpyright/index.js`가 있으면 node 진입점, 없으면(CI 등
+pip 설치 환경) 기존 `-m basedpyright`로 폴백한다. 명령 목록을 모듈 레벨
+`CHECKS`로 추출해 고정 검사 6종이 드러나고, 보고서 조립은 `build_report`로
+분리했다. `CHERRYPULSE_ENGINE_PYTHON` 환경변수로 --pythonpath를 지정할 수 있다.
+
+검사(TDD): `tests/rest/test_verify_runner.py` 신규 5종 — RED(구현 전 5 failed)
+확인 후 GREEN. 전체 오프라인 verifier `python tools/verify_rest_migration.py`
+**exit 0, 6/6 OK**(REST pytest 150, ruff check/format, basedpyright node 진입점,
+Node 보드 35, git diff --check). 전체 회귀 `pytest -q` **333 passed**
+(기존 328 + 신규 5). `results/rest-migration-verification.json` 갱신.
+
+R04 실증 대기는 유지: 실제 계좌·주문·WebSocket은 호출하지 않았다. 다음 행동은
+정규장 시간(09:00~15:20 KST)에 지정 PC에서 모의 조회·수신·1주 지정가 실증이다.

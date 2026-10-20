@@ -9,12 +9,15 @@ Kiwoom, reads credentials, opens an operating ledger, or sends orders.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+LOCAL_TYPECHECK_ENTRY = ROOT / ".tools" / "typecheck" / "basedpyright" / "index.js"
+ENGINE_PYTHON = Path(os.environ.get("CHERRYPULSE_ENGINE_PYTHON", sys.executable))
 FILES = [
     *[
         str(path.relative_to(ROOT))
@@ -30,32 +33,61 @@ FILES = [
 ]
 
 
+def typecheck_command(
+    *, local_entry: Path = LOCAL_TYPECHECK_ENTRY, python: Path = ENGINE_PYTHON
+) -> list[str]:
+    """Build the basedpyright check command for this environment.
+
+    The 32-bit engine Python cannot build basedpyright's nodejs-wheel
+    dependency, so docs/DEVELOPMENT-ENVIRONMENT.md pins the node CLI
+    entrypoint installed under .tools/typecheck. CI installs basedpyright
+    via pip instead and has no .tools directory: fall back to ``-m`` there.
+    """
+    adapters = [
+        str(path.relative_to(ROOT))
+        for path in sorted((ROOT / "adapters").glob("kiwoom_rest*.py"))
+    ]
+    if local_entry.is_file():
+        return ["node", str(local_entry), "--pythonpath", str(python), *adapters]
+    return [sys.executable, "-m", "basedpyright", *adapters]
+
+
+def build_report(
+    *, checked_at: str, python: str, results: list[dict[str, object]]
+) -> dict[str, object]:
+    """Assemble the schema-version-1 verification report payload."""
+    return {
+        "schema_version": 1,
+        "checked_at": checked_at,
+        "python": python,
+        "checks": results,
+        "scope": "offline REST boundary and board only",
+        "broker_verified": False,
+        "windows_engine_verified": False,
+        "passed": all(item["exit_code"] == 0 for item in results),
+    }
+
+
+CHECKS = [
+    [sys.executable, "-m", "pytest", "--confcutdir=tests/rest", "tests/rest", "-q"],
+    [sys.executable, "-m", "ruff", "check", *FILES],
+    [sys.executable, "-m", "ruff", "format", "--check", *FILES],
+    typecheck_command(),
+    [
+        "node",
+        "--test",
+        "web/board/board.test.js",
+        "web/board/buy-preview.test.js",
+        "web/board/log-view.test.js",
+    ],
+    ["git", "diff", "--check"],
+]
+
+
 def main() -> int:
     """Keep failures visible and leave a report even when a tool is unavailable."""
-    checks = [
-        [sys.executable, "-m", "pytest", "--confcutdir=tests/rest", "tests/rest", "-q"],
-        [sys.executable, "-m", "ruff", "check", *FILES],
-        [sys.executable, "-m", "ruff", "format", "--check", *FILES],
-        [
-            sys.executable,
-            "-m",
-            "basedpyright",
-            *[
-                str(path.relative_to(ROOT))
-                for path in sorted((ROOT / "adapters").glob("kiwoom_rest*.py"))
-            ],
-        ],
-        [
-            "node",
-            "--test",
-            "web/board/board.test.js",
-            "web/board/buy-preview.test.js",
-            "web/board/log-view.test.js",
-        ],
-        ["git", "diff", "--check"],
-    ]
     results: list[dict[str, object]] = []
-    for command in checks:
+    for command in CHECKS:
         try:
             result = subprocess.run(  # noqa: S603 -- Fixed offline command list.
                 command,
@@ -79,16 +111,11 @@ def main() -> int:
                 "stderr": type(exc).__name__,
             }
         results.append(item)
-    report = {
-        "schema_version": 1,
-        "checked_at": datetime.now(timezone.utc).isoformat(),
-        "python": sys.version,
-        "checks": results,
-        "scope": "offline REST boundary and board only",
-        "broker_verified": False,
-        "windows_engine_verified": False,
-        "passed": all(item["exit_code"] == 0 for item in results),
-    }
+    report = build_report(
+        checked_at=datetime.now(timezone.utc).isoformat(),
+        python=sys.version,
+        results=results,
+    )
     destination = ROOT / "results" / "rest-migration-verification.json"
     destination.parent.mkdir(exist_ok=True)
     temporary = destination.with_suffix(".tmp")
