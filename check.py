@@ -1,4 +1,5 @@
-import pathlib, json
+import pathlib, json, sys
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 root = pathlib.Path(".")
 print("=== CherryPulse-KR-01 진행 체크 ===\n")
 

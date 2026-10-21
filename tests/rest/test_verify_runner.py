@@ -10,6 +10,10 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 VERIFIER = ROOT / "tools" / "verify_rest_migration.py"
@@ -62,6 +66,34 @@ def test_typecheck_targets_rest_adapter_files() -> None:
     adapters = sorted((ROOT / "adapters").glob("kiwoom_rest*.py"))
     for adapter in adapters:
         assert str(adapter.relative_to(ROOT)) in command
+
+
+def test_runner_reads_child_output_as_utf8(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Child tools emit UTF-8; the reader must not use the locale codec.
+
+    On cp949 consoles the default text decoding crashed the reader thread and
+    silently dropped node test output from the saved evidence report.
+    """
+    seen: dict[str, object] = {}
+
+    class FakeCompleted:
+        returncode = 0
+        stdout = "utf8:예시"
+        stderr = ""
+
+    def fake_run(command: list[str], **kwargs: object) -> FakeCompleted:
+        seen["kwargs"] = kwargs
+        return FakeCompleted()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    assert module.main() == 0
+    kwargs = seen["kwargs"]
+    assert kwargs["encoding"] == "utf-8"
+    assert kwargs["errors"] == "replace"
+    assert (tmp_path / "results" / "rest-migration-verification.json").is_file()
 
 
 def test_saved_report_schema_stays_backward_compatible() -> None:

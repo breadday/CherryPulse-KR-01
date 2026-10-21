@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-10-19",
+  "updated_on": "2026-10-21",
   "baseline_commit": "1ec7966",
   "branch": "main",
   "orders_enabled": false,
@@ -16,7 +16,11 @@
     "R07": "TODO",
     "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
   },
-  "next_action": "정규장(09:00~15:20)에 지정 PC에서 모의 계좌 조회·WebSocket 수신·1주 지정가 제출 실증 후 R04 확정",
+  "next_action": "정규장(09:00~15:20)에 지정 PC에서 docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md 순서대로 모의 계좌 조회·WebSocket 수신·1주 지정가 제출 실증, 증거 기록 후 R04 확정",
+  "checklists": {
+    "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
+    "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md"
+  },
   "verification_command": "python tools/verify_rest_migration.py",
   "known_baseline": {
     "ruff_errors": 47,

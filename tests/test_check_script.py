@@ -13,6 +13,8 @@ def test_checker_does_not_treat_its_own_guard_strings_as_back_imports() -> None:
         cwd=root,
         capture_output=True,
         check=True,
+        encoding="utf-8",
+        errors="replace",
         text=True,
     )
 

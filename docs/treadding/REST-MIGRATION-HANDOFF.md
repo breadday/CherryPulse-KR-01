@@ -175,3 +175,32 @@ Node 보드 35, git diff --check). 전체 회귀 `pytest -q` **333 passed**
 
 R04 실증 대기는 유지: 실제 계좌·주문·WebSocket은 호출하지 않았다. 다음 행동은
 정규장 시간(09:00~15:20 KST)에 지정 PC에서 모의 조회·수신·1주 지정가 실증이다.
+
+## 2026-10-21 실증·수락 체크리스트 준비
+
+정규장 실증(R04/R05)과 보드 시각 수락을 사용자 PC에서 흩어진 문서를 다시
+찾지 않고 실행하도록 두 체크리스트를 만들었다. 상태 변경·주문 전송은 없다.
+
+- `docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md`: 사전 준비물,
+  예열·R04 읽기 5건·R05 1주 지정가·WebSocket·이력 연결 확인 5단계 명령과
+  exit code 판정, 상태 갱신 조건, 증거 기록 양식. 거절 코드 20 재제출,
+  UNKNOWN 재시도 금지 등 장애 대응을 포함한다.
+- `docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md`: 기존 6항목 회귀
+  확인 + 카드·상세 패널·패턴 연결·미리보기·경고 바 등 현재 보드 13항목과
+  D02 기록 양식.
+
+`STATUS.json`에는 `checklists` 포인터와 장 중 실증 문구로 바꾼
+`next_action`만 반영했다. 다음 행동은 정규장 중 체크리스트 실행 →
+증거 문서 기록 → 증거와 일치하게 상태 갱신이다. R04
+`LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED`, R05 실증 대기,
+`can_reconcile=false`, 주문 OFF는 유지한다.
+
+검증 중 `verify_rest_migration.py`와 `tests/test_check_script.py`의
+subprocess가 Windows 로케일(cp949)로 디코드해 보드 Node 테스트 출력이 유실되고,
+`check.py`는 cp949 콘솔에서 ✅·한글 출력 시 UnicodeEncodeError로 종료됐다.
+두 subprocess 호출을 `encoding="utf-8", errors="replace"`로 고정하고
+`check.py`는 stdout을 UTF-8로 재구성했다.
+검사: REST pytest 151 passed(신규 러너 UTF-8 테스트 포함), ruff check/format,
+basedpyright 0 errors, 보드 Node 35 passed(explicit stdout 회복 확인),
+전체 회귀 334 passed, `py check.py` 통과, verifier exit 0 6/6 OK,
+`git diff --check` 통과. 실제 계좌·주문·WebSocket 호출은 없다.
