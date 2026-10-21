@@ -6,14 +6,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 
 from adapters.kiwoom_rest_auth import (
-    PaperCredentials,
     PaperTokenCache,
     PaperTokenIssuer,
     RequestPacer,
+    paper_credentials_from_env,
 )
 from adapters.kiwoom_rest_readonly import ROW_KEYS, RestQuery, capture_query
 from adapters.kiwoom_rest_transport import PaperReadOnlyTransport
@@ -46,10 +45,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     try:
-        credentials = PaperCredentials(
-            os.environ.get("CHERRYPULSE_PAPER_APP_KEY", ""),
-            os.environ.get("CHERRYPULSE_PAPER_APP_SECRET", ""),
-        )
+        credentials = paper_credentials_from_env()
         pacer = RequestPacer()
         issuer = PaperTokenIssuer(pacer)
         cache = PaperTokenCache(credentials, issuer.issue)

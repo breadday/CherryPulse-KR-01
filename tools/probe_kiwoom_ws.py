@@ -6,15 +6,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from dataclasses import asdict
 
 from adapters.kiwoom_rest_auth import (
-    PaperCredentials,
     PaperTokenCache,
     PaperTokenIssuer,
     RequestPacer,
+    paper_credentials_from_env,
 )
 from adapters.kiwoom_rest_stream import QuoteStreamState
 from adapters.kiwoom_rest_ws import capture_stream
@@ -46,10 +45,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("symbol is required for execution")
     try:
         _ = QuoteStreamState((args.symbol,))
-        credentials = PaperCredentials(
-            os.environ.get("CHERRYPULSE_PAPER_APP_KEY", ""),
-            os.environ.get("CHERRYPULSE_PAPER_APP_SECRET", ""),
-        )
+        credentials = paper_credentials_from_env()
         pacer = RequestPacer()
         cache = PaperTokenCache(credentials, PaperTokenIssuer(pacer).issue)
         result = capture_stream(

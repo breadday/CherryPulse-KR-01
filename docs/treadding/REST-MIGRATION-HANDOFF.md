@@ -209,3 +209,22 @@ CI 기록: 현행 main이던 0f26041은 GitHub Actions Windows 러너에서
 `check.py`가 exit 1로 run `39509273141` failure였고 인계서에 미기록이었다.
 7844f93의 UTF-8 고정으로 run `39605264706`가 offline-rest·windows-engine
 전부 success로 복구했다. 러너 알림은 Node 20 deprecated 경고뿐이다.
+
+## 2026-10-21 키움 키 환경변수 폴백과 실증 준비 상태
+
+사용자가 키움 모의 키를 환경변수 `KIWOOM_APP_KEY`/`KIWOOM_APP_SECRET`에 등록했다.
+도구는 이제 `CHERRYPULSE_PAPER_APP_KEY`/`SECRET` → `KIWOOM_APP_KEY`/`SECRET`
+순으로 읽는다(`adapters/kiwoom_rest_auth.py`의 `paper_credentials_from_env`).
+네 도구(probe_rest, probe_ws, submit_paper_buy, verify_paper_linkage)를 이
+헬퍼로 교체했고 키 값을 묻거나 출력하지 않는다.
+
+지정 PC 준비물 확인(22:10경): `py -3.10-32` 3.10.8 32bit, 네 환경변수 존재
+(True만 확인), 예열 `py -3.10-32 -m tools.probe_kiwoom_rest` exit 0.
+기존 센티널(paper-buy-1016~1021)은 당일 날짜만 막으므로 내일 제출을
+막지 않는다. 미해결 준비물: HTS(영웅문) 접속, 정규장 시간.
+
+검증·검사: `verify_rest_migration.py`의 cp949 콘솔 출력 오류
+(\u2714 유실)를 check.py와 같이 stdout UTF-8 reconfigure로 고정했다.
+verifier 6/6 exit 0, REST pytest 153, 전체 회귀 336 passed(신규 폴백 2종 포함),
+`git diff --check` 통과. 실제 계좌·주문·WebSocket 호출은 없다.
+R04 `LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED`, R05 실증 대기, 주문 OFF 유지.

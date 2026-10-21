@@ -19,11 +19,45 @@ def test_missing_keys_fails_without_echo(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.delenv("CHERRYPULSE_PAPER_APP_KEY", raising=False)
+    monkeypatch.delenv("KIWOOM_APP_KEY", raising=False)
     monkeypatch.setenv("CHERRYPULSE_PAPER_APP_SECRET", "private-secret")
     assert main(["--execute-read-only"]) == 1
     output = capsys.readouterr().out
     assert "private-secret" not in output
     assert "SETUP_OR_AUTH_UNCONFIRMED" in output
+
+
+def test_kiwoom_env_fallback_serves_credentials(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.delenv("CHERRYPULSE_PAPER_APP_KEY", raising=False)
+    monkeypatch.delenv("CHERRYPULSE_PAPER_APP_SECRET", raising=False)
+    monkeypatch.setenv("KIWOOM_APP_KEY", "kiwoom-key")
+    monkeypatch.setenv("KIWOOM_APP_SECRET", "kiwoom-secret")
+
+    def fetch(
+        _self: object,
+        _query: RestQuery,
+        _body: dict[str, str],
+        _cont: str,
+        _cursor: str,
+    ) -> RestPage:
+        return RestPage(
+            {
+                "return_code": 0,
+                "acnt_evlt_remn_indv_tot": [{"acnt_no": "private-account"}],
+                "oso": [],
+            },
+            "N",
+            "",
+        )
+
+    monkeypatch.setattr(
+        "tools.probe_kiwoom_rest.PaperReadOnlyTransport.fetch_page", fetch
+    )
+    assert main(["--execute-read-only"]) == 0
+    output = capsys.readouterr().out
+    assert all(secret not in output for secret in ["kiwoom-key", "kiwoom-secret"])
 
 
 def test_success_reports_counts_without_accounts_or_tokens(

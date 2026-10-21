@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -74,6 +75,17 @@ class PaperCredentials:
             for value in (self.app_key, self.app_secret)
         ):
             raise PaperAuthError("CREDENTIALS_INVALID")
+
+
+def paper_credentials_from_env() -> PaperCredentials:
+    """Read the user-registered paper keys from the environment, never echoing them."""
+    app_key = os.environ.get("CHERRYPULSE_PAPER_APP_KEY") or os.environ.get(
+        "KIWOOM_APP_KEY", ""
+    )
+    app_secret = os.environ.get("CHERRYPULSE_PAPER_APP_SECRET") or os.environ.get(
+        "KIWOOM_APP_SECRET", ""
+    )
+    return PaperCredentials(app_key, app_secret)
 
 
 class NoAuthRedirect(HTTPRedirectHandler):

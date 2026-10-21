@@ -15,9 +15,10 @@
 
 - [ ] 지정 Windows PC이고 `py -3.10-32 -c "import sys; print(sys.version)"`가
       3.10.x 32bit를 출력한다.
-- [ ] 모의 전용 `CHERRYPULSE_PAPER_APP_KEY`/`CHERRYPULSE_PAPER_APP_SECRET`가
-      `setx`로 사용자 환경에 저장돼 있다. 새 셸을 열어 값 출력 없이
-      `[bool]$env:CHERRYPULSE_PAPER_APP_KEY` 등으로 존재만 확인한다.
+- [ ] 모의 전용 키가 사용자 환경변수로 등록돼 있다. 도구는
+      `CHERRYPULSE_PAPER_APP_KEY`/`CHERRYPULSE_PAPER_APP_SECRET`를 먼저 읽고
+      없으면 `KIWOOM_APP_KEY`/`KIWOOM_APP_SECRET`를 폴백으로 읽는다. 새 셸을 열어
+      값 출력 없이 `[bool]$env:KIWOOM_APP_KEY` 등으로 존재만 확인한다.
       파일·명령줄·문서에 키를 두지 않는다.
 - [ ] 모의 계좌와 키움 OpenAPI+ 모의 호스트 접근이 가능하다. 이전 3회 실측과
       달리 이번에는 **주문 1건 뒤에 이력 행을 관찰하는 것이 목적**이다.

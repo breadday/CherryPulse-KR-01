@@ -1,7 +1,9 @@
 """Explicit opt-in paper-only one-share limit buy; never touches live trading.
 
 Default prints a preview without reading keys or network. Submission needs
-``--confirm-execute`` plus ``CHERRYPULSE_PAPER_APP_KEY/SECRET`` in the current
+``--confirm-execute`` plus the user-registered paper keys in the environment
+(``CHERRYPULSE_PAPER_APP_KEY/SECRET``, falling back to ``KIWOOM_APP_KEY/SECRET``)
+in the current
 process only. One dated sentinel under ``results/`` blocks a second submit,
 including after an UNKNOWN transport outcome. Reports never contain tokens,
 account numbers, or broker order numbers.
@@ -14,7 +16,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
 import re
 import sys
 from dataclasses import dataclass
@@ -27,10 +28,10 @@ from typing_extensions import override
 
 from adapters.kiwoom_rest_auth import (
     MAX_RESPONSE_BYTES,
-    PaperCredentials,
     PaperTokenCache,
     PaperTokenIssuer,
     RequestPacer,
+    paper_credentials_from_env,
 )
 from adapters.kiwoom_rest_order import (
     BUY_API_ID,
@@ -187,10 +188,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     try:
-        credentials = PaperCredentials(
-            os.environ.get("CHERRYPULSE_PAPER_APP_KEY", ""),
-            os.environ.get("CHERRYPULSE_PAPER_APP_SECRET", ""),
-        )
+        credentials = paper_credentials_from_env()
         day = datetime.now(KST).strftime("%Y%m%d")
         guard = sentinel_path(ROOT, day)
         if guard.exists():

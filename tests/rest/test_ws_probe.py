@@ -33,6 +33,7 @@ def test_failure_is_sanitized(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.delenv("CHERRYPULSE_PAPER_APP_KEY", raising=False)
+    monkeypatch.delenv("KIWOOM_APP_KEY", raising=False)
     assert main(["005930", "--execute-read-only"]) == 1
     assert "SETUP_OR_STREAM_UNCONFIRMED" in capsys.readouterr().out
 

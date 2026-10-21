@@ -1,5 +1,6 @@
 """Token renewal, secrecy, timing, and issuance contract tests."""
 
+import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
@@ -13,6 +14,7 @@ from adapters.kiwoom_rest_auth import (
     PaperTokenCache,
     PaperTokenIssuer,
     RequestPacer,
+    paper_credentials_from_env,
     parse_token,
 )
 
@@ -40,6 +42,27 @@ def test_credentials_repr_never_exposes_values() -> None:
 def test_invalid_credentials_are_not_echoed(value: str) -> None:
     with pytest.raises(PaperAuthError, match="CREDENTIALS_INVALID"):
         PaperCredentials(value, "private")
+
+
+def test_env_fallback_prefers_cherrypulse_names_then_kiwoom(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("CHERRYPULSE_PAPER_APP_KEY", raising=False)
+    monkeypatch.delenv("CHERRYPULSE_PAPER_APP_SECRET", raising=False)
+    monkeypatch.delenv("KIWOOM_APP_KEY", raising=False)
+    monkeypatch.delenv("KIWOOM_APP_SECRET", raising=False)
+    with pytest.raises(PaperAuthError, match="CREDENTIALS_INVALID"):
+        paper_credentials_from_env()
+    monkeypatch.setenv("KIWOOM_APP_KEY", "fallback-key")
+    monkeypatch.setenv("KIWOOM_APP_SECRET", "fallback-secret")
+    fallback = paper_credentials_from_env()
+    assert fallback.app_key == os.environ["KIWOOM_APP_KEY"]
+    assert fallback.app_secret == os.environ["KIWOOM_APP_SECRET"]
+    monkeypatch.setenv("CHERRYPULSE_PAPER_APP_KEY", "primary-key")
+    monkeypatch.setenv("CHERRYPULSE_PAPER_APP_SECRET", "primary-secret")
+    primary = paper_credentials_from_env()
+    assert primary.app_key == os.environ["CHERRYPULSE_PAPER_APP_KEY"]
+    assert primary.app_secret == os.environ["CHERRYPULSE_PAPER_APP_SECRET"]
 
 
 def test_cache_single_flight_across_threads_and_kst_expiry() -> None:

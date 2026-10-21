@@ -15,6 +15,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_TYPECHECK_ENTRY = ROOT / ".tools" / "typecheck" / "basedpyright" / "index.js"
 ENGINE_PYTHON = Path(os.environ.get("CHERRYPULSE_ENGINE_PYTHON", sys.executable))

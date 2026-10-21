@@ -15,8 +15,7 @@
     "R06": "VIRTUAL_ONLY_REST_UNCONNECTED",
     "R07": "TODO",
     "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
-  },
-  "next_action": "정규장(09:00~15:20)에 지정 PC에서 docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md 순서대로 모의 계좌 조회·WebSocket 수신·1주 지정가 제출 실증, 증거 기록 후 R04 확정",
+  },  "next_action": "정규장(09:00~15:20)에 지정 PC에서 docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md 순서대로 모의 계좌 조회·WebSocket 수신·1주 지정가 제출 실증, 증거 기록 후 R04 확정",
   "checklists": {
     "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
     "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md"
@@ -53,6 +52,10 @@
     "task_2026_10_19_board_node_tests": 35,
     "task_2026_10_19_check_script": "PASS",
     "browser_visual_acceptance": "PENDING",
-    "local_followup_ci": "PASS"
+    "local_followup_ci": "PASS",
+    "rest_offline_pytest": 153,
+    "task_2026_10_21_env_keys": "PAPER_KEY_ENV_FALLBACK_KIWOOM_OR_CHERRYPULSE",
+    "task_2026_10_21_pytest": 336,
+    "task_2026_10_21_verifier_exit0": "PASS_6_6"
   }
 }
