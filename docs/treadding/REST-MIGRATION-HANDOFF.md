@@ -248,3 +248,15 @@ R04 `LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED`, R05 실증 대기, 주문 OFF 유�
 - 운영자(저녁 세션)의 잔여 일: manifest·증가 검토 → 체크리스트 6절 양식으로
   증거 문서 기록 → 상태 JSON 갱신. 무인 상태 갱신은 하지 않는다.
   미체결 주문은 HTS에서 직접 확인·취소한다(자동 취소 도구 없음).
+
+## 2026-10-21 docs 정리 (중복 삭제, 증거 보관)
+
+참조가 전혀 없고 HANDOFF 동일 섹션과 중복인 3개를 삭제했다:
+`docs/treadding/MAIN-BOARD-2026-10-18.md`,
+`docs/treadding/BOARD-PATTERN-PREVIEW-2026-10-19.md`,
+`docs/PROJECT-PROGRESS-AND-GAPS-2026-10-18.md`.
+2026-09-25 키움 로컬 실측 증거 기록은 참조 0건이라
+`docs/archive/KIWOOM-LOCAL-VERIFICATION-RESULT-2026-09-25.md`로 이동 보관했다.
+이동한 문서의 상대 링크는 archive 내부에서 `../` 경계가 필요하나
+해당 문서는 근거 스냅샷으로 중요 링크가 없어 갱신 없이 보관한다.
+나머지 docs는 전부 상호 참조와 check.py 필수 경계라 정리하지 않았다.
