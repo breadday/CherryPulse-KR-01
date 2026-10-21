@@ -204,3 +204,8 @@ subprocess가 Windows 로케일(cp949)로 디코드해 보드 Node 테스트 출
 basedpyright 0 errors, 보드 Node 35 passed(explicit stdout 회복 확인),
 전체 회귀 334 passed, `py check.py` 통과, verifier exit 0 6/6 OK,
 `git diff --check` 통과. 실제 계좌·주문·WebSocket 호출은 없다.
+
+CI 기록: 현행 main이던 0f26041은 GitHub Actions Windows 러너에서
+`check.py`가 exit 1로 run `39509273141` failure였고 인계서에 미기록이었다.
+7844f93의 UTF-8 고정으로 run `39605264706`가 offline-rest·windows-engine
+전부 success로 복구했다. 러너 알림은 Node 20 deprecated 경고뿐이다.
