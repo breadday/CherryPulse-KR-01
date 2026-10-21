@@ -228,3 +228,23 @@ CI 기록: 현행 main이던 0f26041은 GitHub Actions Windows 러너에서
 verifier 6/6 exit 0, REST pytest 153, 전체 회귀 336 passed(신규 폴백 2종 포함),
 `git diff --check` 통과. 실제 계좌·주문·WebSocket 호출은 없다.
 R04 `LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED`, R05 실증 대기, 주문 OFF 유지.
+
+## 2026-10-21 무인 R04/R05 실행 스크립트 (사용자 승인: 방식 A)
+
+사용자 출근으로 지정 PC에서 직접 실행이 불가해 명시적으로 방식 A를 선택했다:
+정규장 중 예약 작업으로 전 5단계 자동 실행. 구현:
+
+- `tools/r045_morning_run.py`: 09:00~15:20 KST 게이트(주말·장 밖은 SKIP) →
+  예열 → 읽기 5건(실패 시 즉시 중단, 주문 없음) → WS 30초 시세 캡처
+  (`--quote-out` 파일 저장, 신선하지 않으면 중단) → 가격 상한 100000 초과 시
+  주문 생략(PARTIAL_PRICE_OVER_CAP) → 1주 지정가 preview+confirm-execute 1회
+  (재시도·취소 없음) → 30초 대기 → 사후 읽기 5건 → linkage 확인.
+  증가(manifest)는 `results/r045-<날짜>/manifest.json`.
+- WS 캡처에 `quote_sink` 콜백 추가(`adapters/kiwoom_rest_ws.py`),
+  `probe_kiwoom_ws --quote-out <path>`에 마지막 시세 기록(가격·시각만).
+- 검사: REST pytest 160, verifier 6/6 exit 0. 실제 호출은 아직 없다.
+- 예약 작업 `CherryPulse-R045-Demo`: 평일 09:30,
+  `scripts/r045-morning-run.cmd`.
+- 운영자(저녁 세션)의 잔여 일: manifest·증가 검토 → 체크리스트 6절 양식으로
+  증거 문서 기록 → 상태 JSON 갱신. 무인 상태 갱신은 하지 않는다.
+  미체결 주문은 HTS에서 직접 확인·취소한다(자동 취소 도구 없음).

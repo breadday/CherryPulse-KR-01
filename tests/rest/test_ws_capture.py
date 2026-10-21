@@ -1,12 +1,14 @@
 """Recording sockets exercise reconnects without credentials or network access."""
 
 import json
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
 
 from adapters.kiwoom_rest_auth import RequestPacer
+from adapters.kiwoom_rest_stream import QuoteObservation
 from adapters.kiwoom_rest_ws import (
     StreamCapture,
     StreamTiming,
@@ -62,7 +64,12 @@ class Socket:
 
 
 def run_capture(
-    clock: Clock, sockets: list[Socket], *, seconds: float = 4, reconnects: int = 2
+    clock: Clock,
+    sockets: list[Socket],
+    *,
+    seconds: float = 4,
+    reconnects: int = 2,
+    quote_sink: Callable[[QuoteObservation], None] | None = None,
 ) -> StreamCapture:
     pending = iter(sockets)
     return capture_stream(
@@ -73,7 +80,22 @@ def run_capture(
         connect=lambda _: next(pending),
         timing=StreamTiming(clock.clock, clock.now),
         pacer=RequestPacer(clock=clock.clock, wait=clock.wait),
+        quote_sink=quote_sink,
     )
+
+
+def test_quote_sink_receives_each_observation_in_order() -> None:
+    clock = Clock()
+    first = Socket(clock, [LOGIN, REG, REAL, OSError("connection lost")])
+    second = Socket(clock, [LOGIN, REG, REAL])
+    received: list[QuoteObservation] = []
+    report = run_capture(clock, [first, second], quote_sink=received.append)
+    prices = [quote.price for quote in received]
+    generations = [quote.generation for quote in received]
+    assert prices == [70000, 70000]
+    assert generations == [1, 2]
+    assert all(quote.symbol == "005930" for quote in received)
+    assert report.quotes_observed == len(received)
 
 
 def test_login_ping_registration_real_and_cleanup() -> None:

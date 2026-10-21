@@ -12,10 +12,18 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Protocol, cast
 
 from adapters.kiwoom_rest_auth import MAX_RESPONSE_BYTES, RequestPacer
-from adapters.kiwoom_rest_stream import QuoteStreamState
+from adapters.kiwoom_rest_stream import QuoteObservation, QuoteStreamState
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+class QuoteSink(Protocol):
+    """Explicit consumer for observations; the stream itself stays stateless."""
+
+    def __call__(self, observation: QuoteObservation) -> None:
+        """Receive one normalized quote observation in order."""
+        ...
 
 
 class QuoteSocket(Protocol):
@@ -110,15 +118,34 @@ class StreamMetrics:
     malformed: int = 0
 
 
+@dataclass(slots=True)
+class PumpRuntime:
+    """Fold the injectable timing, counters, and observation consumer."""
+
+    timing: StreamTiming
+    metrics: StreamMetrics
+    sink: Callable[[QuoteObservation], None] | None
+
+
+def _emit(
+    sink: Callable[[QuoteObservation], None] | None,
+    observations: tuple[QuoteObservation, ...],
+) -> None:
+    """Forward every observation after counting; failures abort the capture."""
+    if sink is None:
+        return
+    for observation in observations:
+        sink(observation)
+
+
 def _pump(
     socket: QuoteSocket,
     state: QuoteStreamState,
     deadline: float,
-    timing: StreamTiming,
-    metrics: StreamMetrics,
+    runtime: PumpRuntime,
 ) -> None:
     """Handle control packets and observations within a single connection."""
-    clock, now = timing.clock, timing.now
+    clock, now = runtime.timing.clock, runtime.timing.now
     phase_deadline = min(deadline, clock() + 10)
     while clock() < deadline:
         if not state.registered and clock() >= phase_deadline:
@@ -130,7 +157,7 @@ def _pump(
         try:
             frame = decode_frame(raw)
         except (ValueError, UnicodeError):
-            metrics.malformed += 1
+            runtime.metrics.malformed += 1
             continue
         if frame == "PING":
             socket.send("PING")
@@ -141,7 +168,8 @@ def _pump(
             continue
         was_logged_in = state.logged_in
         observations = state.consume(cast("object", frame), now())
-        metrics.quotes += len(observations)
+        runtime.metrics.quotes += len(observations)
+        _emit(runtime.sink, observations)
         if not was_logged_in and state.logged_in:
             socket.send(json.dumps(state.registration()))
             phase_deadline = min(deadline, clock() + 10)
@@ -158,6 +186,7 @@ def capture_stream(  # noqa: PLR0913 -- Explicit clocks and transports for offli
     connect: Callable[[float], QuoteSocket] | None = None,
     timing: StreamTiming | None = None,
     pacer: RequestPacer | None = None,
+    quote_sink: Callable[[QuoteObservation], None] | None = None,
 ) -> StreamCapture:
     """Re-login and re-register after transport loss; never preserve live readiness."""
     if not math.isfinite(seconds) or not 0 < seconds <= 120:  # noqa: PLR2004
@@ -167,7 +196,7 @@ def capture_stream(  # noqa: PLR0913 -- Explicit clocks and transports for offli
     state = QuoteStreamState(symbols)
     clocks = timing if timing is not None else StreamTiming()
     clock, now = clocks.clock, clocks.now
-    metrics = StreamMetrics()
+    runtime = PumpRuntime(clocks, StreamMetrics(), quote_sink)
     gate = pacer if pacer is not None else RequestPacer()
 
     def default_connect(limit: float) -> QuoteSocket:
@@ -194,7 +223,7 @@ def capture_stream(  # noqa: PLR0913 -- Explicit clocks and transports for offli
             state.begin()
             connections += 1
             socket.send(json.dumps({"trnm": "LOGIN", "token": access_token}))
-            _pump(socket, state, deadline, clocks, metrics)
+            _pump(socket, state, deadline, runtime)
             reason = state.reason
             fresh = any(
                 state.usable(symbol, now(), max_age_seconds=3) for symbol in symbols
@@ -210,7 +239,9 @@ def capture_stream(  # noqa: PLR0913 -- Explicit clocks and transports for offli
                 reason = "CLOSE_UNCONFIRMED"
                 fresh = False
             state.disconnect()
-    return StreamCapture(connections, metrics.quotes, reason, fresh, metrics.malformed)
+    return StreamCapture(
+        connections, runtime.metrics.quotes, reason, fresh, runtime.metrics.malformed
+    )
 
 
 def close_socket(socket: QuoteSocket | None) -> bool:

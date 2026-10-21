@@ -1,9 +1,29 @@
 """Explicit-only WS probe with sanitized output and no account readiness claims."""
 
+from __future__ import annotations
+
+import json
+from datetime import datetime
+from typing import TYPE_CHECKING
+
 import pytest
 
+from adapters.kiwoom_rest_stream import QuoteObservation
 from adapters.kiwoom_rest_ws import StreamCapture
 from tools.probe_kiwoom_ws import main
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+
+def quote_view() -> QuoteObservation:
+    return QuoteObservation(
+        "005930",  # price and clock are fixture evidence, not market data.
+        70000,
+        "093501",
+        datetime(2026, 10, 22, 0, 35, 1),  # noqa: DTZ001 -- Received-at is unused.
+        1,
+    )
 
 
 def test_default_is_offline(capsys: pytest.CaptureFixture[str]) -> None:
@@ -51,6 +71,34 @@ def test_no_event_is_not_success(
     )
     assert main(["005930", "--execute-read-only"]) == 1
     assert "NO_QUOTE" in capsys.readouterr().out
+
+
+def test_quote_out_writes_last_price_without_secrets(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    observed = quote_view()
+    forbidden_value = "private-token"
+
+    def fake_stream(
+        _token: object, _symbols: object, **kwargs: object
+    ) -> StreamCapture:
+        sink = kwargs.get("quote_sink")
+        if callable(sink):
+            sink(observed)
+        return StreamCapture(
+            1, 1, "QUOTE_OBSERVED", fresh_before_close=True, malformed_frames=0
+        )
+
+    monkeypatch.setenv("CHERRYPULSE_PAPER_APP_KEY", forbidden_value)
+    monkeypatch.setenv("CHERRYPULSE_PAPER_APP_SECRET", forbidden_value)
+    monkeypatch.setattr("tools.probe_kiwoom_ws.capture_stream", fake_stream)
+    destination = tmp_path / "evidence" / "quote.json"
+    assert main(["005930", "--execute-read-only", "--quote-out", str(destination)]) == 0
+    output = capsys.readouterr().out
+    assert '"quote_saved": true' in output
+    assert forbidden_value not in output
+    book = json.loads(destination.read_text(encoding="utf-8"))
+    assert book == {"005930": {"price": 70000, "clock": "093501"}}
 
 
 def test_invalid_symbol_or_duration_prevents_network(
