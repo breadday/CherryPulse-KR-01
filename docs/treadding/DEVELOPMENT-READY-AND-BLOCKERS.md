@@ -17,7 +17,7 @@
 - 2026-10-22 실행은 `PREWARM=0`, `READ_BEFORE=0`, `QUOTE_WS=1`, `ABORTED`; 주문 단계는 호출되지 않았다.
 - `StreamCapture`에 제한된 `failure_stage`(TOKEN/PACING/CONNECT/PROTOCOL/CLOSE)와 `failure_kind`(고정 코드) 추가. setup 단계 실패도 `SETUP`과 안전한 범주만 출력한다.
 - Runner는 허용 목록에 있는 두 필드만 manifest에 보존한다. 예외 메시지, raw frame, stderr, 인증정보는 제외한다.
-- 테스트 우선으로 실패 재현 후 구현했으며 관련 테스트 23개 통과, Ruff check/format 통과. 전체 verifier/CI는 아직 실행 전이다.
+- 테스트 우선으로 실패 재현 후 구현했으며 관련 테스트 23개 통과, Ruff check/format 통과. 전체 verifier는 exit 0 / 6 checks, GitHub PR #14의 `offline-rest`와 `windows-engine` CI도 통과했다.
 - 이 기능은 관측성을 높일 뿐 실제 WebSocket 성공이나 R04/R05 완료를 뜻하지 않는다.
 
 ## 외부 검증이 필요한 미완료 항목

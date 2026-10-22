@@ -218,3 +218,4 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - TDD: 추가 테스트에서 token/connect 실패의 stage/kind 및 민감 메시지 비노출을 먼저 확인해 RED, 구현 후 GREEN.
 - 검증: 전체 pytest **347 passed**; REST verifier **exit 0 / 6 checks**(REST tests 164; Ruff check/format; basedpyright 0 errors; Node board 35); `py check.py`; `git diff --check` 모두 통과.
 - 이 결과는 오프라인 검사다. 실제 broker 접속·계좌·주문·실기기 검증은 수행하지 않았고 R04/R05는 미완료다.
+- GitHub PR #14 run `39742233308`: `offline-rest` 및 `windows-engine` 성공. PR 병합 상태는 별도 확인 전이다.
