@@ -19,7 +19,9 @@
   "checklists": {
     "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
     "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md",
-    "development_backlog": "docs/treadding/DEVELOPMENT-READY-AND-BLOCKERS.md"
+    "development_backlog": "docs/treadding/DEVELOPMENT-READY-AND-BLOCKERS.md",
+    "board_api_handoff": "docs/api/BOARD-API-HANDOFF.md",
+    "mobile_devices": "docs/D02-MOBILE-CHECKLIST.md"
   },
   "verification_command": "python tools/verify_rest_migration.py",
   "known_baseline": {
@@ -36,6 +38,14 @@
     "클라우드 인증·동기화",
     "보드 CRUD REST API 호스트·인증·요청/응답 계약 및 서버 구현"
   ],
+  "board_api_handoff": {
+    "contract_status": "PROPOSED_NOT_DEPLOYED",
+    "openapi_validation": "PASS_3_0_3",
+    "synthetic_schema_examples": "PASS_10_OF_10",
+    "actual_server_auth_and_cloud": "UNCONFIRMED",
+    "ios_safari": "NOT_RUN",
+    "android_chrome": "NOT_RUN"
+  },
   "software_verification": {
     "windows_ci_pytest": 327,
     "rest_offline_pytest": 145,

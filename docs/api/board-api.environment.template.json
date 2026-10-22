@@ -1,0 +1,45 @@
+{
+  "status": "AWAITING_SERVER_AND_OWNER_DECISIONS",
+  "existingServer": null,
+  "serverRepository": null,
+  "serverContact": null,
+  "approvedContractVersion": null,
+  "developmentBaseUrl": null,
+  "productionBaseUrl": null,
+  "authentication": {
+    "method": null,
+    "issuer": null,
+    "audience": null,
+    "jwksUrl": null,
+    "accessTokenLifetimeSeconds": null,
+    "refreshAndLogoutPolicy": null,
+    "allowedOrigins": [],
+    "rolesAndPermissions": null
+  },
+  "testEnvironment": {
+    "baseUrl": null,
+    "syntheticDataOnly": true,
+    "testAccountProvisioningMethod": null
+  },
+  "cloud": {
+    "webService": null,
+    "apiService": null,
+    "databaseService": null,
+    "authService": null,
+    "accountOwner": null,
+    "billingOwner": null,
+    "dataOwner": null,
+    "dataRegion": null,
+    "draftRetentionDays": null,
+    "logRetentionDays": null,
+    "backupRetentionDays": null,
+    "deletionAndRestorePolicy": null,
+    "idempotencyRetentionHours": null
+  },
+  "evidence": {
+    "r04": "PENDING_DESIGNATED_PC",
+    "r05": "PENDING_DESIGNATED_PC",
+    "iosSafari": "NOT_RUN",
+    "androidChrome": "NOT_RUN"
+  }
+}
