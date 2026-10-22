@@ -19,11 +19,14 @@ import sys
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import cast
 
 ROOT = Path(__file__).resolve().parents[1]
 KST = timezone(timedelta(hours=9))
 DEFAULT_SYMBOL = "005930"
 PRICE_CAP = 100000
+MAX_DIAGNOSTIC_REASON_LENGTH = 64
+MAX_DIAGNOSTIC_COUNT = 1_000_000
 MARKET_OPEN = (9, 0)
 MARKET_CLOSE = (15, 20)
 WEEKEND_START = 5  # Monday is 0; Saturday is the first weekend weekday.
@@ -67,6 +70,41 @@ def run_command(command: list[str]) -> tuple[int, str, str]:
 _PARSER = None
 
 
+def _safe_diagnostic(stdout: str) -> dict[str, object]:
+    """Keep only bounded, non-sensitive fields from a probe JSON report."""
+    try:
+        parsed: object = cast("object", json.loads(stdout))
+    except (TypeError, ValueError):
+        return {}
+    if not isinstance(parsed, dict):
+        return {}
+    report = cast("dict[str, object]", parsed)
+
+    diagnostic: dict[str, object] = {}
+    reason = report.get("reason")
+    if (
+        isinstance(reason, str)
+        and 0 < len(reason) <= MAX_DIAGNOSTIC_REASON_LENGTH
+        and all(char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_" for char in reason)
+    ):
+        diagnostic["reason"] = reason
+    for name in ("connections", "quotes_observed", "malformed_frames"):
+        value = report.get(name)
+        if type(value) is int and 0 <= value <= MAX_DIAGNOSTIC_COUNT:
+            diagnostic[name] = value
+    bool_fields = (
+        "fresh_before_close",
+        "orders_enabled",
+        "account_reconciled",
+        "quote_saved",
+    )
+    for name in bool_fields:
+        value = report.get(name)
+        if type(value) is bool:
+            diagnostic[name] = value
+    return diagnostic
+
+
 class MorningRun:
     """Sequential checklist runner storing one manifest plus a final marker."""
 
@@ -106,12 +144,15 @@ class MorningRun:
             code, out, err = run_command(command)
         except (OSError, subprocess.TimeoutExpired) as exc:
             code, out, err = -1, "", type(exc).__name__
-        item = {
+        item: dict[str, object] = {
             "step": name,
             "exit_code": code,
             "stdout_bytes": len(out.encode("utf-8")),
             "stderr_bytes": len(err.encode("utf-8")),
         }
+        diagnostic = _safe_diagnostic(out)
+        if diagnostic:
+            item["diagnostic"] = diagnostic
         self.manifest["steps"].append(item)
         self._flush()
         if code != 0 and abort_on_failure:

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-10-21",
+  "updated_on": "2026-10-22",
   "baseline_commit": "1ec7966",
   "branch": "main",
   "orders_enabled": false,
@@ -15,7 +15,7 @@
     "R06": "VIRTUAL_ONLY_REST_UNCONNECTED",
     "R07": "TODO",
     "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
-  },  "next_action": "정규장 09:30 예약 작업이 tools/r045_morning_run.py를 실행(읽기 5건→WS 시세→1주 지정가 1회→사후 이력·연결). 증가는 results/r045-<날짜>/manifest.json. 아침 실행 상태를 세션에서 확인한 뒤 체크리스트 양식으로 증거 기록하고 STATUS를 갱신. R04는 LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED로 유지.",
+  },  "next_action": "2026-10-22 예약 실행은 QUOTE_WS exit 1로 중단(주문 미실행). runner를 갱신해 이후 manifest에 JSON 요약 진단을 안전한 필드 allowlist로 기록한다. 이번 실패의 세부 원인은 기존 로그에 없어 다음 장중 읽기 전용 WS 점검에서 확인. R04/R05 상태는 증거 확인 전 유지.",
   "checklists": {
     "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
     "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md"
@@ -32,7 +32,8 @@
     "허용된 주문·체결·취소 실증",
     "계좌/PC 인계",
     "실기기 체크리스트 6/6",
-    "클라우드 인증·동기화"
+    "클라우드 인증·동기화",
+    "보드 CRUD REST API 호스트·인증·요청/응답 계약 및 서버 구현"
   ],
   "software_verification": {
     "windows_ci_pytest": 327,
@@ -57,6 +58,11 @@
     "task_2026_10_21_env_keys": "PAPER_KEY_ENV_FALLBACK_KIWOOM_OR_CHERRYPULSE",
     "task_2026_10_21_pytest": 336,
     "task_2026_10_21_verifier_exit0": "PASS_6_6",
-    "task_2026_10_21_unattended_r045": "TOOL_READY_SCHTASK_0930_WEEKDAYS"
+    "task_2026_10_21_unattended_r045": "TOOL_READY_SCHTASK_0930_WEEKDAYS",
+    "task_2026_10_22_r045_diagnostic_allowlist": "PASS",
+    "task_2026_10_22_rest_offline_pytest": 161,
+    "task_2026_10_22_full_pytest": 344,
+    "task_2026_10_22_board_node_tests": 35,
+    "task_2026_10_22_verifier_exit0": "PASS_6_6"
   }
 }
