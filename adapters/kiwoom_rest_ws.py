@@ -90,6 +90,23 @@ class StreamCapture:
     malformed_frames: int
     orders_enabled: bool = False
     account_reconciled: bool = False
+    failure_stage: str | None = None
+    failure_kind: str | None = None
+
+
+def safe_failure_kind(error: Exception) -> str:
+    """Map exceptions to a fixed non-sensitive vocabulary, never their message."""
+    if isinstance(error, TimeoutError):
+        return "TIMEOUT"
+    if isinstance(error, ModuleNotFoundError):
+        return "DEPENDENCY_ERROR"
+    if isinstance(error, OSError):
+        return "OS_ERROR"
+    if isinstance(error, ValueError):
+        return "VALUE_ERROR"
+    if isinstance(error, RuntimeError):
+        return "RUNTIME_ERROR"
+    return "OTHER"
 
 
 def decode_frame(raw: str | bytes) -> object:
@@ -177,7 +194,7 @@ def _pump(
             break
 
 
-def capture_stream(  # noqa: PLR0913 -- Explicit clocks and transports for offline tests.
+def capture_stream(  # noqa: PLR0913, PLR0915 -- Injectable clocks, transport, staged safeguards.
     token: Callable[[], str],
     symbols: tuple[str, ...],
     *,
@@ -207,21 +224,29 @@ def capture_stream(  # noqa: PLR0913 -- Explicit clocks and transports for offli
     connections = 0
     reason = "NO_QUOTE"
     fresh = False
+    failure_stage: str | None = None
+    failure_kind: str | None = None
     for _ in range(reconnects + 1):
         socket: QuoteSocket | None = None
         token_ready = False
+        stage = "TOKEN"
+        failure_stage = None
+        failure_kind = None
         try:
             access_token = token()
-            if not access_token or any(char in access_token for char in "\r\n"):
+            if not access_token or any(ord(char) in {10, 13} for char in access_token):
                 raise ValueError("TOKEN_INVALID")  # noqa: TRY301
             token_ready = True
+            stage = "PACING"
             gate.acquire()
             remaining = deadline - clock()
             if remaining <= 0:
                 break
+            stage = "CONNECT"
             socket = factory(min(10.0, remaining))
             state.begin()
             connections += 1
+            stage = "PROTOCOL"
             socket.send(json.dumps({"trnm": "LOGIN", "token": access_token}))
             _pump(socket, state, deadline, runtime)
             reason = state.reason
@@ -229,18 +254,28 @@ def capture_stream(  # noqa: PLR0913 -- Explicit clocks and transports for offli
                 state.usable(symbol, now(), max_age_seconds=3) for symbol in symbols
             )
             break
-        except Exception:  # noqa: BLE001 -- Do not expose token-bearing exception context.
+        except Exception as exc:  # noqa: BLE001 -- Do not expose token-bearing exception context.
             reason = "STREAM_UNCONFIRMED"
             fresh = False
+            failure_stage = stage
+            failure_kind = safe_failure_kind(exc)
             if not token_ready:
                 break
         finally:
             if not close_socket(socket):
                 reason = "CLOSE_UNCONFIRMED"
                 fresh = False
+                failure_stage = "CLOSE"
+                failure_kind = "CLOSE_ERROR"
             state.disconnect()
     return StreamCapture(
-        connections, runtime.metrics.quotes, reason, fresh, runtime.metrics.malformed
+        connections,
+        runtime.metrics.quotes,
+        reason,
+        fresh,
+        runtime.metrics.malformed,
+        failure_stage=failure_stage,
+        failure_kind=failure_kind,
     )
 
 

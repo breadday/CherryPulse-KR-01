@@ -18,7 +18,7 @@ from adapters.kiwoom_rest_auth import (
     paper_credentials_from_env,
 )
 from adapters.kiwoom_rest_stream import QuoteStreamState
-from adapters.kiwoom_rest_ws import capture_stream
+from adapters.kiwoom_rest_ws import capture_stream, safe_failure_kind
 
 
 def save_quote_book(
@@ -91,13 +91,15 @@ def main(argv: list[str] | None = None) -> int:
             pacer=pacer,
             quote_sink=collect,
         )
-    except Exception:  # noqa: BLE001 -- Never print keys, token, or raw broker failures.
+    except Exception as exc:  # noqa: BLE001 -- Never print keys, token, or raw broker failures.
         _ = sys.stdout.write(
             json.dumps(
                 {
                     "mode": "PAPER",
                     "orders_enabled": False,
                     "reason": "SETUP_OR_STREAM_UNCONFIRMED",
+                    "failure_stage": "SETUP",
+                    "failure_kind": safe_failure_kind(exc),
                 }
             )
             + "\n"
