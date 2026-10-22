@@ -211,3 +211,11 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - 검증: `py -3.10-32 -m pytest -q` **344 passed**; `py -3.10-32 -m pytest --confcutdir=tests/rest tests/rest -q` **161 passed**; verifier **exit 0 / 6 checks**, Ruff check/format, basedpyright (**0 errors**), Node board **35 passed**, `py check.py`, `git diff --check` 통과.
 - verifier scope는 오프라인 REST/보드다. 실제 broker 계좌·WebSocket·주문을 검증하지 않았다. R04/R05 미완료와 `orders_enabled=false` 유지.
 - TASK-3은 보드 CRUD 서버 계약 부재, TASK-4는 iOS/Android 실기기 접근 부재로 차단 상태. 원격 push/CI 결과는 이 기록 작성 시점에는 아직 미확인이다.
+
+## 실패 단계 진단 구현 — 2026-10-22
+
+- `StreamCapture`와 `probe_kiwoom_ws`가 실패 단계와 제한된 범주 코드만 출력한다. 예약 runner는 명시된 허용 목록만 manifest에 저장하며 임의 문자열을 버린다.
+- TDD: 추가 테스트에서 token/connect 실패의 stage/kind 및 민감 메시지 비노출을 먼저 확인해 RED, 구현 후 GREEN.
+- 검증: 전체 pytest **347 passed**; REST verifier **exit 0 / 6 checks**(REST tests 164; Ruff check/format; basedpyright 0 errors; Node board 35); `py check.py`; `git diff --check` 모두 통과.
+- 이 결과는 오프라인 검사다. 실제 broker 접속·계좌·주문·실기기 검증은 수행하지 않았고 R04/R05는 미완료다.
+- GitHub PR #14 run `39742233308`: `offline-rest` 및 `windows-engine` 성공. PR 병합 상태는 별도 확인 전이다.

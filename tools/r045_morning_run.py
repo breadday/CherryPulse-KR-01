@@ -98,6 +98,22 @@ def _safe_diagnostic(stdout: str) -> dict[str, object]:
         "account_reconciled",
         "quote_saved",
     )
+    safe_codes = {
+        "failure_stage": {"TOKEN", "PACING", "CONNECT", "PROTOCOL", "CLOSE", "SETUP"},
+        "failure_kind": {
+            "TIMEOUT",
+            "DEPENDENCY_ERROR",
+            "OS_ERROR",
+            "VALUE_ERROR",
+            "RUNTIME_ERROR",
+            "OTHER",
+            "CLOSE_ERROR",
+        },
+    }
+    for name, allowed in safe_codes.items():
+        value = report.get(name)
+        if isinstance(value, str) and value in allowed:
+            diagnostic[name] = value
     for name in bool_fields:
         value = report.get(name)
         if type(value) is bool:
