@@ -1,0 +1,199 @@
+{
+  "status": "SYNTHETIC_CONTRACT_EXAMPLES_NOT_LIVE_RESPONSES",
+  "examples": [
+    {
+      "name": "board-create",
+      "schema": "BoardCreate",
+      "body": {
+        "name": "합성 테스트 보드"
+      }
+    },
+    {
+      "name": "board-response",
+      "schema": "BoardResponse",
+      "body": {
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "revision": 1,
+          "createdAt": "2026-10-22T00:00:00Z",
+          "updatedAt": "2026-10-22T00:00:00Z",
+          "name": "합성 테스트 보드",
+          "archived": false,
+          "mode": "DRAFT"
+        }
+      }
+    },
+    {
+      "name": "item-create",
+      "schema": "ItemCreate",
+      "body": {
+        "boardId": "00000000-0000-4000-8000-000000000001",
+        "code": "005930",
+        "name": "테스트종목",
+        "buyPatternId": "00000000-0000-4000-8000-000000000003",
+        "patternId": null
+      }
+    },
+    {
+      "name": "item-response",
+      "schema": "ItemResponse",
+      "body": {
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "revision": 1,
+          "createdAt": "2026-10-22T00:00:00Z",
+          "updatedAt": "2026-10-22T00:00:00Z",
+          "boardId": "00000000-0000-4000-8000-000000000001",
+          "code": "005930",
+          "name": "테스트종목",
+          "source": "",
+          "note": "합성 자료",
+          "archived": false,
+          "patternId": null,
+          "buyPatternId": "00000000-0000-4000-8000-000000000003"
+        }
+      }
+    },
+    {
+      "name": "pattern-create",
+      "schema": "PatternCreate",
+      "body": {
+        "boardId": "00000000-0000-4000-8000-000000000001",
+        "name": "테스트매수",
+        "kind": "BUY_PRICE_AT_OR_BELOW",
+        "threshold": "70000",
+        "orderType": "LIMIT"
+      }
+    },
+    {
+      "name": "pattern-response",
+      "schema": "PatternResponse",
+      "body": {
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "revision": 1,
+          "createdAt": "2026-10-22T00:00:00Z",
+          "updatedAt": "2026-10-22T00:00:00Z",
+          "boardId": "00000000-0000-4000-8000-000000000001",
+          "patternId": "00000000-0000-4000-8000-000000000003",
+          "version": 1,
+          "active": true,
+          "name": "테스트매수",
+          "kind": "BUY_PRICE_AT_OR_BELOW",
+          "threshold": "70000",
+          "orderType": "LIMIT"
+        }
+      }
+    },
+    {
+      "name": "item-archive",
+      "schema": "ItemPatch",
+      "body": {
+        "archived": true
+      }
+    },
+    {
+      "name": "pattern-disable",
+      "schema": "PatternPatch",
+      "body": {
+        "active": false
+      }
+    },
+    {
+      "name": "conflict",
+      "schema": "Error",
+      "body": {
+        "error": {
+          "code": "VERSION_CONFLICT",
+          "message": "재조회 후 변경을 병합하세요.",
+          "requestId": "synthetic-request"
+        }
+      }
+    },
+    {
+      "name": "item-list-empty",
+      "schema": "ItemList",
+      "body": {
+        "data": [],
+        "nextCursor": null
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "create",
+      "expectedHttpStatus": 201,
+      "liveVerified": false
+    },
+    {
+      "name": "read",
+      "expectedHttpStatus": 200,
+      "liveVerified": false
+    },
+    {
+      "name": "archive-restore",
+      "expectedHttpStatus": 200,
+      "liveVerified": false
+    },
+    {
+      "name": "auth-missing",
+      "expectedHttpStatus": 401,
+      "liveVerified": false
+    },
+    {
+      "name": "other-owner",
+      "expectedHttpStatus": 404,
+      "liveVerified": false
+    },
+    {
+      "name": "permission-denied",
+      "expectedHttpStatus": 403,
+      "liveVerified": false
+    },
+    {
+      "name": "replay-same-key",
+      "expectedHttpStatus": 201,
+      "liveVerified": false
+    },
+    {
+      "name": "same-key-different-body",
+      "expectedHttpStatus": 409,
+      "liveVerified": false
+    },
+    {
+      "name": "duplicate-item",
+      "expectedHttpStatus": 409,
+      "liveVerified": false
+    },
+    {
+      "name": "stale-etag",
+      "expectedHttpStatus": 412,
+      "liveVerified": false
+    },
+    {
+      "name": "missing-if-match",
+      "expectedHttpStatus": 428,
+      "liveVerified": false
+    },
+    {
+      "name": "wrong-pattern-kind",
+      "expectedHttpStatus": 422,
+      "liveVerified": false
+    },
+    {
+      "name": "stale-pattern-base",
+      "expectedHttpStatus": 409,
+      "liveVerified": false
+    },
+    {
+      "name": "rate-limit",
+      "expectedHttpStatus": 429,
+      "liveVerified": false
+    },
+    {
+      "name": "unavailable",
+      "expectedHttpStatus": 503,
+      "liveVerified": false
+    }
+  ]
+}
