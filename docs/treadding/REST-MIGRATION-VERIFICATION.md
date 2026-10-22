@@ -200,3 +200,14 @@ Linux REST/WS115·보드23·production6파일 타입0·신규 Ruff/format 통과
 - CI: https://github.com/breadday/CherryPulse-KR-01/actions/runs/38579998229 (head `87b35b1`, success)
 - PR: https://github.com/breadday/CherryPulse-KR-01/pull/10 (squash 병합, main `58820f3`)
 - Python 변경 없음. 예약 등록은 아래 사용자 실행이다.
+
+## R045 진단 보강 — 2026-10-22
+
+실행 기준: main `4678173`, Windows Python 3.10.8 32-bit.
+
+- 정규장 예약 manifest `results/r045-20261022/manifest.json`: PREWARM exit 0, READ_BEFORE exit 0, QUOTE_WS exit 1, `ABORTED`. 주문 제출 단계는 실행되지 않았다.
+- 원본 log는 실행 시작·종료 코드만 남기며, manifest에는 stdout/stderr 바이트 수만 있어 구체적인 WebSocket `reason` 복구가 불가능했다.
+- R045 runner는 probe JSON의 안전한 allowlist 요약만 manifest에 보존하도록 추가했다. stderr, 토큰 등 임의 필드는 쓰지 않는다. 회귀 테스트는 민감 필터와 실패 시 주문 단계 미호출을 검증한다.
+- 검증: `py -3.10-32 -m pytest -q` **344 passed**; `py -3.10-32 -m pytest --confcutdir=tests/rest tests/rest -q` **161 passed**; verifier **exit 0 / 6 checks**, Ruff check/format, basedpyright (**0 errors**), Node board **35 passed**, `py check.py`, `git diff --check` 통과.
+- verifier scope는 오프라인 REST/보드다. 실제 broker 계좌·WebSocket·주문을 검증하지 않았다. R04/R05 미완료와 `orders_enabled=false` 유지.
+- TASK-3은 보드 CRUD 서버 계약 부재, TASK-4는 iOS/Android 실기기 접근 부재로 차단 상태. 원격 push/CI 결과는 이 기록 작성 시점에는 아직 미확인이다.

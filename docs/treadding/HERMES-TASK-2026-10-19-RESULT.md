@@ -38,3 +38,12 @@
 - `py check.py`: 성공, 필수 항목 누락·보관본 누락·활성 back import 경고 없음.
 - `git diff --check`: 통과.
 - 실제 계좌 조회·WebSocket·주문, 보드 서버 API 연동, 물리 모바일 검증, 커밋·push는 수행하지 않았다.
+
+## 2026-10-22 예약 실행 및 개발 후속
+
+- `results/r045-20261022/manifest.json`: PREWARM exit 0, READ_BEFORE exit 0, QUOTE_WS exit 1, 최종 `ABORTED`. `ORDER_PREVIEW`/`ORDER_SUBMIT` 단계가 없으므로 오늘 주문 제출은 없었다.
+- `results/r045-morning-run.log`에는 시작·종료 코드만 있고 manifest에는 probe stdout 내용이 저장되지 않아, WebSocket의 구체적인 `reason`을 기존 실행에서 복구할 수 없다. 실패 원인은 아직 미확정이다.
+- R045 실행기는 이후 실행에서 probe의 JSON 요약 중 reason/연결·관측 수/신선도/마스킹된 상태 bool만 manifest에 저장하도록 수정했다. 임의 출력과 stderr는 저장하지 않는다. 회귀 테스트는 민감 필드가 제외되고 WS 실패 뒤 주문 제출 명령이 호출되지 않는지 확인한다.
+- R04는 `LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED`, R05는 오프라인 도구 검증만 완료 상태로 유지한다. 실제 모의계좌·WebSocket·주문·사후 연결 증거는 확보되지 않았다.
+- TASK-3은 `/boards`, `/items`, `/patterns` CRUD 계약/서버 구현 부재로 계속 차단. TASK-4는 iOS/Android 실기기 접근이 필요해 대기. 사용자 제공 서버 명세와 실기기 검증이 필요하다.
+- 예약 작업 `CherryPulse-R045-Demo`는 평일 09:30 활성 상태다. 다음 실행은 2026-10-23 09:30이며, 점검 성공 시 기존 승인 범위의 모의 1주 지정가 단계까지 진행할 수 있다. 예약 설정은 변경하지 않았다.

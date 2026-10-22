@@ -158,6 +158,47 @@ def test_read_failure_before_order_is_an_abort(
     assert all("submit_paper_buy" not in text for text in joined)
 
 
+def test_failed_quote_step_persists_only_safe_probe_diagnostics(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    runner = make_runner(monkeypatch, tmp_path)
+    report = json.dumps(
+        {
+            "reason": "STREAM_UNCONFIRMED",
+            "connections": 1,
+            "quotes_observed": 0,
+            "fresh_before_close": False,
+            "malformed_frames": 2,
+            "orders_enabled": False,
+            "access_token": "must-not-be-persisted",
+        }
+    )
+
+    commands: list[list[str]] = []
+
+    def failed_quote(command: list[str]) -> tuple[int, str, str]:
+        commands.append(list(command))
+        if "probe_kiwoom_ws" in " ".join(command):
+            return 1, report, "sensitive stderr must not be persisted"
+        return 0, "{}", ""
+
+    monkeypatch.setattr(r045_morning_run, "run_command", failed_quote)
+    assert runner.run() == 1
+    manifest = json.loads(evidence_path(tmp_path).read_text(encoding="utf-8"))
+    quote_step = manifest["steps"][2]
+    assert quote_step["diagnostic"] == {
+        "reason": "STREAM_UNCONFIRMED",
+        "connections": 1,
+        "quotes_observed": 0,
+        "fresh_before_close": False,
+        "malformed_frames": 2,
+        "orders_enabled": False,
+    }
+    assert "must-not-be-persisted" not in json.dumps(manifest)
+    assert "sensitive stderr" not in json.dumps(manifest)
+    assert all("submit_paper_buy" not in " ".join(command) for command in commands)
+
+
 def test_price_over_cap_skips_order_and_keeps_post_checks(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

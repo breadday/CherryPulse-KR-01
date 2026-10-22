@@ -260,3 +260,13 @@ R04 `LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED`, R05 실증 대기, 주문 OFF 유�
 이동한 문서의 상대 링크는 archive 내부에서 `../` 경계가 필요하나
 해당 문서는 근거 스냅샷으로 중요 링크가 없어 갱신 없이 보관한다.
 나머지 docs는 전부 상호 참조와 check.py 필수 경계라 정리하지 않았다.
+
+## 2026-10-22 예약 실행 후속 — 개발 재개 지점
+
+- 저장소 상태 확인: `main` HEAD `4678173`, origin/main과 일치. 사용자 미추적 파일 `CherryPulse-lite.zip`, `docs/사용법.md`는 보존.
+- 예약 실행 manifest: PREWARM 0, READ_BEFORE 0, QUOTE_WS 1, ABORTED. 주문 단계 진입 없음.
+- 기존 runner는 stdout/stderr 바이트 수만 남겨 WS JSON 요약을 버렸다. 구체 실패 원인은 이 실행에서 복구 불가.
+- R045 runner는 후속 실행의 JSON 진단 중 안전한 allowlist 값만 manifest에 기록하도록 변경. stderr와 임의 필드는 보관하지 않는다. 회귀 테스트는 안전 필터 및 WS 실패 시 무주문 중단을 검증한다.
+- 오프라인 검증 현황 및 최신 커밋은 이 handoff 아래의 task 결과 문서와 STATUS를 함께 확인한다. 실제 WS/계좌/주문 증거가 생기기 전 R04/R05를 승격하지 않는다.
+- TASK-3은 보드 CRUD 서버 API 계약(호스트·인증·요청/응답·버전 충돌)이 제공되지 않아 미구현. 임의 API를 만들지 않는다. TASK-4 실기기 iOS/Android 6/6 및 클라우드 인증/동기화는 사용자 장치·환경이 필요하다.
+- 예약 작업 `CherryPulse-R045-Demo`는 평일 09:30 활성, 다음 실행 2026-10-23 09:30. 스케줄러 변경 없음. 성공할 경우 기존 사용자 승인 runner는 모의 1주 지정가를 1회 시도하므로 실행 후 manifest/HTS 미체결을 감독 검토한다.
