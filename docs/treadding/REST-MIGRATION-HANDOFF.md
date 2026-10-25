@@ -270,3 +270,21 @@ R04 `LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED`, R05 실증 대기, 주문 OFF 유�
 - 오프라인 검증 현황 및 최신 커밋은 이 handoff 아래의 task 결과 문서와 STATUS를 함께 확인한다. 실제 WS/계좌/주문 증거가 생기기 전 R04/R05를 승격하지 않는다.
 - TASK-3은 보드 CRUD 서버 API 계약(호스트·인증·요청/응답·버전 충돌)이 제공되지 않아 미구현. 임의 API를 만들지 않는다. TASK-4 실기기 iOS/Android 6/6 및 클라우드 인증/동기화는 사용자 장치·환경이 필요하다.
 - 예약 작업 `CherryPulse-R045-Demo`는 평일 09:30 활성, 다음 실행 2026-10-23 09:30. 스케줄러 변경 없음. 성공할 경우 기존 사용자 승인 runner는 모의 1주 지정가를 1회 시도하므로 실행 후 manifest/HTS 미체결을 감독 검토한다.
+
+## 2026-10-22 보드 API·외부 인계 자료 구체화
+
+사용자 요청 4항목을 `docs/api/BOARD-API-HANDOFF.md`로 모았다.
+- 현행 저장소에 실제 CRUD 서버·API 호스트·인증 설정이 없음 확인.
+- `docs/api/board-api.openapi.draft.json`: 검토용 OpenAPI 0.1.0-draft 제안.
+  실제 계약을 받았다는 의미가 아니며 `.invalid` URL과 미배포 표시를 사용한다.
+- `board-api.fixtures.json`: 합성 예시 10개와 서버 인수 시나리오. 실행 중 mock 서버는 아님.
+- `board-api.environment.template.json`: 서버 URL·인증·클라우드/소유/보존 미정값을 null로 기록.
+- 모바일 체크리스트의 과거 SHA·매수 연결 없음 문구를 현행 6항목으로 교정.
+  iOS/Android는 NOT_RUN 유지. 휴대폰 localhost와 PC 주소 차이·Origin별 초안 저장을 안내.
+검증: OpenAPI 3.0.3 PASS, 합성 예시 스키마10/10 PASS, Node35 passed,
+git diff --check PASS. 업무/서버 인증/실기기 인수를 통과한 것은 아니다.
+다음: 담당자가 계약 채택/수정·실제 서버 정보와 클라우드 결정표를 회신 →
+확정 계약 기준으로 mock HTTP·서버/클라이언트를 구현한다. 계약 제안을
+기존 실제 API로 간주하여 현재 보드 fetch나 내부 inbox를 인터넷에 노출하지 않는다.
+R04/R05 증거와 사용자 지정 PC·모바일 접근은 이번에 확보하지 못했다.
+기존 R04/R05 상태·예약 작업·주문 정책은 변경하지 않았다.
