@@ -288,3 +288,15 @@ git diff --check PASS. 업무/서버 인증/실기기 인수를 통과한 것은
 기존 실제 API로 간주하여 현재 보드 fetch나 내부 inbox를 인터넷에 노출하지 않는다.
 R04/R05 증거와 사용자 지정 PC·모바일 접근은 이번에 확보하지 못했다.
 기존 R04/R05 상태·예약 작업·주문 정책은 변경하지 않았다.
+
+## 2026-10-25 사용자 제공 Cloudflare·Supabase 주소와 연결 준비
+
+Cloudflare workers.dev 보드와 Supabase 프로젝트 URL은
+`docs/api/CLOUD-CONNECTION-2026-10-25.md`에 기록했다.
+현재 연결된 Supabase 앱으로 대상 프로젝트 get_project가 권한 오류로 실패했다.
+DB·키·인증 설정은 미확인. 다른 프로젝트를 대신 사용하지 않았다.
+Workers 정적 자산 + 설정 확인 API/보드 버튼을 추가했다. Node43 passed.
+설정 API는 구성 상태만 표시하며 인증/CRUD/엔진 capability는 false다.
+Wrangler 실제 배포·Supabase DB 변경·계좌/주문 실행은 하지 않았다.
+다음 선행 조건: 대상 ref에 접근할 수 있는 Supabase 계정/조직 연결.
+연결 후 실제 스키마와 RLS를 확인하고 로그인·CRUD를 구현한다.

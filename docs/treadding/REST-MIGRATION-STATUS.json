@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-10-22",
+  "updated_on": "2026-10-25",
   "baseline_commit": "1ec7966",
   "branch": "main",
   "orders_enabled": false,
@@ -38,6 +38,14 @@
     "클라우드 인증·동기화",
     "보드 CRUD REST API 호스트·인증·요청/응답 계약 및 서버 구현"
   ],
+  "cloud_connection": {
+    "status": "PREFLIGHT_IMPLEMENTED_TARGET_PROJECT_ACCESS_BLOCKED",
+    "target_ref": "qrrrnxmsbrkqueaabjdr",
+    "live_auth_and_crud": "UNIMPLEMENTED",
+    "deployment": "UNVERIFIED",
+    "node_tests": 43,
+    "handoff": "docs/api/CLOUD-CONNECTION-2026-10-25.md"
+  },
   "board_api_handoff": {
     "contract_status": "PROPOSED_NOT_DEPLOYED",
     "openapi_validation": "PASS_3_0_3",
