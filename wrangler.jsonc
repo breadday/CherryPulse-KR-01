@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cherrypulse-kr-01",
+  "main": "cloud/worker.mjs",
+  "compatibility_date": "2026-10-25",
+  "assets": {
+    "directory": "./web",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "SUPABASE_URL": "https://qrrrnxmsbrkqueaabjdr.supabase.co"
+  }
+}
