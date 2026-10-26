@@ -21,7 +21,9 @@
       if (response.status === 404) return "연결 확인 API가 배포되지 않았습니다. 현재 초안은 이 브라우저에 저장됩니다.";
       const body = await response.json();
       if (body.configurationReady === true && response.ok && body.reason === "CONFIGURATION_ONLY") {
-        return "프로젝트 URL·공개 키 설정 확인. 로그인·서버 저장 기능과 실제 연결 검증은 아직 준비 중입니다.";
+        return body.capabilities?.boardCrud === true
+          ? "프로젝트 설정 확인. 아래 내 보드 서버 저장에서 로그인 후 저장·불러오기를 확인하세요. 엔진은 미연결입니다."
+          : "프로젝트 URL·공개 키 설정 확인. 로그인·서버 저장 기능과 실제 연결 검증은 아직 준비 중입니다.";
       }
       if (body.reason === "PUBLISHABLE_KEY_MISSING") return "Cloudflare에 Supabase 공개 키 설정이 필요합니다. 비밀 키는 입력하지 마세요.";
       return "클라우드 설정을 확인하지 못했습니다. 프로젝트 주소와 공개 키 종류를 점검하세요.";

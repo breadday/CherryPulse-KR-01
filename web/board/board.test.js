@@ -48,6 +48,7 @@ class Element {
       await callback({target: this, currentTarget: this, preventDefault() {}, ...event});
     }
   }
+  reportValidity() { return true; }
   focus() { this.focused = true; }
   reset() { this.value = ""; }
   click() { this.clicked = true; this.dispatch("click"); }
@@ -96,6 +97,7 @@ function boardWithDraft(draft, options = {}) {
   let sequence = 0;
   const context = {
     document,
+    ...(options.cloud ? {CherryPulseCloud: {createClient: () => options.cloud}, fetch: async () => {}} : {}),
     localStorage: {
       getItem(key) { return stored.get(key) ?? null; },
       setItem(key, value) {
@@ -855,4 +857,33 @@ test("backup preserves optional buy linkage, reads legacy drafts and rejects dan
     const invalid = JSON.parse(JSON.stringify(backup)); invalid.symbols[0][key] = value;
     assert.throws(() => parseBoardBackup(JSON.stringify(invalid)), (error) => error.code === code);
   }
+});
+
+test('cloud load requires confirmation, preserves local edits and handles storage failure', async () => {
+  let accepted = 0;
+  const remote = {revision: 3, snapshot: sampleBoardBackup()};
+  const cloud = {signedIn: () => true, load: async () => remote, acceptLoaded: () => accepted++};
+  const original = {symbols: [], patterns: []};
+  const board = boardWithDraft(original, {cloud});
+  await board.getElement('cloud-load').dispatchAsync('click');
+  assert.deepEqual(board.getDraft(), original);
+  assert.equal(board.getElement('cloud-load-confirmation').hidden, false);
+  board.setStorageFailure(true);
+  await board.getElement('cloud-confirm-load').dispatchAsync('click');
+  assert.deepEqual(board.getDraft(), original); assert.equal(accepted, 0);
+  board.setStorageFailure(false);
+  board.setExternalDraft({symbols: [{code: '000660', name: '다른 탭'}], patterns: []});
+  await board.getElement('cloud-confirm-load').dispatchAsync('click');
+  assert.equal(accepted, 0); assert.match(board.getElement('cloud-status').textContent, /바뀌었습니다/);
+});
+test('confirmed cloud load stores only draft fields and accepts the fetched version', async () => {
+  let accepted;
+  const remote = {revision: 3, snapshot: sampleBoardBackup()};
+  const cloud = {signedIn: () => true, load: async () => remote, acceptLoaded: value => { accepted = value; }};
+  const board = boardWithDraft({symbols: [], patterns: []}, {cloud});
+  await board.getElement('cloud-load').dispatchAsync('click');
+  await board.getElement('cloud-confirm-load').dispatchAsync('click');
+  assert.equal(accepted.revision, 3);
+  assert.deepEqual(board.getDraft(), {symbols: remote.snapshot.symbols, patterns: remote.snapshot.patterns});
+  assert.match(board.getElement('cloud-status').textContent, /엔진 미적용/);
 });

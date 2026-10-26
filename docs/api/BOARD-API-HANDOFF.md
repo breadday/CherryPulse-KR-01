@@ -185,3 +185,10 @@ python -m openapi_spec_validator docs/api/board-api.openapi.draft.json
 ```
 
 개발 도구 설치는 키움 엔진 가상환경과 분리한다. 런타임 의존성을 추가하지 않았다.
+
+
+## 2026-10-26 전체 초안 저장 경로
+
+개별 CRUD OpenAPI 계약안은 유지한다. 이번 구현은 사용자별 원자적 스냅샷
+`GET/PUT /api/board`이며 `/boards`·`/items`·`/patterns` 구현과는 다르다.
+[구현·배포 미결 기록](CLOUD-BOARD-STORAGE-2026-10-26.md)을 참조한다.

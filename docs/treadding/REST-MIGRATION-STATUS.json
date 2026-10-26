@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-10-25",
+  "updated_on": "2026-10-26",
   "baseline_commit": "1ec7966",
   "branch": "main",
   "orders_enabled": false,
@@ -15,7 +15,8 @@
     "R06": "VIRTUAL_ONLY_REST_UNCONNECTED",
     "R07": "TODO",
     "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
-  },  "next_action": "2026-10-22 예약 실행은 QUOTE_WS exit 1로 중단(주문 미실행). runner는 안전한 allowlist에 WebSocket 실패 단계·범주를 추가했다. 기존 로그로 원인은 복구 불가하며, 다음 예약 실행에서 새 진단을 확인한다. 주문 단계 미호출 근거를 유지하고 R04/R05 상태는 실증 전 승격하지 않는다.",
+  },
+  "next_action": "Cloudflare 인증 환경에서 Worker 재배포 후 실제 사용자 로그인·두 기기 저장 왕복을 검증한다. R04/R05 지정 PC 실증은 별도 대기.",
   "checklists": {
     "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
     "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md",
@@ -39,12 +40,20 @@
     "보드 CRUD REST API 호스트·인증·요청/응답 계약 및 서버 구현"
   ],
   "cloud_connection": {
-    "status": "PREFLIGHT_IMPLEMENTED_TARGET_PROJECT_ACCESS_BLOCKED",
+    "status": "DB_APPLIED_UI_IMPLEMENTED_DEPLOYMENT_PENDING",
     "target_ref": "qrrrnxmsbrkqueaabjdr",
-    "live_auth_and_crud": "UNIMPLEMENTED",
-    "deployment": "UNVERIFIED",
-    "node_tests": 43,
-    "handoff": "docs/api/CLOUD-CONNECTION-2026-10-25.md"
+    "live_auth_and_crud": "DB_RPC_VERIFIED_REAL_EMAIL_LOGIN_PENDING",
+    "deployment": "PENDING_CLOUDFLARE_AUTHENTICATED_DEPLOY",
+    "node_tests": 54,
+    "db_assertions": 12,
+    "security_advisors": "NO_LINTS",
+    "handoff": "docs/api/CLOUD-BOARD-STORAGE-2026-10-26.md",
+    "ci": {
+      "run_id": 40323467969,
+      "commit": "682963eb56de4e15ecb21f47b09a80cbf51cd074",
+      "offline_rest": "SUCCESS",
+      "windows_engine": "SUCCESS"
+    }
   },
   "board_api_handoff": {
     "contract_status": "PROPOSED_NOT_DEPLOYED",
@@ -56,7 +65,7 @@
   },
   "software_verification": {
     "windows_ci_pytest": 327,
-    "rest_offline_pytest": 145,
+    "rest_offline_pytest": 160,
     "board_node_tests": 28,
     "virtual_demo": "PASS",
     "new_files_ruff": "PASS",
@@ -66,14 +75,12 @@
     "local_board_followup_commit": "21d7775",
     "local_board_followup_node_tests": 35,
     "rest_offline_followup": "PASS_ALL_SIX_CHECKS",
-    "rest_offline_pytest": 150,
     "rest_offline_basedpyright": "PASS_NODE_ENTRYPOINT",
     "task_2026_10_19_pytest": 328,
     "task_2026_10_19_board_node_tests": 35,
     "task_2026_10_19_check_script": "PASS",
     "browser_visual_acceptance": "PENDING",
     "local_followup_ci": "PASS",
-    "rest_offline_pytest": 160,
     "task_2026_10_21_env_keys": "PAPER_KEY_ENV_FALLBACK_KIWOOM_OR_CHERRYPULSE",
     "task_2026_10_21_pytest": 336,
     "task_2026_10_21_verifier_exit0": "PASS_6_6",

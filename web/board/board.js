@@ -699,3 +699,97 @@ $("buy-pattern-form").addEventListener("submit", (event) => {
   }
 });
 render();
+
+// Cloud persistence is an explicit action; local edits continue to use commitDraft.
+if (typeof CherryPulseCloud !== "undefined") {
+  const cloud = CherryPulseCloud.createClient(fetch, () => crypto.randomUUID(), CherryPulseBoardBackup);
+  let busy = false, candidate = null, baseline = null;
+  const setStatus = text => { $("cloud-status").textContent = text; };
+  const actionIds = ["cloud-login", "cloud-signup", "cloud-save", "cloud-load", "cloud-retry", "cloud-logout", "cloud-confirm-load", "cloud-cancel-load"];
+  const messages = {
+    UNAUTHENTICATED: "로그인이 만료됐습니다. 다시 로그인하세요. 브라우저 초안은 유지됩니다.",
+    LOGIN_FAILED: "이메일·비밀번호 또는 이메일 인증 상태를 확인하세요.",
+    LOAD_REQUIRED: "먼저 서버 초안을 확인하고 불러오세요. 기존 서버 내용을 바로 덮어쓰지 않습니다.",
+    VERSION_CONFLICT: "다른 기기에서 서버 초안을 수정했습니다. 다시 확인·불러오기 후 저장하세요.",
+    SAVE_UNCONFIRMED: "이전 저장 결과가 미확인입니다. ‘미확인 저장 재시도’로 같은 내용을 확인하세요.",
+    NETWORK_ERROR: "응답을 받지 못했습니다. 저장 중이었다면 ‘미확인 저장 재시도’를 사용하세요.",
+    DATABASE_UNAVAILABLE: "DB 응답을 확인하지 못했습니다. 저장 중이었다면 같은 저장을 재시도하세요.",
+    RATE_LIMITED: "저장 요청 한도를 초과했습니다. 잠시 후 다시 시도하세요.",
+    HTTP_429: "인증 요청 한도를 초과했습니다. 잠시 후 다시 시도하세요.",
+    NOT_CONFIGURED: "서버 연결 설정이 아직 준비되지 않았습니다.",
+  };
+  function controls() {
+    for (const id of actionIds) $(id).disabled = busy || (!["cloud-login", "cloud-signup"].includes(id) && !cloud.signedIn());
+    $("cloud-email").disabled = busy || cloud.signedIn();
+    $("cloud-password").disabled = busy || cloud.signedIn();
+    $("cloud-login").disabled = busy || cloud.signedIn();
+    $("cloud-signup").disabled = busy || cloud.signedIn();
+  }
+  async function run(action) {
+    if (busy) return;
+    busy = true; controls();
+    try { await action(); }
+    catch (error) { setStatus(messages[error.code] || "요청을 처리하지 못했습니다. 기존 브라우저 초안은 유지됩니다."); }
+    finally { busy = false; controls(); }
+  }
+  async function login(signup) {
+    candidate = null; baseline = null; $("cloud-load-confirmation").hidden = true;
+    const email = $("cloud-email").value.trim();
+    const password = $("cloud-password").value;
+    if (!$("cloud-login-form").reportValidity()) return;
+    try {
+      const result = await cloud.auth(email, password, signup);
+      if (!result.signedIn) { setStatus("이메일 인증이 필요합니다. 인증 메일을 확인한 뒤 이 화면에서 로그인하세요."); return; }
+      setStatus("로그인 완료 · 서버 초안 확인 중…");
+      const remote = await cloud.inspect();
+      setStatus(remote.revision === 0 ? "로그인 완료 · 서버 초안 없음. 현재 초안을 서버에 저장할 수 있습니다." : `로그인 완료 · 서버 버전 ${remote.revision}. ‘서버 초안 확인’ 후 불러오세요.`);
+    } finally { $("cloud-password").value = ""; }
+  }
+  $("cloud-login-form").addEventListener("submit", event => { event.preventDefault(); return run(() => login(false)); });
+  $("cloud-signup").addEventListener("click", () => run(() => login(true)));
+  $("cloud-logout").addEventListener("click", () => run(async () => {
+    candidate = null; baseline = null; $("cloud-load-confirmation").hidden = true;
+    try { await cloud.logout(); }
+    finally { setStatus("이 페이지에서 로그아웃했습니다. 브라우저 초안은 유지됩니다."); }
+  }));
+  $("cloud-save").addEventListener("click", () => run(async () => {
+    const version = await cloud.save(state);
+    candidate = null; $("cloud-load-confirmation").hidden = true;
+    setStatus(`서버 버전 ${version.revision} 저장 완료 · 엔진 미적용`);
+  }));
+  $("cloud-retry").addEventListener("click", () => run(async () => {
+    const version = await cloud.retry();
+    setStatus(`이전 저장 버전 ${version.revision} 확인 완료. 그 후 브라우저에서 수정했다면 다시 서버에 저장하세요.`);
+  }));
+  $("cloud-load").addEventListener("click", () => run(async () => {
+    candidate = null; $("cloud-load-confirmation").hidden = true;
+    const remote = await cloud.load();
+    if (!remote.snapshot) { cloud.acceptLoaded(remote); setStatus("서버 초안이 없습니다. 현재 초안을 저장할 수 있습니다."); return; }
+    candidate = remote; baseline = JSON.stringify(state);
+    const summary = CherryPulseBoardBackup.backupSummary(remote.snapshot);
+    $("cloud-load-summary").textContent = `서버 버전 ${remote.revision} · 종목 ${summary.symbols}개 · 패턴 ${summary.patterns}개`;
+    $("cloud-load-confirmation").hidden = false;
+    setStatus("서버 초안 확인 완료 · 아직 브라우저 초안을 변경하지 않았습니다.");
+  }));
+  $("cloud-confirm-load").addEventListener("click", () => run(async () => {
+    if (!candidate) return;
+    if (JSON.stringify(state) !== baseline || localStorage.getItem(STORAGE_KEY) !== persistedDraft) {
+      candidate = null; $("cloud-load-confirmation").hidden = true;
+      setStatus("확인 후 브라우저 초안이 바뀌었습니다. 서버 초안을 다시 확인하세요."); return;
+    }
+    const parsed = CherryPulseBoardBackup.parseBoardBackup(JSON.stringify(candidate.snapshot));
+    const next = {symbols: parsed.symbols, patterns: parsed.patterns};
+    const serialized = JSON.stringify(next);
+    localStorage.setItem(STORAGE_KEY, serialized);
+    state = next; persistedDraft = serialized;
+    cloud.acceptLoaded(candidate);
+    candidate = null; baseline = null; $("cloud-load-confirmation").hidden = true;
+    symbolView = "active"; $("symbol-search").value = ""; render();
+    setStatus("서버 초안을 브라우저로 불러왔습니다. 엔진 미적용 · 감시·주문 미동작");
+  }));
+  $("cloud-cancel-load").addEventListener("click", () => {
+    candidate = null; baseline = null; $("cloud-load-confirmation").hidden = true;
+    setStatus("불러오기를 취소했습니다. 브라우저 초안은 유지됩니다.");
+  });
+  controls();
+}

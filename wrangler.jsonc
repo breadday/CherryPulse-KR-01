@@ -6,9 +6,12 @@
   "assets": {
     "directory": "./web",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
   "vars": {
-    "SUPABASE_URL": "https://qrrrnxmsbrkqueaabjdr.supabase.co"
+    "SUPABASE_URL": "https://qrrrnxmsbrkqueaabjdr.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_AZ1sO52k9n3Uw1dZZYNaOQ_jwSO-Dxp"
   }
 }

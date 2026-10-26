@@ -300,3 +300,20 @@ Workers 정적 자산 + 설정 확인 API/보드 버튼을 추가했다. Node43 
 Wrangler 실제 배포·Supabase DB 변경·계좌/주문 실행은 하지 않았다.
 다음 선행 조건: 대상 ref에 접근할 수 있는 Supabase 계정/조직 연결.
 연결 후 실제 스키마와 RLS를 확인하고 로그인·CRUD를 구현한다.
+
+
+## 2026-10-26 보드 클라우드 저장
+
+Supabase board_snapshot_storage 마이그레이션을 적용했다. 비공개 스키마의
+사용자별 스냅샷·저장 영수증, 소유자 RLS, invoker RPC를 사용한다. DB 실제
+12 assertions와 security advisor(0 lints) 확인. 테스트 데이터는 rollback했다.
+보드 이메일/비밀번호 로그인, 명시적 저장·불러오기, 교체 확인, 기대 버전과
+동일 UUID 저장 재시도를 구현했다. 토큰은 메모리만 사용한다.
+관련 문서: docs/api/CLOUD-BOARD-STORAGE-2026-10-26.md.
+운영 Worker API 조회는 404. Cloudflare 배포 인증이 없어 운영 배포·실제 이메일
+로그인·물리 모바일 검증은 미완료다. 소스 병합과 운영 배포를 구별한다.
+R04/R05·주문 OFF·엔진 미연결은 유지한다.
+
+2026-10-26: PR #17 코드 커밋 `682963e`의 GitHub Actions run `40323467969`에서
+REST 오프라인 검사(Worker 빌드 포함)와 Windows 전체 회귀·가상 실행 모두 성공했다.
+운영 Cloudflare 배포·실사용자 로그인 검증은 여전히 대기다.
