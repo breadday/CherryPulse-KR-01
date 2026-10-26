@@ -331,3 +331,13 @@ Node 62개·Python REST 166개·PIN DB assertion 13개 통과, Worker 빌드 성
 상세: docs/api/BOARD-PIN-AND-SYMBOL-SEARCH-2026-10-26.md.
 Cloudflare 배포 인증은 사용자 PC에만 있으므로 최신 main 재배포 및
 실제 PIN 화면·검색·모바일 인수는 아직 필요하다. R04/R05는 유지한다.
+
+
+## 2026-10-26 운영 검색 타이머 오류 수정
+
+사용자 Chrome에서 검색 입력·버튼의 Illegal invocation을 확인했다. 종목
+파일과 JS 배포는 정상이었다. Window 타이머를 일반 객체 수신자로 호출한
+기본 어댑터를 globalThis 래퍼로 고쳤다. 기본 어댑터·한글 조합·버튼·reset
+회귀 검사 추가, Node 63개·Worker 빌드 통과. 등록 종목 필터와 새 종목
+검색의 명칭도 구분했다. PIN은 변경하지 않았다. 최신 main 재배포 후
+실제 브라우저 검색 성공 확인이 남았다.

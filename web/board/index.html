@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CherryPulse · 메인 보드</title>
-  <link rel="stylesheet" href="styles.css?v=20261026-pin-search">
-  <script defer src="cloud-setup.js?v=20261026-pin-search"></script>
-  <script defer src="draft-import.js?v=20261026-pin-search"></script>
-  <script defer src="board-backup.js?v=20261026-pin-search"></script>
-  <script defer src="log-view.js?v=20261026-pin-search"></script>
-  <script defer src="buy-preview.js?v=20261026-pin-search"></script>
-  <script defer src="cloud-client.js?v=20261026-pin-search"></script>
-  <script defer src="board.js?v=20261026-pin-search"></script>
-  <script defer src="symbol-lookup.js?v=20261026-pin-search"></script>
-  <script defer src="cloud-health.js?v=20261026-pin-search"></script>
+  <link rel="stylesheet" href="styles.css?v=20261026-search-timer-fix">
+  <script defer src="cloud-setup.js?v=20261026-search-timer-fix"></script>
+  <script defer src="draft-import.js?v=20261026-search-timer-fix"></script>
+  <script defer src="board-backup.js?v=20261026-search-timer-fix"></script>
+  <script defer src="log-view.js?v=20261026-search-timer-fix"></script>
+  <script defer src="buy-preview.js?v=20261026-search-timer-fix"></script>
+  <script defer src="cloud-client.js?v=20261026-search-timer-fix"></script>
+  <script defer src="board.js?v=20261026-search-timer-fix"></script>
+  <script defer src="symbol-lookup.js?v=20261026-search-timer-fix"></script>
+  <script defer src="cloud-health.js?v=20261026-search-timer-fix"></script>
 </head>
 <body>
   <header class="topbar">
@@ -91,8 +91,8 @@
             <button id="archived-filter" class="filter-button" type="button" aria-pressed="false" aria-controls="symbol-list">보관</button>
           </div>
         </div>
-        <label class="symbol-search-label" for="symbol-search">종목 검색</label>
-        <input id="symbol-search" class="symbol-search" type="search" placeholder="종목명·코드·링크·메모 검색" aria-controls="symbol-list" autocomplete="off">
+        <label class="symbol-search-label" for="symbol-search">등록한 종목에서 찾기</label>
+        <input id="symbol-search" class="symbol-search" type="search" placeholder="내 보드에 등록한 종목만 검색" aria-controls="symbol-list" autocomplete="off">
         <details id="symbol-registration" class="registration">
           <summary>＋ 종목 등록</summary>
         <form id="symbol-form" class="stack-form">
