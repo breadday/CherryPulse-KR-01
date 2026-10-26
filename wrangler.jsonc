@@ -6,9 +6,7 @@
   "assets": {
     "directory": "./web",
     "binding": "ASSETS",
-    "run_worker_first": [
-      "/api/*"
-    ]
+    "run_worker_first": true
   },
   "vars": {
     "SUPABASE_URL": "https://qrrrnxmsbrkqueaabjdr.supabase.co",

@@ -113,7 +113,7 @@ function render() {
       ? "검색 결과가 없습니다. 종목명·코드·링크·메모를 확인하세요."
       : symbolView === "archived"
       ? "보관한 종목이 없습니다. 종목 카드를 보관해 두면 여기에 남습니다."
-      : "등록한 종목이 없습니다. 외부에서 선택한 종목코드를 직접 입력하세요.";
+      : "등록한 종목이 없습니다. 종목명을 검색해 추가하세요.";
     symbols.append(empty);
   }
   for (const item of visibleSymbols) {
@@ -704,49 +704,59 @@ render();
 if (typeof CherryPulseCloud !== "undefined") {
   const cloud = CherryPulseCloud.createClient(fetch, () => crypto.randomUUID(), CherryPulseBoardBackup);
   let busy = false, candidate = null, baseline = null;
-  const setStatus = text => { $("cloud-status").textContent = text; };
-  const actionIds = ["cloud-login", "cloud-signup", "cloud-save", "cloud-load", "cloud-retry", "cloud-logout", "cloud-confirm-load", "cloud-cancel-load"];
+  const setStatus = text => {
+    $("cloud-status").textContent = text;
+    $("cloud-status").setAttribute("tabindex", "-1");
+  };
+  const actionIds = ["cloud-login", "cloud-save", "cloud-load", "cloud-retry", "cloud-logout", "cloud-confirm-load", "cloud-cancel-load"];
   const messages = {
-    UNAUTHENTICATED: "로그인이 만료됐습니다. 다시 로그인하세요. 브라우저 초안은 유지됩니다.",
-    LOGIN_FAILED: "이메일·비밀번호 또는 이메일 인증 상태를 확인하세요.",
+    UNAUTHENTICATED: "접속이 만료됐습니다. 4자리 비밀번호를 다시 입력하세요. 브라우저 초안은 유지됩니다.",
+    PIN_INCORRECT: "비밀번호가 일치하지 않습니다. 숫자 4자리를 확인하세요.",
+    PIN_FORMAT_INVALID: "비밀번호는 숫자 4자리로 입력하세요.",
+    PIN_LOCKED: "비밀번호를 5회 연속 잘못 입력해 15분간 잠겼습니다. 잠시 후 다시 시도하세요.",
+    PIN_NOT_CONFIGURED: "서버 비밀번호 설정이 아직 완료되지 않았습니다.",
     LOAD_REQUIRED: "먼저 서버 초안을 확인하고 불러오세요. 기존 서버 내용을 바로 덮어쓰지 않습니다.",
     VERSION_CONFLICT: "다른 기기에서 서버 초안을 수정했습니다. 다시 확인·불러오기 후 저장하세요.",
     SAVE_UNCONFIRMED: "이전 저장 결과가 미확인입니다. ‘미확인 저장 재시도’로 같은 내용을 확인하세요.",
     NETWORK_ERROR: "응답을 받지 못했습니다. 저장 중이었다면 ‘미확인 저장 재시도’를 사용하세요.",
-    DATABASE_UNAVAILABLE: "DB 응답을 확인하지 못했습니다. 저장 중이었다면 같은 저장을 재시도하세요.",
+    DATABASE_UNAVAILABLE: "서버 응답을 확인하지 못했습니다. 잠시 후 다시 시도하세요.",
     RATE_LIMITED: "저장 요청 한도를 초과했습니다. 잠시 후 다시 시도하세요.",
-    HTTP_429: "인증 요청 한도를 초과했습니다. 잠시 후 다시 시도하세요.",
     NOT_CONFIGURED: "서버 연결 설정이 아직 준비되지 않았습니다.",
   };
   function controls() {
-    for (const id of actionIds) $(id).disabled = busy || (!["cloud-login", "cloud-signup"].includes(id) && !cloud.signedIn());
-    $("cloud-email").disabled = busy || cloud.signedIn();
-    $("cloud-password").disabled = busy || cloud.signedIn();
+    for (const id of actionIds) $(id).disabled = busy || (id !== "cloud-login" && !cloud.signedIn());
+    $("cloud-pin").disabled = busy || cloud.signedIn();
     $("cloud-login").disabled = busy || cloud.signedIn();
-    $("cloud-signup").disabled = busy || cloud.signedIn();
   }
   async function run(action) {
     if (busy) return;
-    busy = true; controls();
+    busy = true; controls(); $("cloud-login-form").setAttribute("aria-busy", "true");
     try { await action(); }
     catch (error) { setStatus(messages[error.code] || "요청을 처리하지 못했습니다. 기존 브라우저 초안은 유지됩니다."); }
-    finally { busy = false; controls(); }
+    finally {
+      busy = false; controls(); $("cloud-login-form").setAttribute("aria-busy", "false");
+      $("cloud-login").textContent = "보드 열기";
+    }
   }
-  async function login(signup) {
+  async function login() {
     candidate = null; baseline = null; $("cloud-load-confirmation").hidden = true;
-    const email = $("cloud-email").value.trim();
-    const password = $("cloud-password").value;
-    if (!$("cloud-login-form").reportValidity()) return;
+    const pin = $("cloud-pin").value;
+    setStatus("비밀번호 확인 중입니다… 잠시 기다려 주세요."); $("cloud-login").textContent = "확인 중…";
     try {
-      const result = await cloud.auth(email, password, signup);
-      if (!result.signedIn) { setStatus("이메일 인증이 필요합니다. 인증 메일을 확인한 뒤 이 화면에서 로그인하세요."); return; }
-      setStatus("로그인 완료 · 서버 초안 확인 중…");
+      await cloud.auth(pin);
+      setStatus("보드 접속 완료 · 서버 초안 확인 중…");
       const remote = await cloud.inspect();
-      setStatus(remote.revision === 0 ? "로그인 완료 · 서버 초안 없음. 현재 초안을 서버에 저장할 수 있습니다." : `로그인 완료 · 서버 버전 ${remote.revision}. ‘서버 초안 확인’ 후 불러오세요.`);
-    } finally { $("cloud-password").value = ""; }
+      setStatus(remote.revision === 0 ? "보드 접속 완료 · 서버 초안 없음. 현재 초안을 서버에 저장할 수 있습니다." : `보드 접속 완료 · 서버 버전 ${remote.revision}. ‘서버 초안 확인’ 후 불러오세요.`);
+    } finally { $("cloud-pin").value = ""; }
   }
-  $("cloud-login-form").addEventListener("submit", event => { event.preventDefault(); return run(() => login(false)); });
-  $("cloud-signup").addEventListener("click", () => run(() => login(true)));
+  $("cloud-login-form").addEventListener("submit", event => {
+    event.preventDefault();
+    if (busy) return;
+    if (!/^[0-9]{4}$/.test($("cloud-pin").value)) {
+      setStatus("비밀번호는 숫자 4자리로 입력하세요."); $("cloud-pin").focus(); return;
+    }
+    return run(login);
+  });
   $("cloud-logout").addEventListener("click", () => run(async () => {
     candidate = null; baseline = null; $("cloud-load-confirmation").hidden = true;
     try { await cloud.logout(); }
@@ -792,4 +802,6 @@ if (typeof CherryPulseCloud !== "undefined") {
     setStatus("불러오기를 취소했습니다. 브라우저 초안은 유지됩니다.");
   });
   controls();
+  $("cloud-login-form").setAttribute("data-cloud-ready", "true");
+  setStatus("숫자 4자리 비밀번호를 입력하고 ‘보드 열기’를 누르세요.");
 }

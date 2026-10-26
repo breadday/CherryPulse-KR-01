@@ -286,7 +286,7 @@ test("a stale tab refuses to overwrite a draft saved by another tab", () => {
   assert.deepEqual(fixture.getDraft(), updated);
   assert.match(fixture.getElement("notice").textContent, /다른 탭.*새로고침/);
   assert.equal(fixture.getElement("symbol-list").children[0].textContent,
-    "등록한 종목이 없습니다. 외부에서 선택한 종목코드를 직접 입력하세요.");
+    "등록한 종목이 없습니다. 종목명을 검색해 추가하세요.");
 });
 
 test("JSON and CSV imports normalize supported fields and preserve quoted CSV data", () => {
@@ -886,4 +886,33 @@ test('confirmed cloud load stores only draft fields and accepts the fetched vers
   assert.equal(accepted.revision, 3);
   assert.deepEqual(board.getDraft(), {symbols: remote.snapshot.symbols, patterns: remote.snapshot.patterns});
   assert.match(board.getElement('cloud-status').textContent, /엔진 미적용/);
+});
+
+test('PIN validates before disabling controls and displays progress then success', async () => {
+  let calls = 0, finish, signedIn = false;
+  const cloud = {signedIn: () => signedIn, inspect: async () => ({revision: 0}), auth: async () => {
+    calls++; return new Promise(resolve => { finish = () => { signedIn = true; resolve({signedIn: true}); }; });
+  }};
+  const board = boardWithDraft({symbols: [], patterns: []}, {cloud});
+  for (const value of ['', '123', 'abcd', '12345']) {
+    board.getElement('cloud-pin').value = value;
+    await board.getElement('cloud-login-form').dispatchAsync('submit');
+    assert.equal(calls, 0); assert.match(board.getElement('cloud-status').textContent, /숫자 4자리/);
+  }
+  board.getElement('cloud-pin').value = '0123';
+  const work = board.getElement('cloud-login-form').dispatchAsync('submit');
+  assert.equal(calls, 1); assert.equal(board.getElement('cloud-login').disabled, true);
+  assert.match(board.getElement('cloud-status').textContent, /비밀번호 확인 중/);
+  finish(); await work;
+  assert.match(board.getElement('cloud-status').textContent, /보드 접속 완료/);
+  assert.equal(board.getElement('cloud-pin').value, '');
+  assert.equal(board.getElement('cloud-save').disabled, false);
+});
+test('incorrect PIN displays an actionable failure and unlocks the input', async () => {
+  const cloud = {signedIn: () => false, auth: async () => { throw {code: 'PIN_INCORRECT'}; }};
+  const board = boardWithDraft({symbols: [], patterns: []}, {cloud});
+  board.getElement('cloud-pin').value = '0123';
+  await board.getElement('cloud-login-form').dispatchAsync('submit');
+  assert.match(board.getElement('cloud-status').textContent, /비밀번호가 일치하지 않습니다/);
+  assert.equal(board.getElement('cloud-login').disabled, false);
 });

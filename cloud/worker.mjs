@@ -32,20 +32,39 @@ async function boundedJson(request) {
 }
 export async function handleRequest(request, env, fetcher = fetch) {
   const {pathname, origin} = new URL(request.url);
-  if (!pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
-  if (!["/api/cloud-config", "/api/board"].includes(pathname)) return error("NOT_IMPLEMENTED", 404);
+  if (!pathname.startsWith("/api/")) {
+    const response = await env.ASSETS.fetch(request);
+    if (pathname.endsWith("/") || /\.(?:html|js|css)$/.test(pathname)) {
+      const fresh = new Response(response.body, response);
+      fresh.headers.set("Cache-Control", "no-cache");
+      return fresh;
+    }
+    return response;
+  }
+  if (!["/api/cloud-config", "/api/board", "/api/pin-login", "/api/pin-logout"].includes(pathname)) return error("NOT_IMPLEMENTED", 404);
   if (pathname === "/api/cloud-config") {
     if (request.method !== "GET") return json({error: {code: "METHOD_NOT_ALLOWED"}}, 405, {Allow: "GET"});
     const config = publicConfiguration(env);
     return json(config, config.configurationReady ? 200 : 503);
   }
-  if (!["GET", "PUT"].includes(request.method)) return json({error: {code: "METHOD_NOT_ALLOWED"}}, 405, {Allow: "GET, PUT"});
+  const pinLogin = pathname === "/api/pin-login";
+  const pinLogout = pathname === "/api/pin-logout";
+  const methods = pinLogin || pinLogout ? ["POST"] : ["GET", "PUT"];
+  if (!methods.includes(request.method)) return json({error: {code: "METHOD_NOT_ALLOWED"}}, 405, {Allow: methods.join(", ")});
   if (request.headers.get("origin") && request.headers.get("origin") !== origin) return error("ORIGIN_REJECTED", 403);
   const config = publicConfiguration(env);
   if (!config.configurationReady) return error("NOT_CONFIGURED", 503);
   const authorization = request.headers.get("authorization");
-  if (!authorization || !/^Bearer [A-Za-z0-9._-]{20,8192}$/.test(authorization)) return error("UNAUTHENTICATED", 401);
-  let args = {}, name = "cp_load_board";
+  const token = /^Bearer ([a-f0-9]{64})$/.exec(authorization || "")?.[1];
+  if (!pinLogin && !token) return error("UNAUTHENTICATED", 401);
+  let args = {p_session: token}, name = "cp_pin_load_board";
+  if (pinLogin) {
+    let body;
+    try { body = await boundedJson(request); }
+    catch { return error("PIN_FORMAT_INVALID", 422); }
+    if (!body || Object.keys(body).length !== 1 || typeof body.pin !== "string" || !/^[0-9]{4}$/.test(body.pin)) return error("PIN_FORMAT_INVALID", 422);
+    name = "cp_pin_login"; args = {p_pin: body.pin};
+  } else if (pinLogout) { name = "cp_pin_logout"; }
   if (request.method === "PUT") {
     let body;
     try { body = await boundedJson(request); }
@@ -56,20 +75,22 @@ export async function handleRequest(request, env, fetcher = fetch) {
           !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(body.requestKey)) throw new Error();
       backup.parseBoardBackup(JSON.stringify(body.snapshot));
     } catch { return error("VALIDATION_FAILED", 422); }
-    name = "cp_save_board";
-    args = {p_snapshot: body.snapshot, p_expected_revision: body.expectedRevision, p_request_key: body.requestKey};
+    name = "cp_pin_save_board";
+    args = {p_session: token, p_snapshot: body.snapshot, p_expected_revision: body.expectedRevision, p_request_key: body.requestKey};
   }
   try {
     const response = await fetcher(`${projectUrl}/rest/v1/rpc/${name}`, {
-      method: "POST", headers: {apikey: config.publishableKey, Authorization: authorization, "Content-Type": "application/json"},
+      method: "POST", headers: {apikey: config.publishableKey, "Content-Type": "application/json"},
       body: JSON.stringify(args), signal: AbortSignal.timeout(10000), redirect: "error",
     });
     if (!response.ok) return error(response.status === 401 || response.status === 403 ? "UNAUTHENTICATED" : "DATABASE_UNAVAILABLE", response.status === 401 || response.status === 403 ? 401 : 502);
     const body = await response.json();
     if (body?.status) {
-      const codes = {401: "UNAUTHENTICATED", 409: "IDEMPOTENCY_MISMATCH", 412: "VERSION_CONFLICT", 422: "VALIDATION_FAILED", 429: "RATE_LIMITED"};
-      return error(codes[body.status] || "DATABASE_UNAVAILABLE", codes[body.status] ? body.status : 502);
+      const codes = {401: ["UNAUTHENTICATED", "PIN_INCORRECT"], 409: ["IDEMPOTENCY_MISMATCH"], 412: ["VERSION_CONFLICT"], 422: ["VALIDATION_FAILED", "PIN_FORMAT_INVALID"], 429: ["RATE_LIMITED", "PIN_LOCKED"], 503: ["PIN_NOT_CONFIGURED"]};
+      return error(codes[body.status]?.includes(body.code) ? body.code : "DATABASE_UNAVAILABLE", codes[body.status]?.includes(body.code) ? body.status : 502);
     }
+    if (pinLogin) return /^[a-f0-9]{64}$/.test(body?.sessionToken) ? json(body) : error("DATABASE_UNAVAILABLE", 502);
+    if (pinLogout) return body?.ok === true ? json({ok: true}) : error("DATABASE_UNAVAILABLE", 502);
     if (!Number.isInteger(body?.revision) || body.revision < 0) return error("DATABASE_UNAVAILABLE", 502);
     return json(body);
   } catch { return error("DATABASE_UNAVAILABLE", 502); }
