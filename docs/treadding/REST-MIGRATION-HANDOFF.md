@@ -313,3 +313,7 @@ Supabase board_snapshot_storage 마이그레이션을 적용했다. 비공개 �
 운영 Worker API 조회는 404. Cloudflare 배포 인증이 없어 운영 배포·실제 이메일
 로그인·물리 모바일 검증은 미완료다. 소스 병합과 운영 배포를 구별한다.
 R04/R05·주문 OFF·엔진 미연결은 유지한다.
+
+2026-10-26: PR #17 코드 커밋 `682963e`의 GitHub Actions run `40323467969`에서
+REST 오프라인 검사(Worker 빌드 포함)와 Windows 전체 회귀·가상 실행 모두 성공했다.
+운영 Cloudflare 배포·실사용자 로그인 검증은 여전히 대기다.

@@ -31,3 +31,4 @@ monitor_state.json
 # Cloudflare development dependencies and local state
 node_modules/
 .wrangler/
+supabase/.temp/

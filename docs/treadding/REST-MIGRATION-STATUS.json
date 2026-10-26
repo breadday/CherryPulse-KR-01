@@ -47,7 +47,13 @@
     "node_tests": 54,
     "db_assertions": 12,
     "security_advisors": "NO_LINTS",
-    "handoff": "docs/api/CLOUD-BOARD-STORAGE-2026-10-26.md"
+    "handoff": "docs/api/CLOUD-BOARD-STORAGE-2026-10-26.md",
+    "ci": {
+      "run_id": 40323467969,
+      "commit": "682963eb56de4e15ecb21f47b09a80cbf51cd074",
+      "offline_rest": "SUCCESS",
+      "windows_engine": "SUCCESS"
+    }
   },
   "board_api_handoff": {
     "contract_status": "PROPOSED_NOT_DEPLOYED",
