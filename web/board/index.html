@@ -10,6 +10,7 @@
   <script defer src="board-backup.js"></script>
   <script defer src="log-view.js"></script>
   <script defer src="buy-preview.js"></script>
+  <script defer src="cloud-client.js"></script>
   <script defer src="board.js?v=20261019-pattern-preview"></script>
 </head>
 <body>
@@ -22,7 +23,7 @@
       <div>
         <p class="eyebrow">종목과 보호 규칙</p>
         <h1 id="board-heading">트레이딩 메인 보드</h1>
-        <p>직접 고른 종목에 손절 패턴을 연결해 두세요. 저장한 초안은 이 브라우저에만 남습니다.</p>
+        <p>직접 고른 종목에 손절 패턴을 연결해 두세요. 초안은 브라우저에 저장됩니다. 로그인 후 서버 저장·불러오기를 선택할 수 있습니다.</p>
       </div>
       <div class="engine-warning" role="status"><span class="state-dot" aria-hidden="true">●</span><strong>초안 모드 — 실제 감시·주문 미동작</strong><span>마지막 수신: 연결된 적 없음</span></div>
     </section>
@@ -51,6 +52,29 @@
         <p id="cloud-setup-result" role="status" aria-live="polite">아직 확인하지 않았습니다. 초안은 현재 브라우저에 저장됩니다.</p>
       </details>
       <p id="overview-next" class="next-step"></p>
+    </section>
+    <section class="panel" aria-labelledby="cloud-heading">
+      <h2 id="cloud-heading">내 보드 서버 저장</h2>
+      <p class="hint">Supabase 계정이 아닌 이 보드용 이메일·비밀번호를 사용하세요. 로그인은 이 페이지를 닫거나 새로고침할 때 해제됩니다.</p>
+      <form id="cloud-login-form" class="stack-form">
+        <label for="cloud-email">이메일</label><input id="cloud-email" type="email" autocomplete="username" required maxlength="254">
+        <label for="cloud-password">비밀번호</label><input id="cloud-password" type="password" autocomplete="current-password" required minlength="8" maxlength="128">
+        <button id="cloud-login" type="submit">로그인</button>
+        <button id="cloud-signup" type="button">새 보드 계정 만들기</button>
+      </form>
+      <div class="symbol-filters" role="group" aria-label="서버 초안 작업">
+        <button id="cloud-save" type="button" disabled>서버에 저장</button>
+        <button id="cloud-load" type="button" disabled>서버 초안 확인</button>
+        <button id="cloud-retry" type="button" disabled>미확인 저장 재시도</button>
+        <button id="cloud-logout" type="button" disabled>로그아웃</button>
+      </div>
+      <p id="cloud-status" role="status" aria-live="polite">로그인 전 · 브라우저 초안 유지</p>
+      <div id="cloud-load-confirmation" hidden>
+        <p id="cloud-load-summary"></p>
+        <p>불러오면 현재 브라우저 초안을 교체합니다. 필요한 초안은 먼저 전체 보드 백업으로 보관하세요.</p>
+        <button id="cloud-confirm-load" type="button">이 초안으로 교체</button>
+        <button id="cloud-cancel-load" type="button">취소</button>
+      </div>
     </section>
     <div id="notice" role="status" aria-live="polite"></div>
     <nav class="mobile-status-tabs" aria-label="모바일 보드 상태">

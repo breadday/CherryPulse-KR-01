@@ -27,3 +27,7 @@ monitor_state.json
 # Project-local environment tooling and cache
 .tools/
 .uv-cache/
+
+# Cloudflare development dependencies and local state
+node_modules/
+.wrangler/

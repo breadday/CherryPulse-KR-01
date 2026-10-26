@@ -1,0 +1,11 @@
+{
+  "name": "cherrypulse-board",
+  "private": true,
+  "scripts": {
+    "test": "node --test cloud/worker.test.mjs web/board/*.test.js",
+    "build": "wrangler deploy --dry-run --outdir results/worker-build"
+  },
+  "devDependencies": {
+    "wrangler": "4.152.0"
+  }
+}
