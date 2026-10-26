@@ -50,11 +50,11 @@ test("board assets retain their own request path and only web is published", asy
   assert.equal(await result.text(), "board");
   const config = JSON.parse(readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"));
   assert.equal(config.assets.directory, "./web");
-  assert.deepEqual(config.assets.run_worker_first, ["/api/*"]);
+  assert.equal(config.assets.run_worker_first, true);
 });
 
 const env = {SUPABASE_URL: url, SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_synthetic_public_test_key'};
-const auth = {Authorization: 'Bearer synthetic_jwt_token_value_12345'};
+const auth = {Authorization: `Bearer ${'a'.repeat(64)}`};
 const snapshot = {format: 'cherrypulse-board-draft', schemaVersion: 1, symbols: [], patterns: []};
 const saveBody = {snapshot, expectedRevision: 0, requestKey: '48c0800c-f6ee-4b7a-84a9-e86dc11a3def'};
 const {handleRequest} = await import('./worker.mjs');
@@ -74,10 +74,10 @@ test('save validates links, revision, request keys and body size before calling 
 });
 test('RPC uses the user bearer token; DB conflicts and failures expose no upstream details', async () => {
   const conflict = await handleRequest(put(saveBody), env, async (target, options) => {
-    assert.equal(target, `${url}/rest/v1/rpc/cp_save_board`);
-    assert.equal(options.headers.Authorization, auth.Authorization);
+    assert.equal(target, `${url}/rest/v1/rpc/cp_pin_save_board`);
+    assert.equal(options.headers.Authorization, undefined);
     assert.equal(options.headers.apikey, env.SUPABASE_PUBLISHABLE_KEY);
-    assert.deepEqual(JSON.parse(options.body), {p_snapshot: snapshot, p_expected_revision: 0, p_request_key: saveBody.requestKey});
+    assert.deepEqual(JSON.parse(options.body), {p_session: 'a'.repeat(64), p_snapshot: snapshot, p_expected_revision: 0, p_request_key: saveBody.requestKey});
     return Response.json({status: 412, code: 'VERSION_CONFLICT'});
   });
   assert.equal(conflict.status, 412);
@@ -87,11 +87,27 @@ test('RPC uses the user bearer token; DB conflicts and failures expose no upstre
 test('load returns versioned snapshot without caching and network failure never looks empty', async () => {
   const req = new Request('https://board.test/api/board', {headers: auth});
   const loaded = await handleRequest(req, env, async (target, options) => {
-    assert.equal(target, `${url}/rest/v1/rpc/cp_load_board`); assert.equal(options.body, '{}');
+    assert.equal(target, `${url}/rest/v1/rpc/cp_pin_load_board`); assert.deepEqual(JSON.parse(options.body), {p_session: 'a'.repeat(64)});
     return Response.json({revision: 1, snapshot});
   });
   assert.equal(loaded.headers.get('cache-control'), 'no-store');
   assert.deepEqual((await loaded.json()).snapshot, snapshot);
   const failed = await handleRequest(req, env, async () => { throw new Error('timeout'); });
   assert.equal(failed.status, 502);
+});
+
+test('PIN login validates four digits and delegates credential checking to the database', async () => {
+  const login = pin => new Request('https://board.test/api/pin-login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})});
+  let calls = 0;
+  const fetcher = async (url, options) => {
+    calls++; assert.equal(url.endsWith('/rpc/cp_pin_login'), true);
+    assert.deepEqual(JSON.parse(options.body), {p_pin:'0123'});
+    return Response.json({sessionToken:'b'.repeat(64), expiresIn:43200});
+  };
+  for (const pin of ['123','abcd',1234]) assert.equal((await handleRequest(login(pin),env,fetcher)).status,422);
+  assert.equal(calls,0);
+  const response=await handleRequest(login('0123'),env,fetcher);
+  assert.equal(response.status,200); assert.equal(response.headers.get('cache-control'),'no-store');
+  const locked=await handleRequest(login('0123'),env,async()=>Response.json({status:429,code:'PIN_LOCKED'}));
+  assert.equal(locked.status,429);
 });

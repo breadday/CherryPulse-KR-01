@@ -6,7 +6,7 @@
 })(globalThis, () => {
   class CloudError extends Error { constructor(code) { super(code); this.code = code; } }
   function createClient(fetcher, uuid, backup) {
-    let config, session = null, revision = null, pending = null;
+    let session = null, revision = null, pending = null;
     async function request(url, options = {}) {
       let response, body;
       try {
@@ -15,24 +15,18 @@
       } catch { throw new CloudError("NETWORK_ERROR"); }
       if (!response.ok) {
         if (response.status === 401) { session = null; revision = null; pending = null; }
-        throw new CloudError(body?.error?.code || (response.status === 400 ? "LOGIN_FAILED" : `HTTP_${response.status}`));
+        throw new CloudError(body?.error?.code || `HTTP_${response.status}`);
       }
       return body;
     }
-    async function configure() {
-      const value = await request("/api/cloud-config");
-      if (value.supabaseUrl !== "https://qrrrnxmsbrkqueaabjdr.supabase.co" ||
-          !/^sb_publishable_[A-Za-z0-9_-]{16,256}$/.test(value.publishableKey) || !value.capabilities?.boardCrud) throw new CloudError("NOT_CONFIGURED");
-      config = value;
-    }
-    async function auth(email, password, signup = false) {
+    async function auth(pin) {
       session = null; revision = null; pending = null;
-      if (!config) await configure();
-      const body = await request(`${config.supabaseUrl}/auth/v1/${signup ? "signup" : "token?grant_type=password"}`, {
-        method: "POST", headers: {apikey: config.publishableKey, "Content-Type": "application/json"}, body: JSON.stringify({email, password}),
+      const body = await request("/api/pin-login", {
+        method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({pin}),
       });
-      if (body.access_token && body.user?.id) session = {token: body.access_token, id: body.user.id};
-      return {signedIn: !!session};
+      if (!/^[a-f0-9]{64}$/.test(body.sessionToken)) throw new CloudError("INVALID_RESPONSE");
+      session = {token: body.sessionToken};
+      return {signedIn: true};
     }
     function headers() {
       if (!session) throw new CloudError("UNAUTHENTICATED");
@@ -75,8 +69,8 @@
     async function logout() {
       const old = session;
       session = null; revision = null; pending = null;
-      if (old && config) await request(`${config.supabaseUrl}/auth/v1/logout?scope=local`, {
-        method: "POST", headers: {apikey: config.publishableKey, Authorization: `Bearer ${old.token}`},
+      if (old) await request("/api/pin-logout", {
+        method: "POST", headers: {Authorization: `Bearer ${old.token}`},
       });
     }
     return {auth, inspect, load, acceptLoaded, save, retry: () => save(null, true), logout, signedIn: () => !!session};

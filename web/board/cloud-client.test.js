@@ -9,14 +9,14 @@ function setup(handler) {
   const client = createClient(async (url, options) => {
     assert.equal(options.credentials, 'omit');
     if (url === '/api/cloud-config') return Response.json({supabaseUrl: 'https://qrrrnxmsbrkqueaabjdr.supabase.co', publishableKey: key, capabilities: {boardCrud: true}});
-    if (url.includes('/auth/v1/token')) return Response.json({access_token: 'synthetic-token', user: {id: 'owner'}});
+    if (url === '/api/pin-login') return Response.json({sessionToken: 'a'.repeat(64)});
     return handler(url, options);
   }, () => `key-${++sequence}`, backup);
   return client;
 }
 test('existing server data cannot be overwritten before explicit load acceptance', async () => {
   const client = setup(async () => Response.json({revision: 4, snapshot: JSON.parse(backup.serializeBoardBackup(draft))}));
-  await client.auth('test@example.invalid', 'synthetic-password');
+  await client.auth('0123');
   await client.inspect();
   await assert.rejects(client.save(draft), {code: 'LOAD_REQUIRED'});
   const loaded = await client.load();
@@ -31,7 +31,7 @@ test('response loss reuses the identical idempotency key and payload even after 
     if (fail) { fail = false; throw new Error('response lost'); }
     return Response.json({revision: 1});
   });
-  await client.auth('test@example.invalid', 'synthetic-password'); await client.inspect();
+  await client.auth('0123'); await client.inspect();
   await assert.rejects(client.save(draft), {code: 'NETWORK_ERROR'});
   await assert.rejects(client.load(), {code: 'SAVE_UNCONFIRMED'});
   await assert.rejects(client.save({symbols: [{code: '005930', name: '삼성전자'}], patterns: []}), {code: 'SAVE_UNCONFIRMED'});
@@ -45,21 +45,29 @@ test('conflict requires a new load and never retries with a guessed revision', a
     if (options.method !== 'PUT') return Response.json({revision: 0, snapshot: null});
     writes++; return Response.json({error: {code: 'VERSION_CONFLICT'}}, {status: 412});
   });
-  await client.auth('a@b.invalid', 'synthetic-password'); await client.inspect();
+  await client.auth('0123'); await client.inspect();
   await assert.rejects(client.save(draft), {code: 'VERSION_CONFLICT'});
   await assert.rejects(client.save(draft), {code: 'LOAD_REQUIRED'});
   assert.equal(writes, 1);
 });
 test('logout clears the local session even if remote revocation fails', async () => {
   const client = setup(async () => { throw new Error('offline'); });
-  await client.auth('a@b.invalid', 'synthetic-password');
+  await client.auth('0123');
   await assert.rejects(client.logout(), {code: 'NETWORK_ERROR'});
   assert.equal(client.signedIn(), false);
   await assert.rejects(client.load(), {code: 'UNAUTHENTICATED'});
 });
 test('invalid remote snapshots never reach local storage or revision acceptance', async () => {
   const client = setup(async () => Response.json({revision: 1, snapshot: {symbols: [], patterns: []}}));
-  await client.auth('a@b.invalid', 'synthetic-password');
+  await client.auth('0123');
   await assert.rejects(client.load());
   await assert.rejects(client.save(draft), {code: 'LOAD_REQUIRED'});
+});
+
+test('PIN errors preserve safe server codes without exposing raw details', async () => {
+  for (const code of ['PIN_INCORRECT', 'PIN_LOCKED', 'PIN_NOT_CONFIGURED']) {
+    const client = createClient(async () => Response.json({error: {code}}, {status: code === 'PIN_LOCKED' ? 429 : 401}), () => 'synthetic-key', backup);
+    await assert.rejects(client.auth('0123'), e => e.code === code);
+    assert.equal(client.signedIn(), false);
+  }
 });
