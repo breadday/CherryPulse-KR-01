@@ -50,3 +50,26 @@ test('late responses and network errors cannot overwrite a newer name or discard
   bad.get('symbol-name').value='삼성전자';bad.get('symbol-input').value='005930';await bad.api.lookup();
   assert.equal(bad.get('symbol-input').value,'005930');assert.match(bad.get('symbol-lookup-status').textContent,/다시 누르거나/);
 });
+
+test('browser default timers keep Window receiver for typing, Korean composition, search button and reset', async () => {
+  const vm = require('node:vm');
+  const elements = new Map();
+  const element = () => ({value:'',textContent:'',children:[],listeners:{},addEventListener(n,fn){this.listeners[n]=fn;},replaceChildren(){this.children=[];},append(child){this.children.push(child);}});
+  for (const id of ['symbol-name','symbol-input','symbol-lookup-button','symbol-lookup-status','symbol-lookup-results','symbol-form']) elements.set(id,element());
+  const tasks = new Map(); let next = 0;
+  const context = {windowMarker:true, document:{getElementById:id=>elements.get(id),createElement:element},
+    fetch:async()=>Response.json(directory),AbortSignal,
+    setTimeout:function(callback) { assert.equal(this.windowMarker,true,'setTimeout requires Window receiver');tasks.set(++next,callback);return next; },
+    clearTimeout:function(id) { assert.equal(this.windowMarker,true,'clearTimeout requires Window receiver');tasks.delete(id); },
+  };
+  vm.runInNewContext(readFileSync(require.resolve('./symbol-lookup.js'),'utf8'),context);
+  const name=elements.get('symbol-name'),code=elements.get('symbol-input');
+  name.value='삼성전자';name.listeners.compositionstart();name.listeners.input();
+  assert.equal(tasks.size,0);
+  name.listeners.compositionend();assert.equal(tasks.size,1);
+  await [...tasks.values()][0]();assert.equal(code.value,'005930');
+  code.value='';await elements.get('symbol-lookup-button').listeners.click();
+  assert.equal(code.value,'005930');
+  elements.get('symbol-form').listeners.reset();
+  assert.equal(elements.get('symbol-lookup-results').children.length,0);
+});

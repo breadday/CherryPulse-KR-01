@@ -16,7 +16,7 @@
     "R07": "TODO",
     "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
   },
-  "next_action": "PIN·종목명 검색 변경을 Cloudflare에 재배포하고, 4자리 접속·종목 코드 자동 입력·서버 저장 왕복을 실제 화면에서 확인한다. R04/R05 지정 PC 실증은 별도 대기.",
+  "next_action": "검색 타이머 수정이 포함된 최신 main을 Cloudflare에 재배포하고, 실제 Chrome에서 종목명 검색·코드 자동 입력을 확인한다. PIN·주문 설정은 변경하지 않았다.",
   "checklists": {
     "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
     "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md",
@@ -44,7 +44,7 @@
     "target_ref": "qrrrnxmsbrkqueaabjdr",
     "live_auth_and_crud": "PIN_RPC_TESTED_FRONTEND_DEPLOY_PENDING",
     "deployment": "PENDING_CLOUDFLARE_AUTHENTICATED_DEPLOY",
-    "node_tests": 62,
+    "node_tests": 63,
     "db_assertions": 12,
     "security_advisors": "NO_LINTS",
     "handoff": "docs/api/BOARD-PIN-AND-SYMBOL-SEARCH-2026-10-26.md",
@@ -57,7 +57,8 @@
     "authentication": "SINGLE_OWNER_FOUR_DIGIT_PIN",
     "rest_tests": 166,
     "pin_db_assertions": 13,
-    "symbol_directory_rows": 3488
+    "symbol_directory_rows": 3488,
+    "search_fix": "BROWSER_TIMER_RECEIVER_FIXED_DEPLOY_PENDING"
   },
   "board_api_handoff": {
     "contract_status": "PROPOSED_NOT_DEPLOYED",

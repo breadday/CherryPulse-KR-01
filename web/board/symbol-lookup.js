@@ -24,7 +24,7 @@
     const matches = data.symbols.filter(row => normalize(row[1]).includes(q) || row[0].includes(q)).sort((a, b) => rank(a) - rank(b) || a[1].localeCompare(b[1], "ko") || a[0].localeCompare(b[0]));
     return {matches: matches.slice(0, 20), total: matches.length, exact: matches.filter(row => rank(row) === 0)};
   }
-  function attach(doc, fetcher, timers = {set: setTimeout, clear: clearTimeout}) {
+  function attach(doc, fetcher, timers = {set: (callback, delay) => globalThis.setTimeout(callback, delay), clear: id => globalThis.clearTimeout(id)}) {
     const name = doc.getElementById("symbol-name"), code = doc.getElementById("symbol-input");
     const button = doc.getElementById("symbol-lookup-button"), status = doc.getElementById("symbol-lookup-status"), list = doc.getElementById("symbol-lookup-results");
     if (!name || !code || !button || !status || !list) return;

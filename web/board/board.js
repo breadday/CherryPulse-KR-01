@@ -110,7 +110,7 @@ function render() {
   if (!visibleSymbols.length) {
     const empty = document.createElement("p"); empty.className = "empty";
     empty.textContent = query
-      ? "검색 결과가 없습니다. 종목명·코드·링크·메모를 확인하세요."
+      ? "검색 결과가 없습니다. 새 종목은 ‘＋ 종목 등록’에서 종목명으로 찾아 추가하세요."
       : symbolView === "archived"
       ? "보관한 종목이 없습니다. 종목 카드를 보관해 두면 여기에 남습니다."
       : "등록한 종목이 없습니다. 종목명을 검색해 추가하세요.";
