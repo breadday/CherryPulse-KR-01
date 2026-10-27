@@ -341,3 +341,28 @@ Cloudflare 배포 인증은 사용자 PC에만 있으므로 최신 main 재배�
 회귀 검사 추가, Node 63개·Worker 빌드 통과. 등록 종목 필터와 새 종목
 검색의 명칭도 구분했다. PIN은 변경하지 않았다. 최신 main 재배포 후
 실제 브라우저 검색 성공 확인이 남았다.
+
+## 2026-10-27 운영 검색 수정 확인 및 R045 실행 상태
+
+운영 주소 `/board/`는 HTTP 200으로 열리고 HTML의 JS/CSS 버전이
+`20261026-search-timer-fix`다. `/api/cloud-config`는 구성 준비 상태와
+인증·보드 CRUD capability를 반환했다(엔진 capability는 false). 응답에 포함된
+공개 publishable key 값은 기록하지 않았다.
+
+사용자 Chrome의 운영 탭에서 PIN 화면은 표시됐고, 로그인 제출은 하지 않았다.
+종목 등록에서 `삼성전자` 검색 후 005930이 자동 입력되었으며, 검색 목록에서
+`삼성전자우`를 선택하자 이름과 코드가 005935로 바뀌었다. 입력 필드는 확인 뒤
+비웠다. 실제 PIN 인증·서버 저장 왕복·모바일 인수는 미검증이다.
+
+`results/r045-20261027/manifest.json` 확인: PREWARM과 READ_BEFORE는 exit 0,
+QUOTE_WS는 CONNECT 단계 `DEPENDENCY_ERROR`, 연결 0·시세 0으로 중단했다.
+주문 단계에는 진입하지 않았고 주문 OFF 및 `account_reconciled=false`다.
+현재 작업 호스트에서는 `py -3.10-32`가 설치된 런타임을 찾지 못해 예약 실행과
+같은 환경의 websockets 설치 여부를 확인할 수 없었다. 다음: 지정 PC에서 예약
+작업의 Python 3.10-32 경로와 `websockets==15.0.1` 설치 여부, 안전한 허용 진단
+결과를 확인한 뒤 의존성을 복구하고 다음 정규장 manifest를 검토한다. 주문 OFF와
+R04 미승격은 유지한다.
+
+로컬 Git 확인: `main` HEAD `7d7b000`이 `origin/main`과 일치. 기존 미추적
+`CherryPulse-lite.zip`, `docs/사용법.md`는 보존했다. `git diff --check`는 기록
+수정 전 통과했다.
