@@ -2,6 +2,7 @@
 
 2026-10-14 REST 전환의 최신 사용자 결정은 `docs/treadding/REST-MIGRATION-PLAN.md`를 먼저 읽는다.
 중단·재개 시 `docs/treadding/REST-MIGRATION-HANDOFF.md`와 `docs/treadding/REST-MIGRATION-STATUS.json`을 확인하고 단계마다 갱신한다.
+OpenCode로 자동 개발을 이어갈 때는 복사 가능한 실행 지시서 `docs/treadding/OPENCODE-AUTODEVELOPMENT-INSTRUCTIONS.md`도 따른다.
 현재 사용자 요청은 계획·개발·검증·한글 커밋·push·CI 통과 후 반영을 포함한다. 주문 활성화와 구별한다.
 
 개발 기준은 다음 문서 순서로 읽는다.

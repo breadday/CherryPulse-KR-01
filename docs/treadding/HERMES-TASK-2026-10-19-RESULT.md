@@ -12,7 +12,7 @@
 
 ## TASK-2 — R04: 오프라인 검증 6/6 통과(2026-10-20), 실증 미완료
 
-- 지정 Python 확인: Python 3.10.8, 32-bit.
+- 당시 지정 Python 확인: Python 3.10.8, 32-bit. 이는 검증 호스트 기록이며 REST 아키텍처 요건이 아니다. REST/WS는 32/64비트 모두 가능하고 현재 R045는 `py -3.10`을 사용한다. 32비트 요건은 OCX/COM 검사에만 적용한다.
 - 2026-10-19 실행: verifier `passed:false` — `python -m basedpyright`가 32비트 환경에서 nodejs-wheel 빌드 실패로 인한 호출 방식 문제였다.
 - 2026-10-20 수정: `docs/DEVELOPMENT-ENVIRONMENT.md`가 정한 `node .tools/typecheck/basedpyright/index.js` 진입점 사용. `.tools/typecheck`에 basedpyright 1.40.1 재설치. verifier가 로컬 node 진입점/CI `-m` 폴백을 선택하도록 `typecheck_command()` 도입.
 - 2026-10-20 결과: `py -3.10-32 tools/verify_rest_migration.py` **exit 0, passed=true, 6/6 OK** — REST pytest 150 passed(신규 러너 테스트 5종 포함), ruff check/format 통과, basedpyright 0 errors, 보드 Node 35 passed, `git diff --check` 통과. `results/rest-migration-verification.json` 갱신.

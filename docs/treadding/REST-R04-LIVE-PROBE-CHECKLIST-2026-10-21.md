@@ -13,8 +13,14 @@
 
 ## 0. 사전 준비물 — 장 시작 전 확인
 
-- [ ] 지정 Windows PC이고 `py -3.10-32 -c "import sys; print(sys.version)"`가
-      3.10.x 32bit를 출력한다.
+- [ ] 지정 Windows PC에서 예약 작업과 동일한 `py -3.10` 인터프리터를 사용한다.
+      REST 실행은 32/64비트 모두 가능하다. 선택된 실행 파일·버전을 확인한다.
+      32비트는 OCX/COM 검사 때만 요구된다.
+
+```powershell
+py -3.10 -c "import sys,struct; assert (3,10,8) <= sys.version_info[:3] < (3,11,0); print(sys.version.split()[0], struct.calcsize('P')*8, sys.executable)"
+py -3.10 -c "import websockets,websockets.sync.client,typing_extensions; print(websockets.__version__)"
+```
 - [ ] 모의 전용 키가 사용자 환경변수로 등록돼 있다. 도구는
       `CHERRYPULSE_PAPER_APP_KEY`/`CHERRYPULSE_PAPER_APP_SECRET`를 먼저 읽고
       없으면 `KIWOOM_APP_KEY`/`KIWOOM_APP_SECRET`를 폴백으로 읽는다. 새 셸을 열어
@@ -35,7 +41,7 @@
 ## 1. 예열 — 키 미사용 오프라인 확인
 
 ```powershell
-py -3.10-32 -m tools.probe_kiwoom_rest
+py -3.10 -m tools.probe_kiwoom_rest
 ```
 
 - 판정: exit 0, `EXECUTION_NOT_REQUESTED`. 네트워크·키 미사용.
@@ -43,7 +49,7 @@ py -3.10-32 -m tools.probe_kiwoom_rest
 ## 2. R04 읽기 실측 — 읽기 전용 5건
 
 ```powershell
-py -3.10-32 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3 --include-history
+py -3.10 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3 --include-history
 ```
 
 - 판정: exit 0, 5건(`kt00018/ka10075/kt00007/kt00009/ka10076`) 전부
@@ -58,8 +64,8 @@ py -3.10-32 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3 --inclu
 HTS 현재가를 확인한 뒤(Q12 상한 10만원 이하, 예: 삼성전자 005930):
 
 ```powershell
-py -3.10-32 -m tools.submit_paper_buy --symbol 005930 --price <HTS 현재가>
-py -3.10-32 -m tools.submit_paper_buy --symbol 005930 --price <HTS 현재가> --confirm-execute
+py -3.10 -m tools.submit_paper_buy --symbol 005930 --price <HTS 현재가>
+py -3.10 -m tools.submit_paper_buy --symbol 005930 --price <HTS 현재가> --confirm-execute
 ```
 
 - 미리보기 판정: exit 0, `EXECUTION_NOT_REQUESTED`.
@@ -74,7 +80,7 @@ py -3.10-32 -m tools.submit_paper_buy --symbol 005930 --price <HTS 현재가> --
 ## 4. WebSocket 실측 — 장중 수신
 
 ```powershell
-py -3.10-32 -m tools.probe_kiwoom_ws 005930 --seconds 30 --execute-read-only
+py -3.10 -m tools.probe_kiwoom_ws 005930 --seconds 30 --execute-read-only
 ```
 
 - 판정: exit 0, `quotes_observed > 0`, `fresh_before_close: true`.
@@ -86,8 +92,8 @@ py -3.10-32 -m tools.probe_kiwoom_ws 005930 --seconds 30 --execute-read-only
 제출한 주문이 접수됐으면(미체결이든 체결이든) 이력 TR에 행이 생긴다.
 
 ```powershell
-py -3.10-32 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3 --include-history
-py -3.10-32 -m tools.verify_paper_linkage --execute-read-only
+py -3.10 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3 --include-history
+py -3.10 -m tools.verify_paper_linkage --execute-read-only
 ```
 
 - 연결 판정: `LINKAGE_CONSISTENT`면 Q01 근거(동일 주문번호가 2곳 이상 일치)와

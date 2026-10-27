@@ -1,5 +1,9 @@
 # REST 전환 첫 검증 — 2026-10-14
 
+> 환경 구분: 아래 과거 Windows 검증 일부는 Python 3.10.8 32비트로 수행했지만,
+> 이는 당시 사용 환경 기록이다. REST/HTTP/WebSocket의 아키텍처 요건은 아니다.
+> 현재 REST 프로브 안내는 `py -3.10`을 사용하며 32/64비트 모두 가능하다.
+
 기준 main `1ec7966`, Linux Python 3.12.14, pytest 9.1.1, Pydantic 2.13.5,
 Ruff 0.17.0, basedpyright 1.40.2, Node 24.19.0.
 기존 Windows/Python3.10 의존성 파일은 변경하지 않았다. 이 환경 검사가 Windows 인증은 아니다.

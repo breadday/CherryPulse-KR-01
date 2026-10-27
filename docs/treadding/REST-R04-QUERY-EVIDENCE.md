@@ -78,8 +78,12 @@ Q02 체결번호 유일성과 누적·단위 의미, Q08 접수 전 체결 연�
 사용자가 지정 PC에서 모의 전용 키로 직접 실행했다. 명령과 성공 기준은
 `REST-R02-AUTH-READONLY.md`를 따른다.
 
+실행 당시 명령은 `py -3.10-32`였고 인터프리터는 Python 3.10 32비트였다. 이는
+당시 PC 환경 기록이며 REST 조회가 32비트를 요구해서가 아니다. 현재 재실행은
+아키텍처 중립인 `py -3.10`을 사용한다.
+
 ```powershell
-py -3.10-32 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3 --include-history
+py -3.10 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3 --include-history
 ```
 
 결과 3회 모두 exit 0, 5건(`kt00018/ka10075/kt00007/kt00009/ka10076`) 전부

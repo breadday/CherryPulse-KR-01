@@ -34,7 +34,7 @@ CherryPulse-KR-01의 화면을 보드 기반으로 재구성하고, REST 마이�
 - 검증: `py check.py` 실행 시 미진행으로 뜨지 않아야 함
 
 ### TASK-2: R04 LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED 게이트 통과 (P0)
-- [ ] `tools/verify_rest_migration.py` 실행 환경 점검 (Python 3.10.8 32비트, 키움 OpenAPI+ REST)
+- [ ] `tools/verify_rest_migration.py` 실행 환경 점검 (REST는 Python 3.10.8 이상·3.11 미만에서 32/64비트 모두 가능. 32비트는 별도 OCX/COM 검사 때만 필요)
 - [ ] 모의계좌 읽기, WebSocket 장중 수신, 허용된 주문·체결·취소 실증 로그 수집
 - [ ] 정규장(09:00~15:20) 시간에 모의 1주 지정가 재제출 테스트 수행
 - [ ] 결과로 `docs/treadding/REST-MIGRATION-STATUS.json`의 R04를 `LIVE_VERIFIED`로 업데이트, `verification_command` 결과 첨부

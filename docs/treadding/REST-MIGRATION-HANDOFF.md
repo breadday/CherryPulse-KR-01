@@ -1,5 +1,15 @@
 # 다른 AI용 재개 지시서
 
+## 실행 환경 구분 — 2026-10-27 사용자 결정
+
+REST/HTTP/WebSocket 경계는 32비트 Python이나 OCX를 요구하지 않는다. 저장소의
+`pyproject.toml`은 현재 Python `>=3.10.8,<3.11`을 선언하지만 아키텍처는 지정하지
+않는다. 32비트는 기존 Kiwoom ActiveX/COM 엔진 검사에만 필요하다.
+R045는 `scripts/r045-morning-run.cmd`에서 `py -3.10`으로 실행하고,
+REST 선택 의존성(`tools/requirements-rest-probes.txt`)을 **같은 인터프리터**에
+설치한다. 현재 호스트에 Python 3.10이 없다면 설치 대상을 확인하기 전 32비트를
+기본 요구로 안내하지 않는다. 과거 32비트로 수행한 검증 기록은 당시 환경 사실이다.
+
 대화 기억 없이 이 저장소에서 이어갈 수 있도록 작성했다. 최신 상태는 같은 폴더의
 `REST-MIGRATION-STATUS.json`, 검증 결과는 `REST-MIGRATION-VERIFICATION.md`다.
 
@@ -357,15 +367,17 @@ Cloudflare 배포 인증은 사용자 PC에만 있으므로 최신 main 재배�
 `results/r045-20261027/manifest.json` 확인: PREWARM과 READ_BEFORE는 exit 0,
 QUOTE_WS는 CONNECT 단계 `DEPENDENCY_ERROR`, 연결 0·시세 0으로 중단했다.
 주문 단계에는 진입하지 않았고 주문 OFF 및 `account_reconciled=false`다.
-현재 작업 호스트에서는 `py -3.10-32`가 설치된 런타임을 찾지 못해 예약 실행과
-같은 환경의 websockets 설치 여부를 확인할 수 없었다. 다음: 지정 PC에서 예약
-작업의 Python 3.10-32 경로와 `websockets==15.0.1` 설치 여부, 안전한 허용 진단
-결과를 확인한 뒤 의존성을 복구하고 다음 정규장 manifest를 검토한다. 주문 OFF와
-R04 미승격은 유지한다.
+현재 작업 호스트에서는 예약 작업을 찾지 못했고 `py -3.10` 런타임도 확인하지
+못해 지정 PC의 의존성 상태를 읽을 수 없었다. 다음: 지정 PC에서 예약 작업이
+`py -3.10`을 사용하는지 확인하고, 그 인터프리터에서 `websockets.sync.client`와
+`typing_extensions` import를 검사한다. 빠진 패키지는
+`py -3.10 -m pip install -r tools/requirements-rest-probes.txt`로 설치한다.
+이는 32비트 설치 요구가 아니다. 설치 후 다음 정규장 manifest를 검토하며 주문
+OFF와 R04 미승격을 유지한다.
 
 로컬 Git 확인: `main` HEAD는 `e3d49b2`이며 `origin/main`과 일치한다. 커밋에 이 핸드오프·상태 갱신, 사용법 문서 및 `CherryPulse-lite.zip`이 포함돼 있다. 현재 후속 문서 수정 외에는 사용자 변경을 건드리지 않았다.
 현재 실행 환경 재확인: `CherryPulse-R045-Demo` 예약 작업은 이 호스트에서 찾지 못했고,
-`py -3.10-32`도 사용할 수 없다. 이전 2026-10-27 manifest가 생성된 지정 PC와
+`py -3.10`도 사용할 수 없다. 이전 2026-10-27 manifest가 생성된 지정 PC와
 현재 실행 호스트가 동일하다고 가정하지 않는다. 다음 정규장 실증 전 지정 PC에서
 Task Scheduler 기록, 작업이 가리키는 Python 경로, 그 인터프리터의 `websockets`
 설치 버전을 확인해야 한다. 원시 로그·토큰을 복사하지 말고 고정 진단 코드와 단계
@@ -373,3 +385,32 @@ Task Scheduler 기록, 작업이 가리키는 Python 경로, 그 인터프리터
 
 이번 후속 확인: `node --test web/board/*.test.js` 53개 통과. 이는 보드 회귀만
 검증하며 Worker 전체·REST Python·Windows 엔진 검증을 대체하지 않는다.
+
+## 2026-10-27 R045 WebSocket 의존성 복구 — 이전 불일치 정정
+
+이전 기록("이 호스트에서 예약 작업을 찾지 못했고 py -3.10도 사용할 수 없다")은
+틀렸다. 실측으로 정정한다. 이 호스트가 R045 예약 작업의 실행 PC이고:
+
+- `CherryPulse-R045-Demo` 예약 작업은 State=Ready, `scripts/r045-morning-run.cmd`
+  를 작업 디렉터리 `E:\hermes-local\workspace\CherryPulse-KR-01`에서 실행한다.
+  LastRun 2026-10-27 09:30(LastTaskResult 0), NextRun 2026-10-28 09:30.
+- `py -3.10`은 `C:\Users\bread\AppData\Local\Programs\Python\Python310-32\python.exe`
+  (3.10.8 32bit)로 해석된다. REST probe는 아키텍처 중립이며 이 런타임을 그대로 쓴다.
+- 근본 원인: 같은 인터프리터에 `websockets` 미설치 → manifest QUOTE_WS
+  `CONNECT` 단계 `DEPENDENCY_ERROR`.
+- 복구: `py -3.10 -m pip install -r tools/requirements-rest-probes.txt` →
+  `websockets==15.0.1` 설치, `websockets.sync.client` import 통과.
+
+장중 밖(21:51 KST) 검증: 명령 `py -3.10 -m tools.probe_kiwoom_ws 005930
+--seconds 20 --execute-read-only` → exit 1(장중 밖이므로 예상), JSON: connections
+1, quotes_observed 0, `failure_stage` null, `failure_kind` null, reason NO_QUOTE,
+orders_enabled false. `DEPENDENCY_ERROR`는 해거됐고 연결 실패는 없다.
+`quotes_observed>0` 증거는 정규장 중에만 만들 수 있으므로 R04 승격 없이 다음
+정규장 실행에서 채운다. quote-out 파일은 시세 0이라 생성되지 않았다.
+
+검증: `py -3.10 tools/verify_rest_migration.py` exit 0 / 6 checks(REST pytest
+166 passed, ruff check·format, basedpyright node 진입점 0 errors, Node 보드
+39 passed, git diff --check). 주문 호출은 없었다. 다음: 2026-10-28 09:30 예약
+실행 후 `results/r045-20261028/manifest.json`에서 QUOTE_WS
+`quotes_observed>0 && fresh_before_close=true`를 확인하고, 이를 R04 WebSocket
+근거로 기록한다. 주문 OFF와 R04 `LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED` 유지.

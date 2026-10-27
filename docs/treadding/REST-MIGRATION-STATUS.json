@@ -16,7 +16,7 @@
     "R07": "TODO",
     "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
   },
-  "next_action": "운영 보드는 최신 검색 수정본을 제공하고 Chrome 종목명 검색·코드 선택이 확인됐다. 다음은 지정 PC에서 2026-10-27 R045 manifest의 QUOTE_WS DEPENDENCY_ERROR 원인을 점검하고, Python 3.10-32·websockets 설치 상태를 확인해 후속 장중 실행을 준비한다. PIN 로그인과 저장·불러오기 실사용자 확인은 별도 대기다.",
+  "next_action": "R045 예약 작업이 이 호스트에서 py -3.10(3.10.8 32bit, Python310-32)으로 실행되는 것을 확인했고 같은 인터프리터에 websockets==15.0.1을 설치해 QUOTE_WS DEPENDENCY_ERROR 원인을 제거했다. 장중 밖 20초 WS probe는 연결 1·실패 없음·시세 0이다. 다음: 2026-10-28 09:30 예약 실행 manifest에서 quotes_observed>0와 fresh_before_close=true를 확인해 R04 WebSocket 증거로 기록한다. PIN 로그인과 저장·불러오기 실사용자 확인은 별도 대기다.",
   "checklists": {
     "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
     "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md",
@@ -60,7 +60,7 @@
     "symbol_directory_rows": 3488,
     "live_browser_acceptance_2026-10-27": "SEARCH_AUTO_FILLED_005930_AND_SELECTION_SWITCHED_TO_005935",
     "r045_2026-10-27": "READ_BEFORE_EXIT0_WS_ABORTED_CONNECT_DEPENDENCY_ERROR_NO_QUOTES_NO_ORDER",
-    "scheduled_python_runtime_check": "R045_TASK_NOT_FOUND_AND_PYTHON_3_10_32_UNAVAILABLE_ON_CURRENT_HOST",
+    "scheduled_python_runtime_check": "R045_TASK_FOUND_ON_THIS_HOST_READY_NEXT_RUN_202610280930_LAST_RUN_202610270930_RESULT_0_PY_3_10_RESOLVES_TO_PYTHON310_32_3_10_8; REST_ARCHITECTURE_NEUTRAL",
     "search_fix": "LIVE_ASSET_AND_CHROME_SEARCH_VERIFIED_2026-10-27_PIN_LOGIN_PENDING"
   },
   "board_api_handoff": {
@@ -98,6 +98,8 @@
     "task_2026_10_22_full_pytest": 347,
     "task_2026_10_22_board_node_tests": 35,
     "task_2026_10_22_verifier_exit0": "PASS_6_6",
-    "task_2026_10_22_github_ci_run": 39742233308
+    "task_2026_10_22_github_ci_run": 39742233308,
+    "task_2026_10_27_dependency_fix": "PY_3_10_PIP_INSTALL_REQUIREMENTS_REST_PROBES_WEBSOCKETS_15_0_1_INSTALLED; WS_PROBE_AFTER_HOURS_CONNECTIONS_1_FAILURE_STAGE_NULL_QUOTES_0_EXIT_1_NO_QUOTE",
+    "task_2026_10_27_verifier_exit0": "PASS_6_6_REST_PYTEST_166_NODE_39_BASEDPYRIGHT_0_ERRORS"
   }
 }

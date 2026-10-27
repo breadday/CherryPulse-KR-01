@@ -23,11 +23,20 @@ uv는 공식 GitHub 릴리스 ZIP과 해당 SHA-256 파일을 내려받아 해�
 
 ## 재구성
 
-프로젝트 루트의 PowerShell에서 실행한다. 아래 Python은 이 PC에서 확인된 설치다. 다른 PC에서는 설치된 **32비트 Python 3.10**의 명시적 경로를 사용하고 아래 검사를 다시 수행한다. pyproject의 Python 버전 범위만으로 32비트가 강제되는 것은 아니다.
+프로젝트 루트의 PowerShell에서 실행한다. 아래 Python은 이 PC에서 확인된 **OCX/COM 엔진용** 설치다. 키움 OpenAPI+ ActiveX/COM 검사는 32비트 Python이 필요하다. REST/HTTP/WebSocket 프로브는 OCX를 가져오지 않으므로 32비트 조건이 없다. `pyproject.toml`의 현재 Python 3.10 범위는 프로젝트 기본선이며 비트수를 지정하지 않는다.
 
 ```powershell
 $enginePython = Join-Path $env:LOCALAPPDATA 'Programs\Python\Python310-32\python.exe'
 & .\.tools\uv\uv.exe sync --frozen --python $enginePython --no-python-downloads --cache-dir .uv-cache --default-index https://pypi.org/simple
+```
+
+REST/WebSocket 프로브는 32/64비트 Python 3.10에서 실행할 수 있다. 예약 작업은
+`py -3.10`을 사용하며, 아래 선택된 인터프리터와 같은 환경에 선택 의존성을 설치한다.
+
+```powershell
+py -3.10 -c "import sys,struct; print(sys.version.split()[0], struct.calcsize('P')*8, sys.executable)"
+py -3.10 -m pip install -r tools/requirements-rest-probes.txt
+py -3.10 -c "import websockets, websockets.sync.client; import typing_extensions; print(websockets.__version__)"
 ```
 
 uv 실행 파일이 없는 PC에서는 공식 릴리스의 0.12.13 Windows 실행 파일을 준비한다. 현재 .tools에는 uv.zip과 uv.zip.sha256도 남아 있다. 인터넷으로부터 받은 실행 파일을 변경된 경로에 무검증 설치하지 않는다.
@@ -85,8 +94,9 @@ $ledgerTestTemp = Join-Path '.tools' ('pytest-' + [guid]::NewGuid().ToString('N'
 
 이번 세션에서 저장소 `.venv`, `.tools/uv/uv.exe`,
 `.tools/typecheck/basedpyright/index.js`는 사용할 수 없었다.
-사용자 설치 Python 3.10.8 32비트(현재 import된 Pydantic 2.13.5, pytest 9.1.1,
-Ruff 설치)를 사용해 pytest **159 passed**, `ruff check execution tests`,
+사용자 설치 Python 3.10.8 32비트(당시 OCX/엔진용 환경; REST 아키텍처 요건은
+아님. 당시 Pydantic 2.13.5, pytest 9.1.1, Ruff 설치)를 사용해 pytest
+**159 passed**, `ruff check execution tests`,
 `ruff format --check execution tests`, `python -m execution`, `pip check`를
 실행했고 모두 통과했다. 이 결과는 현재 설치의 Windows 전체 소프트웨어
 회귀이며 격리 `.venv`·uv 잠금 재현 검사를 대체하지 않는다. basedpyright는

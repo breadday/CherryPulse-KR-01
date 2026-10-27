@@ -1,3 +1,4 @@
-# Optional dependency for explicit WebSocket diagnostics on Python 3.10.
-# REST read-only and offline tests do not need this package.
+# Architecture-neutral optional dependencies for explicit REST/WebSocket probes.
+# Install into the same Python 3.10 interpreter that runs the probe or scheduler.
+typing-extensions==4.16.0
 websockets==15.0.1

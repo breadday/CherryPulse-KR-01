@@ -17,8 +17,9 @@
 
 ## 사용자 PC 읽기 검증
 
-저장소 루트에서 Python 3.10 환경을 사용한다. PyQt·OCX 로그인 창은 사용하지 않는다.
-먼저 `py -3.10-32 -m tools.probe_kiwoom_rest` 실행: network=false가 기대값이다.
+저장소 루트에서 Python 3.10 환경을 사용한다. REST는 아키텍처에 종속되지 않으며
+PyQt·OCX 로그인 창은 사용하지 않는다. 모의 조회의 기본 검사:
+`py -3.10 -m tools.probe_kiwoom_rest` 실행, network=false가 기대값이다.
 실제 호출을 위해 **모의 전용** 앱 키를 아래 이름으로 설정한다.
 저장 위치: Windows 11 사용자 환경 변수 (`setx` 또는 제어판 사용자 계정 메뉴).
 한 번 저장하면 새 프로세스·예약 작업에서 읽힌다.
@@ -37,7 +38,7 @@
 테스트는 합성 비밀값이 출력에 없음을 검사한다.
 
 ```powershell
-py -3.10-32 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3
+py -3.10 -m tools.probe_kiwoom_rest --execute-read-only --max-pages 3
 ```
 
 성공: exit 0, PAPER, orders_enabled=false, 두 queries.complete=true.
