@@ -363,6 +363,13 @@ QUOTE_WS는 CONNECT 단계 `DEPENDENCY_ERROR`, 연결 0·시세 0으로 중단�
 결과를 확인한 뒤 의존성을 복구하고 다음 정규장 manifest를 검토한다. 주문 OFF와
 R04 미승격은 유지한다.
 
-로컬 Git 확인: `main` HEAD `7d7b000`이 `origin/main`과 일치. 기존 미추적
-`CherryPulse-lite.zip`, `docs/사용법.md`는 보존했다. `git diff --check`는 기록
-수정 전 통과했다.
+로컬 Git 확인: `main` HEAD는 `e3d49b2`이며 `origin/main`과 일치한다. 커밋에 이 핸드오프·상태 갱신, 사용법 문서 및 `CherryPulse-lite.zip`이 포함돼 있다. 현재 후속 문서 수정 외에는 사용자 변경을 건드리지 않았다.
+현재 실행 환경 재확인: `CherryPulse-R045-Demo` 예약 작업은 이 호스트에서 찾지 못했고,
+`py -3.10-32`도 사용할 수 없다. 이전 2026-10-27 manifest가 생성된 지정 PC와
+현재 실행 호스트가 동일하다고 가정하지 않는다. 다음 정규장 실증 전 지정 PC에서
+Task Scheduler 기록, 작업이 가리키는 Python 경로, 그 인터프리터의 `websockets`
+설치 버전을 확인해야 한다. 원시 로그·토큰을 복사하지 말고 고정 진단 코드와 단계
+결과만 인계한다.
+
+이번 후속 확인: `node --test web/board/*.test.js` 53개 통과. 이는 보드 회귀만
+검증하며 Worker 전체·REST Python·Windows 엔진 검증을 대체하지 않는다.
