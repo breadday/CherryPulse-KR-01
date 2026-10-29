@@ -449,8 +449,8 @@ WS 실패, 가격 상한, PREVIEW 실패 진단을 확인했다.
 전체 verifier: `py -3.10-32 tools/verify_rest_migration.py` → exit 0, 6/6
 (REST 167, Ruff/format, basedpyright 0, Node 39, diff check). 전체 pytest
 369 passed. `npm run test` 63 passed, `npm run build` dry-run 통과(배포 아님).
-원격 `main` CI run 40874948866에서 `offline-rest`와 `windows-engine` 모두
-success를 확인했다. CI는 기존 main SHA를 검증했고 이번 미커밋 변경을 포함하지 않는다.
+커밋 `f5498779f0fc4428633392781cbeecf4205f7da1` push 후 CI run 40877667408에서
+`offline-rest`와 `windows-engine` 모두 success를 확인했다.
 
 예약 상태는 조회만 했다: `CherryPulse-R045-Demo` Enabled/Ready,
 마지막 실행 2026-10-29 09:30 결과 0, 다음 실행 2026-10-30 09:30.
@@ -458,5 +458,5 @@ success를 확인했다. CI는 기존 main SHA를 검증했고 이번 미커밋 
 `fresh_before_close=true`, `orders_enabled=false`; 주문 단계는 없고
 LINKAGE_UNCONFIRMED다. 이는 시세 부분 근거일 뿐 계좌 대조/주문 증거가 아니다.
 예약 작업·주문은 실행하거나 수정하지 않았다. 이 작업의 로컬 검증은 통과했다.
-다음: 사용자 기존 변경은 커밋에 섞지 않고, 이 작업 파일만 한글 커밋·push해
-새 커밋의 CI를 확인한다.
+다음: 2026-10-30 예정 R045 실행 후 manifest, 스케줄러 결과, HTS 미체결을
+읽기 전용으로 확인한다. runner 수동 실행이나 예약 변경은 하지 않는다.
