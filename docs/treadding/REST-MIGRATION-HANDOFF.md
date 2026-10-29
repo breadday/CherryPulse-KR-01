@@ -491,3 +491,19 @@ LINKAGE_UNCONFIRMED다. 이는 시세 부분 근거일 뿐 계좌 대조/주문 
 40878280721, `offline-rest`와 `windows-engine` 모두 success다.
 이번 세션 전역 `ruff check . --output-format concise`는 기존
 `tools/inspect_kiwoom_realtime.py` C901·PLR0915 2 errors만 반환했다.
+
+## 2026-10-29 R045 종목 기본값·가격 상한 변경
+
+사용자가 예약 runner 설정을 **하나마이크론(067310) 1주, 가격 상한 36,800원**으로
+변경하도록 명시했다. `tools/r045_morning_run.py`의 기본 종목과 `PRICE_CAP`을
+갱신했다. 수량은 기존 도구에서 1주로 고정되어 유지한다. 36,800원은 고정 주문가가
+아니라 상한이다. 다음 예약 실행 때 시세를 읽어 상한 이하면 그 관측 시세로 주문을
+시도한다. 예약 작업은 기존처럼 활성이고 호출 설정은 바꾸지 않았다.
+
+회귀 테스트는 기본 CLI 값을 확인한다. RED에서 종목 기본값이 `005930`인 것을
+확인한 뒤 설정 수정 후 집중 테스트 8개 통과, REST verifier 6/6(REST 168),
+전체 pytest 370 passed, 대상 파일 Ruff 및 format 통과.
+실행 runner·브로커·주문은 호출하지 않았다. 다음 정기 실행은 2026-10-30 09:30이며,
+그때 조건이 충족되면 모의 주문이 실제 제출될 수 있다. R04 계좌 식별/대조 미확인,
+`orders_enabled=false` 표기는 유지한다. `orders_enabled=false`가 이 runner의
+조건부 제출을 막는다고 해석하지 않는다.

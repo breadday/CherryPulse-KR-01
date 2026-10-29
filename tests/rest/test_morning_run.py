@@ -59,6 +59,12 @@ def test_main_refuses_outside_market_window_without_commands(
     assert '"orders_enabled": false' in output
 
 
+def test_scheduled_runner_defaults_to_hana_micron_and_36800_cap() -> None:
+    options = r045_morning_run.parse_args([])
+    assert options.symbol == "067310"
+    assert options.price_cap == 36800
+
+
 def write_quote(path: Path, price: int) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     _ = path.write_text(

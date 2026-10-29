@@ -23,8 +23,8 @@ from typing import cast
 
 ROOT = Path(__file__).resolve().parents[1]
 KST = timezone(timedelta(hours=9))
-DEFAULT_SYMBOL = "005930"
-PRICE_CAP = 100000
+DEFAULT_SYMBOL = "067310"
+PRICE_CAP = 36800
 MAX_DIAGNOSTIC_REASON_LENGTH = 64
 MAX_DIAGNOSTIC_COUNT = 1_000_000
 MARKET_OPEN = (9, 0)
