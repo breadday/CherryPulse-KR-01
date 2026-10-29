@@ -428,3 +428,35 @@ Ruff/format 및 diff 검사 통과. PR #20 CI 40874636237에서 REST 오프라�
 미확인이다. 기존 예약 runner는 조건 충족 시 모의 주문을 제출할 수 있다.
 `docs/treadding/HERMES-AUTODEVELOPMENT-2026-10-29.md`에 안전한 결과 조회,
 개발/실증 분리, 구체적인 다음 소프트웨어 작업과 중단 후 재개 절차를 기록했다.
+
+## 2026-10-29 abort_reason manifest 기록 및 읽기 전용 실증 확인
+
+최신 `origin/main`은 `d12d2099b143b979a4396ab444930eda65ad498e`였고 로컬
+`main`과 일치했다. pull 전 `stash@{0}`은 코드·테스트 변경을 포함하며,
+그 안의 ORDER_PREVIEW 실패 차단 변경은 현재 main에 이미 반영되어 있다.
+stash를 적용하거나 삭제하지 않았다. stash 문서의 일부 이력은 main의 현재
+상태/새 지시서와 오래되었거나 상충하므로 통째로 복사하지 않았다.
+
+`tools/r045_morning_run.py`의 `_aborted_reason`은 설정되지만 manifest에
+직접 기록되지 않는 결함을 수정했다. 고정 코드값만 `abort_reason`으로
+기록하고, 임의 예외·출력·민감 정보는 추가하지 않는다. PREVIEW 실패 시
+SUBMIT 차단 회귀도 main에 이미 있어 유지한다. 합성 테스트에서 조회 실패,
+WS 실패, 가격 상한, PREVIEW 실패 진단을 확인했다.
+
+검증: `py -3.10-32 -m pytest tests/rest/test_morning_run.py -q` → 7 passed;
+`py -3.10-32 -m ruff check tools/r045_morning_run.py tests/rest/test_morning_run.py`
+통과; 같은 두 파일 `ruff format --check` 통과; `git diff --check` 통과.
+전체 verifier: `py -3.10-32 tools/verify_rest_migration.py` → exit 0, 6/6
+(REST 167, Ruff/format, basedpyright 0, Node 39, diff check). 전체 pytest
+369 passed. `npm run test` 63 passed, `npm run build` dry-run 통과(배포 아님).
+원격 `main` CI run 40874948866에서 `offline-rest`와 `windows-engine` 모두
+success를 확인했다. CI는 기존 main SHA를 검증했고 이번 미커밋 변경을 포함하지 않는다.
+
+예약 상태는 조회만 했다: `CherryPulse-R045-Demo` Enabled/Ready,
+마지막 실행 2026-10-29 09:30 결과 0, 다음 실행 2026-10-30 09:30.
+2026-10-29 manifest는 `PARTIAL_PRICE_OVER_CAP`; QUOTE_WS 360건,
+`fresh_before_close=true`, `orders_enabled=false`; 주문 단계는 없고
+LINKAGE_UNCONFIRMED다. 이는 시세 부분 근거일 뿐 계좌 대조/주문 증거가 아니다.
+예약 작업·주문은 실행하거나 수정하지 않았다. 이 작업의 로컬 검증은 통과했다.
+다음: 사용자 기존 변경은 커밋에 섞지 않고, 이 작업 파일만 한글 커밋·push해
+새 커밋의 CI를 확인한다.

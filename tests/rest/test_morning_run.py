@@ -144,6 +144,7 @@ def test_full_happy_flow_runs_all_seven_steps(
     assert "--confirm-execute" in submit
     saved = json.loads(evidence_path(tmp_path).read_text(encoding="utf-8"))
     assert saved["status"] == "DONE"
+    assert "abort_reason" not in saved
 
 
 def test_read_failure_before_order_is_an_abort(
@@ -154,6 +155,8 @@ def test_read_failure_before_order_is_an_abort(
     monkeypatch.setattr(r045_morning_run, "run_command", records.run)
     assert runner.run() == 1
     assert runner.status == "ABORTED"
+    saved = json.loads(evidence_path(tmp_path).read_text(encoding="utf-8"))
+    assert saved["abort_reason"] == "READ_BEFORE_FAILED"
     joined = [" ".join(cmd) for cmd in records.commands]
     assert all("submit_paper_buy" not in text for text in joined)
 
@@ -196,6 +199,7 @@ def test_failed_quote_step_persists_only_safe_probe_diagnostics(
     }
     assert "must-not-be-persisted" not in json.dumps(manifest)
     assert "sensitive stderr" not in json.dumps(manifest)
+    assert manifest["abort_reason"] == "QUOTE_WS_FAILED"
     assert all("submit_paper_buy" not in " ".join(command) for command in commands)
 
 
@@ -207,6 +211,8 @@ def test_price_over_cap_skips_order_and_keeps_post_checks(
     monkeypatch.setattr(r045_morning_run, "run_command", records.run)
     assert runner.run() == 0
     assert runner.status == "PARTIAL_PRICE_OVER_CAP"
+    saved = json.loads(evidence_path(tmp_path).read_text(encoding="utf-8"))
+    assert saved["abort_reason"] == "PRICE_OVER_CAP"
     joined = [" ".join(cmd) for cmd in records.commands]
     assert all("submit_paper_buy" not in text for text in joined)
     assert joined[-1].endswith("--execute-read-only")
@@ -223,7 +229,6 @@ def test_preview_failure_never_invokes_submit_or_post_checks(
     steps = [cast("object", item)["step"] for item in runner.manifest["steps"]]
     assert steps == ["PREWARM", "READ_BEFORE", "QUOTE_WS", "ORDER_PREVIEW"]
     assert all("--confirm-execute" not in command for command in records.commands)
-    assert (
-        json.loads(evidence_path(tmp_path).read_text(encoding="utf-8"))["status"]
-        == "ABORTED"
-    )
+    saved = json.loads(evidence_path(tmp_path).read_text(encoding="utf-8"))
+    assert saved["status"] == "ABORTED"
+    assert saved["abort_reason"] == "ORDER_PREVIEW_FAILED"

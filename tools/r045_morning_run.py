@@ -179,6 +179,10 @@ class MorningRun:
 
     def _flush(self) -> None:
         self.manifest["status"] = self.status
+        if self._aborted_reason is not None:
+            self.manifest["abort_reason"] = self._aborted_reason
+        else:
+            self.manifest.pop("abort_reason", None)
         self.evidence.mkdir(parents=True, exist_ok=True)
         destination = self.evidence / "manifest.json"
         _ = destination.write_text(
