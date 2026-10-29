@@ -460,3 +460,34 @@ LINKAGE_UNCONFIRMED다. 이는 시세 부분 근거일 뿐 계좌 대조/주문 
 예약 작업·주문은 실행하거나 수정하지 않았다. 이 작업의 로컬 검증은 통과했다.
 다음: 2026-10-30 예정 R045 실행 후 manifest, 스케줄러 결과, HTS 미체결을
 읽기 전용으로 확인한다. runner 수동 실행이나 예약 변경은 하지 않는다.
+
+## pull 전 stash의 보존 검토 — 소프트웨어 작업 이력
+
+`stash@{0}` 문서 diff 중 코드·검증의 재개에 필요한 10/27–10/29 기록을 이
+인계서에 요약 보존했다. 과거 시점의 상태를 현재 사실로 덮어쓰지 않고, stash는
+적용·삭제하지 않았다. 해당 작업 파일들은 현재 작업 트리에서도 별도 변경으로
+남아 있으므로 이번 R045 커밋에 포함하지 않았다.
+
+- `check.py` 기계적 Ruff 정리 뒤 검사 baseline 76→47; `sync/polling.py`
+  HTTP 경계 상수화 및 `notifications/telegram.py` 정리 뒤 47→25.
+- `tools/inspect_kiwoom_realtime.py`에서 안전한 기계적 20/22건을 정리했으며
+  ActiveX 의존 콜백의 C901·PLR0915 2건은 동작 보존 검증 없이 리팩터하지 않았다.
+- `contracts/sell_evaluation.py`는 차단 사유·우선순위 특성 테스트 8개를 먼저
+  고정한 뒤 평가 순서를 보존하며 리팩터했다. verifier 6/6, Ruff 잔여 2건은
+  inspect 도구 복잡도 항목으로 기록됐다.
+- `tests/test_virtual_stop_binding.py`와 `tests/rest/test_readonly.py`의
+  basedpyright 미사용 결과 진단을 합계 5건 줄였고, read-only 테스트 28개 통과.
+- `sync/polling.py` 기반 진단 2건을 정리하고 `tests/test_polling.py` 11개를
+  추가했다. stash 기록의 전체 basedpyright 542와 당시 STATUS 248은 불일치했다.
+- 이번 재측정 `node .tools/typecheck/basedpyright/index.js --pythonpath
+  C:/Users/bread/AppData/Local/Programs/Python/Python310-32/python.exe --outputjson`
+  은 65 files / 255 errors다. 당시 두 수치와 실행 조건 차이는 확정되지 않아
+  별도의 역사 기록으로 남기며, 이번 값을 마지막 측정값으로 표시한다.
+- stash 기록의 전체 pytest는 당시 368 passed였다. 이번 작업에서 전체 pytest
+  369 passed를 새로 확인했으며, 서로 다른 시점의 결과로 구분한다.
+
+위 기록은 소프트웨어 회귀·정적 검사만이며 계좌·주문·예약 실증을 뜻하지 않는다.
+현재 main CI는 커밋 `8cc94247e96255d6e662f40ed40a0fb3ae9b46b0`에서 run
+40878280721, `offline-rest`와 `windows-engine` 모두 success다.
+이번 세션 전역 `ruff check . --output-format concise`는 기존
+`tools/inspect_kiwoom_realtime.py` C901·PLR0915 2 errors만 반환했다.
