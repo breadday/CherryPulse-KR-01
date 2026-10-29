@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-10-27",
+  "updated_on": "2026-10-29",
   "baseline_commit": "1ec7966",
   "branch": "main",
   "orders_enabled": false,
@@ -16,13 +16,14 @@
     "R07": "TODO",
     "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
   },
-  "next_action": "R045 예약 작업이 이 호스트에서 py -3.10(3.10.8 32bit, Python310-32)으로 실행되는 것을 확인했고 같은 인터프리터에 websockets==15.0.1을 설치해 QUOTE_WS DEPENDENCY_ERROR 원인을 제거했다. 장중 밖 20초 WS probe는 연결 1·실패 없음·시세 0이다. 다음: 2026-10-28 09:30 예약 실행 manifest에서 quotes_observed>0와 fresh_before_close=true를 확인해 R04 WebSocket 증거로 기록한다. PIN 로그인과 저장·불러오기 실사용자 확인은 별도 대기다.",
+  "next_action": "지정 PC의 10/28 이후 R045 manifest와 예약·미체결을 읽기 전용으로 확인한다. 미리보기 실패 시 제출 차단 수정의 CI·main 반영·PC 적용을 확인하고, 헤르메스 지시서의 독립 개발을 이어간다.",
   "checklists": {
     "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
     "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md",
     "development_backlog": "docs/treadding/DEVELOPMENT-READY-AND-BLOCKERS.md",
     "board_api_handoff": "docs/api/BOARD-API-HANDOFF.md",
-    "mobile_devices": "docs/D02-MOBILE-CHECKLIST.md"
+    "mobile_devices": "docs/D02-MOBILE-CHECKLIST.md",
+    "hermes_20261029": "docs/treadding/HERMES-AUTODEVELOPMENT-2026-10-29.md"
   },
   "verification_command": "python tools/verify_rest_migration.py",
   "known_baseline": {
@@ -100,6 +101,7 @@
     "task_2026_10_22_verifier_exit0": "PASS_6_6",
     "task_2026_10_22_github_ci_run": 39742233308,
     "task_2026_10_27_dependency_fix": "PY_3_10_PIP_INSTALL_REQUIREMENTS_REST_PROBES_WEBSOCKETS_15_0_1_INSTALLED; WS_PROBE_AFTER_HOURS_CONNECTIONS_1_FAILURE_STAGE_NULL_QUOTES_0_EXIT_1_NO_QUOTE",
-    "task_2026_10_27_verifier_exit0": "PASS_6_6_REST_PYTEST_166_NODE_39_BASEDPYRIGHT_0_ERRORS"
+    "task_2026_10_27_verifier_exit0": "PASS_6_6_REST_PYTEST_166_NODE_39_BASEDPYRIGHT_0_ERRORS",
+    "task_2026_10_29_preview_gate": "OFFLINE_PREVIEW_FAILURE_REPRODUCED_SUBMIT_BLOCKED_REST_PYTEST_167_CI_PENDING"
   }
 }
