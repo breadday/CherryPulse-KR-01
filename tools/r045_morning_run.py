@@ -237,7 +237,7 @@ class MorningRun:
 
     def order_pair(self, price: int) -> None:
         """Preview then submit once; a rejection or UNKNOWN is never retried."""
-        self._step(
+        if not self._step(
             "ORDER_PREVIEW",
             self._python(
                 "tools.submit_paper_buy",
@@ -247,7 +247,8 @@ class MorningRun:
                 str(price),
             ),
             abort_on_failure=True,
-        )
+        ):
+            return
         self._step(
             "ORDER_SUBMIT",
             self._python(
@@ -283,6 +284,8 @@ class MorningRun:
             return 1
         if price is not None:
             self.order_pair(price)
+            if self.status == "ABORTED":
+                return 1
             time.sleep(self.settle)
         self.post_checks()
         if self.status == "ABORTED":

@@ -210,3 +210,20 @@ def test_price_over_cap_skips_order_and_keeps_post_checks(
     joined = [" ".join(cmd) for cmd in records.commands]
     assert all("submit_paper_buy" not in text for text in joined)
     assert joined[-1].endswith("--execute-read-only")
+
+
+def test_preview_failure_never_invokes_submit_or_post_checks(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    runner = make_runner(monkeypatch, tmp_path)
+    records = Recorder(tmp_path, {"PREVIEW"}, 70000)
+    monkeypatch.setattr(r045_morning_run, "run_command", records.run)
+    assert runner.run() == 1
+    assert runner.status == "ABORTED"
+    steps = [cast("object", item)["step"] for item in runner.manifest["steps"]]
+    assert steps == ["PREWARM", "READ_BEFORE", "QUOTE_WS", "ORDER_PREVIEW"]
+    assert all("--confirm-execute" not in command for command in records.commands)
+    assert (
+        json.loads(evidence_path(tmp_path).read_text(encoding="utf-8"))["status"]
+        == "ABORTED"
+    )

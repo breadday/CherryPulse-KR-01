@@ -414,3 +414,17 @@ orders_enabled false. `DEPENDENCY_ERROR`는 해거됐고 연결 실패는 없다
 실행 후 `results/r045-20261028/manifest.json`에서 QUOTE_WS
 `quotes_observed>0 && fresh_before_close=true`를 확인하고, 이를 R04 WebSocket
 근거로 기록한다. 주문 OFF와 R04 `LIVE_EMPTY_ACCOUNT_IDENTITY_UNVERIFIED` 유지.
+
+
+## 2026-10-29 R045 미리보기 실패 시 제출 차단 및 헤르메스 인계
+
+원격 main b2d1e2f 기준 코드에서 ORDER_PREVIEW 실패 때도 ORDER_SUBMIT
+명령이 호출되는 흐름을 합성 가짜 실행기로 재현했다. 실패 시 즉시 return해
+제출과 후속 단계를 호출하지 않도록 고치고 회귀 검사를 추가했다. 실제 계좌
+조회·시세·모의 주문·취소는 수행하지 않았다. 로컬 REST 167 passed, 관련
+Ruff/format 및 diff 검사 통과. CI와 지정 PC 적용은 별도 확인한다.
+
+지정 PC에서 10/28 이후 예약 실행 여부·시세·주문/미체결은 이 환경에서
+미확인이다. 기존 예약 runner는 조건 충족 시 모의 주문을 제출할 수 있다.
+`docs/treadding/HERMES-AUTODEVELOPMENT-2026-10-29.md`에 안전한 결과 조회,
+개발/실증 분리, 구체적인 다음 소프트웨어 작업과 중단 후 재개 절차를 기록했다.
