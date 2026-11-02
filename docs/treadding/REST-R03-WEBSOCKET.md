@@ -20,20 +20,20 @@ https://websockets.readthedocs.io/en/15.0.1/reference/sync/client.html
 - `probe_kiwoom_ws.py`: 기본 네트워크 OFF, 출력은 요약만. 종료 후 연결은 끊긴 상태다.
 - optional library는 tools/requirements-rest-probes.txt의 websockets 15.0.1로 고정했다.
   `typing-extensions`도 REST 어댑터의 직접 의존성으로 함께 고정했다. REST/WS는
-  Python 3.10에서 32/64비트 모두 가능하며 Windows OCX 의존성과 분리한다.
-  기존 pyproject/uv.lock은 변경하지 않았다.
+  프로젝트의 REST API 및 WebSocket 전용 환경에서 실행한다.
+  런타임·잠금 파일은 REST 기준으로 고정한다.
 - 로컬 REST/WS **102 passed**, 보드23, production REST 5파일 basedpyright 0 errors,
   신규 파일 Ruff/format 통과. R02 원격 CI는 Windows241 및 가상 데모 통과.
   최종 R03 Windows 검사 결과는 PR/검증 기록에 이어서 반영한다.
 
 ## PC에서 확인
 
-저장소 루트의 Python 3.10 실행 환경에서(32/64비트 모두 가능):
+저장소 루트에서 Python 3.15 `.venv-rest` 환경으로 실행한다:
 
 ```powershell
-py -3.10 -m pip install -r tools/requirements-rest-probes.txt
-py -3.10 -m tools.probe_kiwoom_ws
-py -3.10 -m tools.probe_kiwoom_ws 005930 --seconds 30 --execute-read-only
+.venv-rest/Scripts/python.exe -m pip install -r tools/requirements-rest-probes.txt
+.venv-rest/Scripts/python.exe -m tools.probe_kiwoom_ws
+.venv-rest/Scripts/python.exe -m tools.probe_kiwoom_ws 005930 --seconds 30 --execute-read-only
 ```
 
 실제 실행 전 R02 문서의 모의 전용 환경변수 2개를 현재 프로세스에 설정한다.

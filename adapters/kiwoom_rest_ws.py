@@ -8,7 +8,7 @@ import logging
 import math
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Protocol, cast
 
 from adapters.kiwoom_rest_auth import MAX_RESPONSE_BYTES, RequestPacer
@@ -124,7 +124,7 @@ class StreamTiming:
     """Injectable clocks keep protocol tests offline and deterministic."""
 
     clock: Callable[[], float] = time.monotonic
-    now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)
+    now: Callable[[], datetime] = lambda: datetime.now(UTC)
 
 
 @dataclass(slots=True)
@@ -173,7 +173,7 @@ def _pump(
             continue
         try:
             frame = decode_frame(raw)
-        except (ValueError, UnicodeError):
+        except ValueError, UnicodeError:
             runtime.metrics.malformed += 1
             continue
         if frame == "PING":

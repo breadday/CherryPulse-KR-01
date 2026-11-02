@@ -29,7 +29,7 @@ D05 세션 날짜·만료 경계를 보강한 뒤 D08 로컬 fake transport와 �
 ## 2026-10-12 세부 정책 확정
 
 사용자 확정값은 [D08 폴링 계약](D08-POLLING-CONTRACT.md)과
-[진행 현황/질문서](PROJECT-STATUS-AND-DECISIONS.md)에 반영한다.
+[진행 현황/질문서](reference/legacy-development/PROJECT-STATUS-AND-DECISIONS-history.md)에 반영한다.
 
 - 주기 5초·timeout 3초. 네트워크/5xx/timeout만 최대 5분 지수 백오프, 4xx는 재시도 없이 운영자 확인.
 - 서버 단조 증가 순번과 `expected_version` 일치 시 적용. 충돌·역순·오프라인 지연 명령 자동 병합 금지.

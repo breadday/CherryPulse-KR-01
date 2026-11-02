@@ -1,8 +1,9 @@
 """Offline REST contract tests, runnable independently of Windows ledger tests."""
 
+from __future__ import annotations
+
 from io import BytesIO
-from typing import ClassVar
-from urllib.request import HTTPRedirectHandler, Request
+from typing import TYPE_CHECKING, ClassVar
 
 import pytest
 
@@ -13,6 +14,9 @@ from adapters.kiwoom_rest_readonly import (
     capture_query,
 )
 from adapters.kiwoom_rest_transport import PaperReadOnlyTransport
+
+if TYPE_CHECKING:
+    from urllib.request import HTTPRedirectHandler, Request
 
 BODY = {"qry_tp": "2", "dmst_stex_tp": "KRX"}
 
@@ -108,7 +112,7 @@ def test_cursor_cycle_stops() -> None:
 def test_arbitrary_or_order_api_never_reaches_transport(query: object) -> None:
     transport = FakeTransport()
     with pytest.raises(TypeError, match="QUERY_NOT_READ_ONLY"):
-        capture_query(transport, query, BODY, max_pages=1)  # type: ignore[arg-type]
+        _ = capture_query(transport, query, BODY, max_pages=1)  # type: ignore[arg-type]
     assert transport.calls == []
 
 
@@ -116,7 +120,7 @@ def test_arbitrary_or_order_api_never_reaches_transport(query: object) -> None:
 def test_invalid_limits_never_reach_transport(limit: object) -> None:
     transport = FakeTransport()
     with pytest.raises(ValueError, match="PAGE_LIMIT_INVALID"):
-        capture(transport, limit)  # type: ignore[arg-type]
+        _ = capture(transport, limit)  # type: ignore[arg-type]
     assert transport.calls == []
 
 
@@ -126,7 +130,7 @@ def test_invalid_limits_never_reach_transport(limit: object) -> None:
 def test_extra_or_missing_input_never_reaches_transport(body: dict[str, str]) -> None:
     transport = FakeTransport()
     with pytest.raises(ValueError, match="QUERY_INPUT_INVALID"):
-        capture_query(transport, RestQuery.POSITIONS, body, max_pages=1)
+        _ = capture_query(transport, RestQuery.POSITIONS, body, max_pages=1)
     assert transport.calls == []
 
 

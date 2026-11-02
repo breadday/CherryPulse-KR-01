@@ -1,7 +1,7 @@
 """Two complete account reads cannot certify four-query broker reconciliation."""
 
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -13,7 +13,7 @@ from adapters.kiwoom_rest_evidence import (
 )
 from adapters.kiwoom_rest_readonly import RestPage, RestQuery
 
-NOW = datetime(2026, 10, 14, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 14, tzinfo=UTC)
 SCOPE = PaperReadScope("PAPER-PC", "PAPER-APP")
 BODY = {"qry_tp": "2", "dmst_stex_tp": "KRX"}
 

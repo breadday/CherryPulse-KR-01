@@ -1,10 +1,12 @@
 """Token renewal, secrecy, timing, and issuance contract tests."""
 
+from __future__ import annotations
+
 import os
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from urllib.request import HTTPRedirectHandler, Request
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -18,7 +20,10 @@ from adapters.kiwoom_rest_auth import (
     parse_token,
 )
 
-START = datetime(2026, 10, 14, tzinfo=timezone.utc)
+if TYPE_CHECKING:
+    from urllib.request import HTTPRedirectHandler, Request
+
+START = datetime(2026, 10, 14, tzinfo=UTC)
 KEYS = PaperCredentials("secret-key", "secret-value")
 
 
@@ -78,7 +83,7 @@ def test_cache_single_flight_across_threads_and_kst_expiry() -> None:
     assert results == ["private-token"] * 20
     assert len(calls) == 1
     assert "private-token" not in repr(cache)
-    assert parse_token(token_payload(), START)[1].astimezone(timezone.utc).hour == 1
+    assert parse_token(token_payload(), START)[1].astimezone(UTC).hour == 1
 
 
 def test_renew_before_expiry_without_retrying_failed_issue() -> None:

@@ -1,4 +1,4 @@
 # Architecture-neutral optional dependencies for explicit REST/WebSocket probes.
-# Install into the same Python 3.10 interpreter that runs the probe or scheduler.
+# Install into the project's .venv-rest environment used by probes and the scheduler.
 typing-extensions==4.16.0
 websockets==15.0.1

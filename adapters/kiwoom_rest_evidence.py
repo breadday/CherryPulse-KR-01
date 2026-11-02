@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from itertools import pairwise
 from typing import TYPE_CHECKING
 
@@ -82,7 +82,7 @@ def observe_query(  # noqa: PLR0913 -- Explicit scope and observation boundary i
     *,
     max_pages: int,
     revision: Callable[[], int],
-    now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+    now: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> ObservedQuery:
     """Capture metadata without importing, approving, or mutating a ledger."""
     first_revision, started = revision(), now()

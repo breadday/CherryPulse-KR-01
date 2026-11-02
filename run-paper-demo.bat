@@ -9,8 +9,10 @@ REM Scheduled runs place one order per day at most (dated sentinel).
 
 cd /d E:\hermes-local\workspace\CherryPulse-KR-01
 if errorlevel 1 (echo Directory not found. & pause & exit /b 1)
-py -3.10-32 --version >nul 2>&1
-if errorlevel 1 (echo Python 3.10 32-bit launcher not found. & pause & exit /b 1)
+set "PYTHON=%CD%\.venv-rest\Scripts\python.exe"
+if not exist "%PYTHON%" (echo REST Python 3.15 environment not found. & pause & exit /b 1)
+"%PYTHON%" -c "import sys,struct; assert sys.version_info[:2] == (3,15); assert struct.calcsize('P')*8 == 64" >nul 2>&1
+if errorlevel 1 (echo REST Python 3.15 environment is invalid. & pause & exit /b 1)
 if "%CHERRYPULSE_PAPER_APP_KEY%"=="" goto :nokeys
 if "%CHERRYPULSE_PAPER_APP_SECRET%"=="" goto :nokeys
 
@@ -33,11 +35,11 @@ echo.
 
 if "%MODE%"=="check" goto :linkage
 echo [1/2] Preview (no keys, no network)...
-py -3.10-32 -m tools.submit_paper_buy --symbol %SYMBOL% --price %PRICE%
+"%PYTHON%" -m tools.submit_paper_buy --symbol %SYMBOL% --price %PRICE%
 if errorlevel 1 goto :failed
 echo.
 echo [2/2] Submit (mock, one per day at most)...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& py -3.10-32 -m tools.submit_paper_buy --symbol %SYMBOL% --price %PRICE% --confirm-execute 2>&1 | Tee-Object -FilePath (Join-Path ([Environment]::GetFolderPath('Desktop')) ('CherryPulse-paper-demo-' + (Get-Date -Format yyyyMMdd) + '.txt')); exit $LASTEXITCODE"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& '%PYTHON%' -m tools.submit_paper_buy --symbol %SYMBOL% --price %PRICE% --confirm-execute 2>&1 | Tee-Object -FilePath (Join-Path ([Environment]::GetFolderPath('Desktop')) ('CherryPulse-paper-demo-' + (Get-Date -Format yyyyMMdd) + '.txt')); exit $LASTEXITCODE"
 if errorlevel 1 goto :linkage_note
 goto :linkage
 
@@ -48,7 +50,7 @@ echo NOTE: submit did not ack (see Desktop log). Continuing to linkage check.
 :linkage
 echo.
 echo [linkage] Reading history + unfilled (read-only)...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& py -3.10-32 -m tools.verify_paper_linkage --execute-read-only --symbol %SYMBOL% 2>&1 | Tee-Object -FilePath (Join-Path ([Environment]::GetFolderPath('Desktop')) ('CherryPulse-paper-demo-' + (Get-Date -Format yyyyMMdd) + '.txt')) -Append; exit $LASTEXITCODE"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& '%PYTHON%' -m tools.verify_paper_linkage --execute-read-only --symbol %SYMBOL% 2>&1 | Tee-Object -FilePath (Join-Path ([Environment]::GetFolderPath('Desktop')) ('CherryPulse-paper-demo-' + (Get-Date -Format yyyyMMdd) + '.txt')) -Append; exit $LASTEXITCODE"
 if errorlevel 1 goto :failed
 echo.
 echo Done. Log: Desktop\CherryPulse-paper-demo-DATE.txt (no keys or order numbers inside).

@@ -1,6 +1,6 @@
 """A REST scope proposal must never self-activate an execution scope."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -14,7 +14,7 @@ from adapters.kiwoom_rest_scope import (
 )
 
 SCOPE = PaperReadScope("PAPER-PC", "PAPER-APP")
-NOW = datetime(2026, 10, 14, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 14, tzinfo=UTC)
 
 
 def test_default_proposal_is_blocked_on_q01() -> None:

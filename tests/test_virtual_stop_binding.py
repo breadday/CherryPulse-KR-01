@@ -1,6 +1,7 @@
 """Durable, inert stop rule binding in the virtual ledger."""
 
 import sqlite3
+from contextlib import closing
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -685,13 +686,13 @@ def test_virtual_send_requires_durable_obligation_in_claim_transaction(
             stop_latch_version=latch.rule_version,
         )
     ).request
-    with sqlite3.connect(path) as connection:
-        connection.execute(
+    with closing(sqlite3.connect(path)) as connection, connection:
+        _ = connection.execute(
             "DELETE FROM outbox WHERE seq IN "
             "(SELECT seq FROM journal WHERE kind = ? AND key = ?)",
             ("stop_sell_obligation", str(sell.request_id)),
         )
-        connection.execute(
+        _ = connection.execute(
             "DELETE FROM journal WHERE kind = ? AND key = ?",
             ("stop_sell_obligation", str(sell.request_id)),
         )

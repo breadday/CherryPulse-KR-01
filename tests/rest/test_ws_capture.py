@@ -1,9 +1,11 @@
 """Recording sockets exercise reconnects without credentials or network access."""
 
+from __future__ import annotations
+
 import json
-from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -17,7 +19,12 @@ from adapters.kiwoom_rest_ws import (
     decode_frame,
 )
 
-START = datetime(2026, 10, 14, tzinfo=timezone.utc)
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from adapters.kiwoom_rest_stream import QuoteObservation
+
+START = datetime(2026, 10, 14, tzinfo=UTC)
 LOGIN = '{"trnm":"LOGIN","return_code":0}'
 REG = '{"trnm":"REG","return_code":0}'
 REAL = (

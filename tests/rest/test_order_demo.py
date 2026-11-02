@@ -1,9 +1,10 @@
 """Paper order demo stays preview-first, single-submit, and identifier-silent."""
 
+from __future__ import annotations
+
 import json
 from io import BytesIO
-from pathlib import Path
-from urllib.request import Request
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -17,6 +18,10 @@ from adapters.kiwoom_rest_order import (
 from adapters.kiwoom_rest_readonly import RestPage, RestQuery
 from tools import submit_paper_buy, verify_paper_linkage
 from tools.submit_paper_buy import submit_buy_body
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from urllib.request import Request
 
 
 def test_preview_validation() -> None:

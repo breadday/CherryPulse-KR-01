@@ -10,12 +10,10 @@ import math
 import os
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from threading import Lock
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, override
 from urllib.request import HTTPRedirectHandler, Request, build_opener
-
-from typing_extensions import override
 
 if TYPE_CHECKING:
     from _thread import LockType
@@ -132,7 +130,7 @@ class PaperTokenIssuer:
             raise PaperAuthError("AUTH_RESPONSE_TOO_LARGE")
         try:
             payload = cast("object", json.loads(raw))
-        except (ValueError, UnicodeError):
+        except ValueError, UnicodeError:
             raise PaperAuthError("AUTH_RESPONSE_INVALID") from None
         if not isinstance(payload, dict):
             raise PaperAuthError("AUTH_RESPONSE_INVALID")
@@ -147,7 +145,7 @@ class PaperTokenCache:
         credentials: PaperCredentials,
         issue: Callable[[PaperCredentials], dict[str, object]],
         *,
-        now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+        now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         """Keep credentials private and renew one minute before expiry."""
         self._credentials: PaperCredentials = credentials

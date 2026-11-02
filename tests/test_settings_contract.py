@@ -1,6 +1,7 @@
 """D01 desired settings cannot silently become active trading instructions."""
 
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -214,7 +215,7 @@ def test_legacy_actor_claim_acceptance_is_blocked_during_apply_state_migration(
 ) -> None:
     path = tmp_path / "legacy-inbox.sqlite3"
     request = command(datetime(2026, 9, 24, tzinfo=timezone.utc))
-    with sqlite3.connect(path) as connection:
+    with closing(sqlite3.connect(path)) as connection, connection:
         _ = connection.execute(
             """CREATE TABLE config_commands (
               account_id TEXT NOT NULL, environment TEXT NOT NULL,

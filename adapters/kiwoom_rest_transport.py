@@ -7,10 +7,8 @@ from __future__ import annotations
 
 import json
 import math
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, override
 from urllib.request import HTTPRedirectHandler, Request, build_opener
-
-from typing_extensions import override
 
 from adapters.kiwoom_rest_auth import MAX_RESPONSE_BYTES, RequestPacer
 from adapters.kiwoom_rest_readonly import RestPage, RestQuery, validate_query

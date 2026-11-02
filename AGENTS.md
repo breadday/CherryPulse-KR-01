@@ -5,13 +5,15 @@
 OpenCode로 자동 개발을 이어갈 때는 복사 가능한 실행 지시서 `docs/treadding/OPENCODE-AUTODEVELOPMENT-INSTRUCTIONS.md`도 따른다.
 현재 사용자 요청은 계획·개발·검증·한글 커밋·push·CI 통과 후 반영을 포함한다. 주문 활성화와 구별한다.
 
-개발 기준은 다음 문서 순서로 읽는다.
+개발 기준은 현재 REST 전환 문서를 다음 순서로 읽는다. 이전 계약·계획은 참고 자료이며 활성 개발 지시로 사용하지 않는다.
 
-1. docs/CherryPulse-KR-01-Development-Direction.md
-2. docs/CherryPulse-KR-01-Rebuild-Plan.md
-3. docs/REBUILD-02-CONTRACTS.md
-4. docs/REBUILD-02-TEST-MATRIX.md
-5. docs/REBUILD-02-OPEN-QUESTIONS.md
+1. docs/treadding/REST-MIGRATION-PLAN.md
+2. docs/treadding/REST-MIGRATION-STATUS.json
+3. docs/treadding/REST-MIGRATION-HANDOFF.md
+4. docs/treadding/REST-MIGRATION-VERIFICATION.md
+5. docs/DEVELOPMENT-ENVIRONMENT.md
+
+이전 개발방향·전환 계약은 `docs/reference/legacy-development/`에 보관한다.
 
 - 사용자가 외부에서 찾은 종목을 등록하고 매수·매도 패턴을 연결하는 보드 기반 시스템으로 개발한다.
 - 내부 종목 발굴·추천·전략 점수·성과 검증·후보 승인·일봉 후보 자동 편입을 새 기능으로 복원하지 않는다.

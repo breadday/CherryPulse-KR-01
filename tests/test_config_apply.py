@@ -1,6 +1,7 @@
 """D01 desired, accepted and local-applied settings remain distinct."""
 
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -88,7 +89,7 @@ def test_unconfigured_authentication_fails_closed_without_persisting_desired(
         "REJECTED",
         "CONFIG_AUTHENTICATION_UNAVAILABLE",
     )
-    with sqlite3.connect(inbox.path) as connection:
+    with closing(sqlite3.connect(inbox.path)) as connection:
         count = connection.execute("SELECT count(*) FROM config_commands").fetchone()[0]
     assert count == 0
 

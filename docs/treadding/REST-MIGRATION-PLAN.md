@@ -13,7 +13,7 @@ REST는 조회·주문, WebSocket은 시세·체결을 담당한다. 주문 소�
 
 기존 SQLite 원장, 요청/주문 분리, UNKNOWN 재전송 금지, 수량 보존식,
 Q12 매수(1주·10만원 상한·당일 1회·15:20 만료·-3% 보호), 일반 매도 수동 제출 정책을 유지한다.
-OCX와 REST 원장 scope를 혼용하거나 virtual 대조 결과를 실제 계좌 근거로 승격하지 않는다.
+REST 조회 근거와 가상 원장 scope를 혼용하거나 가상 대조 결과를 실제 계좌 근거로 승격하지 않는다.
 
 ## 공개 소스 채택 결정
 
@@ -44,16 +44,11 @@ OCX와 REST 원장 scope를 혼용하거나 virtual 대조 결과를 실제 계�
 | R08 | 보드·인수·병합 | 실제 상태 표시·Windows/계좌 검증·CI·기록 | 미완료 |
 
 R02/R03의 오프라인 개발은 키 없이 진행한다. 실제 API 근거는 계좌 연결 후 별도로 검증한다.
-Q01~Q11의 의미는 유지하되 OCX 필드 증거를 REST 필드 증거로 대체해야 한다.
-OCX FID 예약 결과는 참고 기록이며 REST 전환의 선행 조건이 아니다.
+Q01~Q11의 의미는 유지하되 실제 증권사 확인은 현재 공식 REST API 응답·페이지·식별자 근거로 검증한다.
 Supabase·실기기 6/6·기존 D07 검증은 삭제하지 않고 후속 인수 과제로 남긴다.
-Python 버전·PyQt 의존성 제거는 imports와 Windows 회귀 확인 후 진행하며 이번에는 변경하지 않는다.
+REST 실행·테스트 기준은 64-bit Python 3.15이며 `pyproject.toml`, `uv.lock`, CI와 R045 실행기가 같은 격리 환경을 사용한다. REST/HTTP/WebSocket 개발과 증권사 연동은 공식 REST API 계약을 따른다.
 
-REST 실행 환경은 32비트가 아니다. 현재 `pyproject.toml`의 Python `>=3.10.8,<3.11`
-범위는 저장소 기본선이며 아키텍처를 지정하지 않는다. 32비트는 기존 Kiwoom
-ActiveX/COM 엔진에만 요구된다. REST/WS 프로브와 R045 예약 실행은 `py -3.10`으로
-실행하고 `tools/requirements-rest-probes.txt`를 같은 인터프리터에 설치한다.
-이 요구사항은 R02/R03/R04 및 R045 관련 문서·체크리스트에 우선 적용한다.
+2026-11-02: 런타임 및 CI 설정을 Python 3.15로 전환하고 오프라인 검증을 완료했다. 자세한 실행 결과와 남은 외부 검증은 `REST-MIGRATION-VERIFICATION.md`와 `REST-MIGRATION-HANDOFF.md`에 기록한다. 이 검증은 증권사 계좌·시세·주문 또는 Windows 엔진 인수를 뜻하지 않는다.
 
 ## 자동 개발 사이클과 중단 내구성
 

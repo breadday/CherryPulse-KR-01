@@ -1,13 +1,10 @@
 [project]
 name = "cherrypulse-kr"
 version = "0.1.0"
-description = "Board-based pattern trading: Windows execution environment"
-requires-python = ">=3.10.8,<3.11"
+description = "Board-based pattern trading with REST and WebSocket integrations"
+requires-python = ">=3.15,<3.16"
 dependencies = [
-  "pydantic==2.13.5",
-  "PyQt5==5.15.11",
-  "PyQt5-Qt5==5.15.2",
-  "PyQt5-sip==12.18.0",
+  "pydantic==2.14.2",
   "typing-extensions==4.16.0",
 ]
 
@@ -20,7 +17,7 @@ url = "https://pypi.org/simple"
 default = true
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py315"
 extend-exclude = ["back", ".tools", ".uv-cache"]
 
 [tool.ruff.lint]
@@ -30,7 +27,7 @@ ignore = ["COM812", "ISC001", "D203", "D213", "CPY001", "EM101"] # Error codes a
 [tool.basedpyright]
 typeCheckingMode = "all"
 include = ["execution", "tests"]
-pythonVersion = "3.10"
+pythonVersion = "3.15"
 pythonPlatform = "Windows"
 exclude = ["back", ".tools", ".uv-cache", ".venv"]
 
@@ -48,3 +45,6 @@ filterwarnings = ["error"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "PLR2004", "D", "ARG", "INP001"]
+"check.py" = ["T201"] # 진행 체크 스크립트: stdout 출력이 목적.
+"notifications/telegram.py" = ["ARG002", "PLR0913", "PLR0917"] # 리다이렉트 거절이 urllib 핸들러 시그니처를 그대로 유지.
+"tools/inspect_kiwoom_realtime.py" = ["T201", "PLC0415"] # ActiveX 관측 도구: stdout 출력과 검증 후 지연 import가 목적.

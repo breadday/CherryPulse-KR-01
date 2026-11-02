@@ -11,11 +11,11 @@ reconciliation or permission to trade.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Protocol, cast
 
 
-class RestQuery(str, Enum):
+class RestQuery(StrEnum):
     """Allowed account queries; callers cannot supply arbitrary API paths."""
 
     POSITIONS = "kt00018"

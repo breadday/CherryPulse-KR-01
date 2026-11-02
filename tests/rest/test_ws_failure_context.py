@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from adapters.kiwoom_rest_auth import RequestPacer
 from adapters.kiwoom_rest_ws import QuoteSocket, StreamTiming, capture_stream
@@ -40,7 +40,7 @@ def test_capture_failure_reports_only_safe_stage_and_kind() -> None:
             seconds=1,
             reconnects=0,
             connect=connect,
-            timing=StreamTiming(clock, lambda: datetime.now(timezone.utc)),
+            timing=StreamTiming(clock, lambda: datetime.now(UTC)),
             pacer=RequestPacer(clock=clock, wait=wait),
         )
 
