@@ -16,7 +16,7 @@
     "R07": "TODO",
     "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
   },
-  "next_action": "로컬 최종 검증(2026-11-02): Python 3.15.2 x64 전체 pytest 373 passed; REST verifier 6/6 (REST 168, Ruff check/format, adapter basedpyright 0 errors, board Node 39); 별도 worker/board Node 63 passed; `npm run build` dry-run; uv lock check; staged/unstaged diff check 모두 통과. REST 런타임·lock·CI 두 job·R045/paper-demo 실행기와 활성 REST 문서를 갱신했고 이전 개발자료는 docs/reference/legacy-development/에 이동했다. 다음은 이번 작업 파일만 한글 커밋하고 push한 뒤 exact SHA의 GitHub Actions를 확인한다. 실제 계좌 검증 미완료 및 orders_enabled=false를 유지한다.",
+  "next_action": "로컬 최종 검증(2026-11-02): Python 3.15.2 x64 전체 pytest 373 passed; REST verifier 6/6 (REST 168, Ruff check/format, adapter basedpyright 0 errors, board Node 39); worker/board Node 63 passed; npm build dry-run·uv lock·diff check 통과; REST 어댑터 compile/import 및 집중 테스트 39 passed. 커밋 `bd67c5b09e22c5b43d9aee53816cf3a377940838`가 `origin/main`에 반영됨. GitHub Actions REST migration run 41462431000은 성공했고 offline-rest/windows-engine 모두 성공. 별도 Supabase Preview check는 `Remote migration versions not found in local migrations directory.`로 실패했으며 이 커밋에는 supabase/SQL 변경이 없다. 원격 migration 상태는 조회·변경하지 않았고 담당자 조정이 필요하다. 실제 브로커 검증 미완료, orders_enabled=false 유지.",
   "checklists": {
     "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
     "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md",
@@ -108,6 +108,6 @@
     "task_stash_preserved_2026_10_29": "DOC_HISTORY_SUMMARY_IN_HANDOFF; FULL_RUFF_2_EXISTING_INSPECT_C901_PLR0915; BASEDPYRIGHT_CURRENT_MEASURE_65_FILES_255_ERRORS; STASH_REPORTED_542_AND_OLDER_STATUS_248_DIFFERENCE_UNRESOLVED; EXISTING_DIRTY_CODE_FILES_NOT_IN_R045_COMMITS",
     "task_2026_10_29_r045_target": "USER_CONFIRMED_HANA_MICRON_067310_ONE_SHARE_PRICE_CAP_36800; EXISTING_SCHEDULER_REMAINS_ENABLED; MARKET_QUOTE_IS_ORDER_PRICE_IF_WITHIN_CAP; FOCUSED_PYTEST_8; REST_VERIFIER_6_OF_6_REST_168; FULL_PYTEST_370; RUFF_FORMAT_PASS; RUNNER_NOT_EXECUTED",
     "r045_2026-10-28": "MANIFEST_RECHECK_2026-10-30_PREWARM_EXIT0_EXECUTION_NOT_REQUESTED_ORDERS_FALSE; READ_BEFORE_EXIT0_ORDERS_FALSE_ACCOUNT_RECONCILED_FALSE; QUOTE_WS_EXIT0_CONNECTIONS_1_QUOTES_OBSERVED_274_FRESH_BEFORE_CLOSE_TRUE_MALFORMED_FRAMES_0_QUOTE_SAVED_TRUE_ORDERS_FALSE_ACCOUNT_RECONCILED_FALSE",
-    "task_2026-11-02_local_verification": "PYTHON_3_15_2_X64_FULL_PYTEST_373_PASSED; REST_VERIFIER_EXIT0_6_OF_6_REST_168; ADAPTER_BASEDPYRIGHT_0_ERRORS; NODE_63_PASSED; BUILD_DRY_RUN_PASS; DIFF_CHECK_PASS; BROKER_SCHEDULER_ORDER_AND_DEPLOYMENT_NOT_RUN; REMOTE_CI_PENDING"
+    "task_2026-11-02_local_verification": "PYTHON_3_15_2_X64_FULL_PYTEST_373_PASSED; REST_VERIFIER_EXIT0_6_OF_6_REST_168; ADAPTER_BASEDPYRIGHT_0_ERRORS; NODE_63_PASSED; BUILD_DRY_RUN_AND_UV_LOCK_CHECK_PASS; ADAPTER_COMPILE_IMPORT_AND_FOCUSED_TESTS_39_PASS; COMMIT_BD67C5B_PUSHED_AND_ORIGIN_MAIN_VERIFIED; GITHUB_ACTIONS_REST_MIGRATION_RUN_41462431000_SUCCESS_OFFLINE_REST_AND_WINDOWS_ENGINE_SUCCESS; SEPARATE_SUPABASE_PREVIEW_FAILURE_REMOTE_MIGRATION_VERSIONS_NOT_FOUND_LOCALLY_NO_SQL_CHANGED_NO_REMOTE_REPAIR; BROKER_SCHEDULER_ORDER_AND_DEPLOYMENT_NOT_RUN; ORDERS_ENABLED_FALSE"
   }
 }

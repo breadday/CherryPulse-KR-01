@@ -21,8 +21,8 @@
 
 ## 미완료·차단
 
-1. 로컬 검증은 Python 373, REST verifier 6/6, Node 63, build dry-run, lock check 및 staged/unstaged diff check를 통과했다. 이번 작업 파일만 선별해 커밋한다.
-2. 커밋을 push한 뒤 exact SHA의 GitHub Actions를 확인하고 이 문서와 상태 JSON을 갱신한다.
+1. `bd67c5b09e22c5b43d9aee53816cf3a377940838`를 `origin/main`에서 확인했다. GitHub Actions REST migration run `41462431000` 및 두 job은 성공했다.
+2. 별도 Supabase Preview check는 `Remote migration versions not found in local migrations directory.`로 실패했다. 커밋에는 migration 파일 변경이 없고, 원격 이력 조회·repair·DB 변경은 하지 않았다. Supabase 담당자가 원격과 저장소 migration 이력을 대조해야 한다.
 3. 증권사 실측, 계좌 대조, WebSocket 장중 수신, 주문 실증은 별도 사용자 환경·승인이 필요하며 소프트웨어 검사로 승격하지 않는다.
 
 ## 재개 명령
@@ -34,4 +34,4 @@ node --test cloud/worker.test.mjs web/board/*.test.js
 npm run build
 ```
 
-마지막 확인에서 verifier는 통과했다. 문서 전수 정리와 CI 원격 실행은 아직 완료되지 않았으므로 완료 상태로 표시하지 않는다.
+최종 확인: 로컬 Python·REST·Node 검증과 GitHub Actions REST migration workflow는 통과했다. 별도 Supabase Preview check는 원격 migration 버전 불일치로 실패하여 저장소/원격 상태 대조가 남아 있다. 실제 브로커 검증은 미완료이며 `orders_enabled=false`다.

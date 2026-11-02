@@ -16,11 +16,12 @@
 
 ## CI·운영 검증 구분
 
-- CI 설정은 Python 3.15로 변경했으나, 이번 로컬 세션에서 GitHub Actions 실행 결과는 아직 없다.
-- 증권사 인증·계좌 조회·WebSocket 장중 데이터는 호출하지 않았다.
-- 주문·취소·운영 DB 변경·예약 실행·배포는 수행하지 않았다.
-- 따라서 broker verification과 Windows 운영 엔진 인수는 미확인이다. `orders_enabled=false`를 유지한다.
+- `bd67c5b09e22c5b43d9aee53816cf3a377940838`를 `origin/main`에서 확인했다. GitHub Actions REST migration run `41462431000`은 성공했고 `offline-rest`, `windows-engine` 두 job 모두 성공했다.
+- 별도 Supabase Preview check는 실패했다: `Remote migration versions not found in local migrations directory.` 현재 로컬에는 SQL migration 3개가 있고 이번 커밋에는 `supabase/` 또는 SQL 변경이 없다. 실패 세부정보에서 누락된 원격 migration 버전은 확인되지 않았다.
+- 원격 migration history 조회, repair, DB 변경 또는 재배포는 수행하지 않았다. 이 불일치는 Supabase 프로젝트 담당자가 원격 이력과 저장소를 대조해야 한다.
+- 증권사 인증·계좌 조회·WebSocket 장중 데이터는 호출하지 않았다. 주문·취소·예약 실행은 수행하지 않았고 `orders_enabled=false`를 유지한다.
+- Python 3.15.2에서 변경된 REST auth/WebSocket 어댑터의 compile/import와 집중 테스트 39개도 통과했다.
 
 ## 다음 완료 조건
 
-활성 개발 문서와 실행 스크립트의 REST 전환 및 참고 자료 이동을 마친 뒤 전체 로컬 검증을 반복한다. 의도된 파일만 한글 커밋으로 push하고 원격 CI 성공을 확인한 다음 이 문서를 갱신한다.
+로컬 REST 전환 및 주 CI 검증은 완료했다. Supabase Preview 실패는 원격 migration 상태 대조가 필요한 별도 차단 항목으로 남긴다. broker verification과 Windows 운영 엔진 인수는 미확인이다.
