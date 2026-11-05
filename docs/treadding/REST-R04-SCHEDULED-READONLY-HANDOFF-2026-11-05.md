@@ -2,7 +2,7 @@
 
 ## 예약 작업 PC 실측
 
-세 기존 주문 가능 작업은 삭제하지 않고 `Disable-ScheduledTask`로 비활성화했다. Windows Task Scheduler 재조회 결과 `Enabled=false`, 상태 `Ready`(대기), 마지막 실행 시각과 결과는 아래와 같이 그대로 남아 있다.
+세 기존 주문 가능 작업은 삭제하지 않고 `Disable-ScheduledTask`로 비활성화했다. Windows Task Scheduler 재조회 결과 `Enabled=false`, 상태 `Disabled`, 마지막 실행 시각과 결과는 아래와 같이 그대로 남아 있다.
 
 | 작업 | Enabled | 마지막 실행 (KST) | 마지막 결과 |
 |---|---:|---|---:|
