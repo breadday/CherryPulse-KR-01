@@ -59,4 +59,6 @@ npm run build
 - 원인: R045 runner가 사후 linkage 확인 시 기본 종목 `005930`을 사용했고, 검사 실패 후에도 manifest status를 `DONE`으로 썼다. TDD 회귀를 먼저 실패시킨 뒤 현재 종목 전달과 `PARTIAL_POST_ORDER_CHECKS_UNCONFIRMED` status 처리를 적용했다.
 - 수정 후 Python 전체 380 passed, REST verifier 6/6 (REST 171; adapter basedpyright 0 errors), 전체 Ruff pass, format 165 files, Node 63 passed, build dry-run, uv lock check, diff check 모두 통과.
 - 주문 sentinel 및 runner manifest는 `results/` 아래 있다. 주문 식별자 원문은 보관 문서에 복사하지 않았다. `orders_enabled=false`, `can_reconcile=false` 유지.
-- 다음: 사용자가 HTS에서 모의계좌의 `067310` 주문 상태를 확인·회신해야 한다. 미확정 상태에서 주문을 재전송하거나 R04/R05 완료 처리하지 않는다.
+- 2026-11-09 사용자가 HTS 캡처를 제공했다. [0343] 기간별 주문체결상세는 11/06 067310 1주 체결(평균 24,700, 12:54:35)을 표시했고, [0341]은 067310 전체 미체결 조회 완료 후 결과가 비어 있었다. [0351] 당일 빈 결과는 과거 체결 근거가 아니다.
+- HTS 근거로 접수 및 체결, 캡처 조회 시점의 미체결 없음은 확인했지만 REST history linkage/Q01 다중 일치는 `LINKAGE_UNCONFIRMED`다. R04 보유 1행 identity도 미매핑이므로 `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false` 유지.
+- 다음은 기록된 HTS 체결과 REST history linkage 간 차이를 로컬 코드/저장 증거로 읽기 전용 분석한다. 추가 브로커 조회나 주문·정정·취소는 하지 않고, R04/R05 완료로 승격하지 않는다.

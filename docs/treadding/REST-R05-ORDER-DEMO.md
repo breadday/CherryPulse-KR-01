@@ -1,4 +1,4 @@
-# R05 — 모의 1주 지정가 매수 실증 도구, 사용자 실행 전
+# R05 — 모의 1주 지정가 매수 실증 도구와 결과
 
 2026-10-14, `feature/rest-r05-order-demo`. 주문 API 호출은 이 문서의 도구를
 사용자 PC에서 직접 실행할 때만 일어난다. 개발 과정에서는 어떤 주문도 내지 않았다.
@@ -62,3 +62,11 @@
 - 사후 linkage runner는 실수로 기본 종목 `005930`을 조회했다. 이 호출은 `LINKAGE_UNCONFIRMED`였고, 이 결과로 주문 결과를 판정하지 않았다. 올바른 종목 `067310`으로 별도 읽기 전용 재조회한 결과는 `ka10076` 행 1건, 기타 세 테이블 0건, 주문번호 다중 일치 false, 집합 일치 false, 원주문 연결 청결 false, 체결번호 확인 false, 최종 `LINKAGE_UNCONFIRMED`였다.
 - 따라서 주문 접수만 확인됐고 미체결/체결 여부는 확정하지 않는다. HTS에서 해당 모의 주문을 확인해야 한다. 자동 재주문·수정·취소는 하지 않았고, 사용자 확인 전 다시 주문하지 않는다. `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false` 유지.
 - 원인 수정: `tools/r045_morning_run.py`가 linkage 조회에 runner 종목을 전달하도록 수정했고, 사후 history/linkage 검사 실패 시 manifest를 `PARTIAL_POST_ORDER_CHECKS_UNCONFIRMED`로 남기게 했다. TDD 회귀 테스트에서 기존 동작이 실패한 뒤 수정했으며 REST runner 테스트 10개 통과.
+
+## HTS 사용자 확인 — 2026-11-09
+
+- 사용자가 제공한 **[0343] 기간별 주문체결상세** 캡처에서 2026-11-06의 067310 지정가 매수 1주가 접수됐고, 체결량 1주·평균체결가 24,700·체결시각 12:54:35(KRX)로 표시됨을 확인했다.
+- 후속 **[0341] 실시간 미체결** 캡처는 종목 필터 067310, 전체 조건이며 조회 완료 후 결과 행이 없었다. 따라서 캡처 조회 시점에는 067310 미체결 주문이 표시되지 않았다.
+- **[0351] 금일주문체결내역** 캡처도 비어 있었지만 이는 조회 당일 목록이므로 11/06 과거 체결의 증거로 사용하지 않는다.
+- 판정: HTS가 주문 접수 및 1주 체결, 캡처 시점의 미체결 없음이라는 사용자 화면 근거를 제공한다. 다만 REST 이력과의 API linkage/Q01 다중 일치는 여전히 `LINKAGE_UNCONFIRMED`; R04의 계좌 identity mapping과 원장 대조도 미완료다.
+- 추가 주문·정정·취소·브로커 조회는 하지 않았다. `orders_enabled=false`, `account_reconciled=false`, `can_reconcile=false` 유지.

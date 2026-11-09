@@ -23,7 +23,7 @@
 - `kt00018` 행은 broker 보유 1행으로만 관측했고 managed 원장에 연결하지 않았다. 따라서 `account_reconciled=false`, `can_reconcile=false`다.
 - WebSocket: 1 connection, `quotes_observed=24`, `malformed_frames=0`, `fresh_before_close=true`. 주문 후 연결 확인은 R05 실측 섹션에 기록한다.
 - 사용자 요청으로 허용된 모의 1주 지정가 주문을 시도했고 `ORDER_ACKED`를 받았다. 사후 linkage는 아직 미확정이라 R04 identity mapping이나 reconciliation을 승격하지 않는다.
-- 다음: 사용자가 HTS에서 주문의 미체결/체결을 확인하고 결과를 제공해야 한다. 미확정 상태에서 재주문·자동 취소·원장 연결은 하지 않는다.
+- 다음: HTS 체결 캡처는 R05 실증 기록에 별도 추가했다. 미확정 API linkage와 계좌 identity mapping은 그대로 남아 있으며, 이를 HTS 화면만으로 원장 대조 완료로 승격하지 않는다.
 
 ## 증거 추가 양식
 
