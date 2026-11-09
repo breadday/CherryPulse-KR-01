@@ -17,7 +17,7 @@ import json
 import subprocess
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import cast
 
@@ -74,7 +74,7 @@ def _safe_diagnostic(stdout: str) -> dict[str, object]:
     """Keep only bounded, non-sensitive fields from a probe JSON report."""
     try:
         parsed: object = cast("object", json.loads(stdout))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return {}
     if not isinstance(parsed, dict):
         return {}
@@ -216,7 +216,7 @@ class MorningRun:
             return None
         try:
             book = json.loads(self.quote_path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except OSError, ValueError:
             self.status = "ABORTED"
             self._aborted_reason = "QUOTE_FILE_UNREADABLE"
             self._flush()
@@ -267,13 +267,22 @@ class MorningRun:
         )
 
     def post_checks(self) -> None:
-        """Record the post-order history probe and linkage check as evidence."""
-        _ = self.read_only("READ_HISTORY_AFTER", abort=False)
-        self._step(
+        """Record post-order checks and retain a partial result on uncertainty."""
+        history_ok = self.read_only("READ_HISTORY_AFTER", abort=False)
+        linkage_ok = self._step(
             "LINKAGE",
-            self._python("tools.verify_paper_linkage", "--execute-read-only"),
+            self._python(
+                "tools.verify_paper_linkage",
+                "--symbol",
+                self.symbol,
+                "--execute-read-only",
+            ),
             abort_on_failure=False,
         )
+        if not history_ok or not linkage_ok:
+            self.status = "PARTIAL_POST_ORDER_CHECKS_UNCONFIRMED"
+            self._aborted_reason = "POST_ORDER_CHECKS_UNCONFIRMED"
+            self._flush()
 
     def run(self) -> int:
         """Run the fixed order of steps and persist one completed marker."""
@@ -319,7 +328,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     """Refuse to start outside the live market window; otherwise play the steps."""
     argument = parse_args(argv)
-    gate = market_gate(datetime.now(timezone.utc))
+    gate = market_gate(datetime.now(UTC))
     if gate != "MARKET_OPEN":
         _ = sys.stdout.write(
             json.dumps({"mode": "PAPER", "orders_enabled": False, "reason": gate})

@@ -35,3 +35,28 @@ npm run build
 ```
 
 최종 확인: 로컬 Python·REST·Node 검증과 GitHub Actions REST migration workflow는 통과했다. 별도 Supabase Preview check는 원격 migration 버전 불일치로 실패하여 저장소/원격 상태 대조가 남아 있다. 실제 브로커 검증은 미완료이며 `orders_enabled=false`다.
+
+## 2026-11-04 R04 오프라인 미매핑 보유 행 가드
+
+- `RestReadBatch`는 완전한 조회 묶음에서도 broker 보유 행을 managed 원장에 편입하지 않는다. 행이 있으면 개수와 `BROKER_POSITIONS_UNMAPPED`를 보고하고, 행이 없으면 `BROKER_IDENTITY_MAPPING_UNVERIFIED`를 유지한다. 잘못된 행 형식은 `POSITION_ROWS_UNCONFIRMED`로 닫는다.
+- 실제 계좌 identity mapping·외부 보유 판정·원장 연결은 여전히 미완료다. 합성 응답 외의 브로커 호출은 하지 않았고 `can_reconcile=false`, `orders_enabled=false`를 유지했다.
+- TDD RED에서 새 행 수 속성이 없어 실패한 뒤 구현했다. 최종 확인: 전체 pytest `374 passed`; REST verifier `6/6` (REST pytest `169 passed`, Ruff check/format 통과, adapter basedpyright `0 errors`); Worker/board Node `63 passed`; `npm run build` dry-run과 `git diff --check` 통과.
+- `uv lock --check`는 `uv` 실행 파일이 현재 PATH에 없어 exit 127로 확인하지 못했다. 의존성·잠금 파일은 변경하지 않았다. 기존 사용자 변경 파일과 미추적 테스트를 보존했다. 이번 요청에서 커밋·push는 하지 않았다.
+- 다음: 지정 PC에서 사용자 승인 후 R04 읽기 전용 체크리스트의 마스킹된 실행 결과를 확보한다. 그 전까지 R04 live 상태 및 주문 OFF를 유지한다.
+
+## 2026-11-05 저장소 전체 Ruff 정리
+
+- 전체 Ruff check 통과, `ruff format --check .` 162 files already formatted.
+- Python 전체 pytest 374 passed; REST verifier 6/6 (REST pytest 169, Ruff check/format, adapter basedpyright 0 errors); Worker/board Node 63 passed; build dry-run 및 `git diff --check` 통과.
+- 기존 변경 파일과 두 미추적 테스트를 보존했다. 커밋·push·배포·브로커 호출은 하지 않았다. `orders_enabled=false` 유지.
+- 다음 소프트웨어/실증 게이트는 계속 R04 지정 PC 읽기 전용 검증이다. 실제 계좌 식별과 장중 WebSocket 수신을 사용자 승인·마스킹된 근거로 확인하기 전까지 R04 live 및 `can_reconcile=false`를 유지한다.
+- 앞서 `uv`가 PATH에 없어 검사하지 못했던 lock 검증은 `.venv-rest/Scripts/uv.exe`에서 실행 가능함을 확인했다. `uv 0.12.13`의 `uv lock --check`가 exit 0으로 통과했다.
+
+## 2026-11-06 PAPER R04/R05 실측 및 runner 수정
+
+- 사용자 요청에 따라 승인된 `067310` 1주 모의 주문 runner를 1회 실행했다. `ORDER_ACKED`, 가격 24,700; 사전 조회 5건 complete, 장중 WS 24 quotes/fresh true.
+- 조회 당시 broker 보유 1행이 미매핑으로 남아 있고 `account_reconciled=false`다. 올바른 종목으로 재조회한 사후 linkage도 `LINKAGE_UNCONFIRMED`; HTS에서 접수 주문의 미체결/체결 상태를 확인하기 전 추가 주문·수정·취소는 하지 않는다.
+- 원인: R045 runner가 사후 linkage 확인 시 기본 종목 `005930`을 사용했고, 검사 실패 후에도 manifest status를 `DONE`으로 썼다. TDD 회귀를 먼저 실패시킨 뒤 현재 종목 전달과 `PARTIAL_POST_ORDER_CHECKS_UNCONFIRMED` status 처리를 적용했다.
+- 수정 후 Python 전체 380 passed, REST verifier 6/6 (REST 171; adapter basedpyright 0 errors), 전체 Ruff pass, format 165 files, Node 63 passed, build dry-run, uv lock check, diff check 모두 통과.
+- 주문 sentinel 및 runner manifest는 `results/` 아래 있다. 주문 식별자 원문은 보관 문서에 복사하지 않았다. `orders_enabled=false`, `can_reconcile=false` 유지.
+- 다음: 사용자가 HTS에서 모의계좌의 `067310` 주문 상태를 확인·회신해야 한다. 미확정 상태에서 주문을 재전송하거나 R04/R05 완료 처리하지 않는다.

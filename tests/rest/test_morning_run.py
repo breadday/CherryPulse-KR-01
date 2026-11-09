@@ -167,6 +167,40 @@ def test_read_failure_before_order_is_an_abort(
     assert all("submit_paper_buy" not in text for text in joined)
 
 
+def test_post_linkage_check_uses_the_runner_symbol(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    runner = make_runner(monkeypatch, tmp_path)
+    runner.symbol = "067310"
+    commands: list[list[str]] = []
+
+    def record(command: list[str]) -> tuple[int, str, str]:
+        commands.append(command)
+        return 0, "{}", ""
+
+    monkeypatch.setattr(r045_morning_run, "run_command", record)
+    runner.post_checks()
+
+    linkage = next(
+        command for command in commands if "tools.verify_paper_linkage" in command
+    )
+    assert linkage[linkage.index("--symbol") + 1] == "067310"
+
+
+def test_linkage_failure_leaves_run_partial(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    runner = make_runner(monkeypatch, tmp_path)
+    records = Recorder(tmp_path, {"LINKAGE"}, 70000)
+    monkeypatch.setattr(r045_morning_run, "run_command", records.run)
+
+    assert runner.run() == 0
+    assert runner.status == "PARTIAL_POST_ORDER_CHECKS_UNCONFIRMED"
+    saved = json.loads(evidence_path(tmp_path).read_text(encoding="utf-8"))
+    assert saved["status"] == "PARTIAL_POST_ORDER_CHECKS_UNCONFIRMED"
+    assert saved["abort_reason"] == "POST_ORDER_CHECKS_UNCONFIRMED"
+
+
 def test_failed_quote_step_persists_only_safe_probe_diagnostics(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

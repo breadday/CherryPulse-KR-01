@@ -53,3 +53,12 @@
 `broker_message: 모의투자 종료`로 거절됐다. 인증·POST·응답 판정·거절 보고
 경로는 끝까지 동작했고, 거절이라 센티널 없이 재시도가 가능하다.
 모의투자 시간 종료가 원인이라 장중(정규장 시간)에 같은 명령으로 재제출한다.
+
+## 실제 모의 주문 — 2026-11-06 12:51~12:58 KST
+
+- 사용자가 모의 주문 실행을 요청한 뒤, 예약 작업이 비활성(`Disabled`)이고 당일 sentinel이 없는 것을 확인하고 승인된 R045 runner를 한 번 실행했다: `tools.r045_morning_run --symbol 067310 --price-cap 36800`.
+- 사전 REST 5건은 모두 complete, 각 1 page였다. 보유 1행은 미매핑으로 남겼고 `account_reconciled=false`다. WebSocket은 1 connection, 24 quotes, malformed 0, fresh before close true.
+- 주문 결과: `ORDER_ACKED`, PAPER, 1주 지정가, 가격 `24700`. `results/paper-buy-20261106.json` sentinel은 `ACKED`다. 주문번호·계좌번호는 이 문서에 기록하지 않는다.
+- 사후 linkage runner는 실수로 기본 종목 `005930`을 조회했다. 이 호출은 `LINKAGE_UNCONFIRMED`였고, 이 결과로 주문 결과를 판정하지 않았다. 올바른 종목 `067310`으로 별도 읽기 전용 재조회한 결과는 `ka10076` 행 1건, 기타 세 테이블 0건, 주문번호 다중 일치 false, 집합 일치 false, 원주문 연결 청결 false, 체결번호 확인 false, 최종 `LINKAGE_UNCONFIRMED`였다.
+- 따라서 주문 접수만 확인됐고 미체결/체결 여부는 확정하지 않는다. HTS에서 해당 모의 주문을 확인해야 한다. 자동 재주문·수정·취소는 하지 않았고, 사용자 확인 전 다시 주문하지 않는다. `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false` 유지.
+- 원인 수정: `tools/r045_morning_run.py`가 linkage 조회에 runner 종목을 전달하도록 수정했고, 사후 history/linkage 검사 실패 시 manifest를 `PARTIAL_POST_ORDER_CHECKS_UNCONFIRMED`로 남기게 했다. TDD 회귀 테스트에서 기존 동작이 실패한 뒤 수정했으며 REST runner 테스트 10개 통과.
