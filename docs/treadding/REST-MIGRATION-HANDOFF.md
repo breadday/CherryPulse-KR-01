@@ -70,4 +70,5 @@ npm run build
 - 로컬 manifest에서 2026-11-06 실행의 top-level `DONE`과 `LINKAGE` exit 1 / `LINKAGE_UNCONFIRMED`가 함께 확인됐다. 이는 현재 runner 수정 전의 과거 산출물이며, 당시 원문 행/주문 식별자는 저장되지 않아 정확한 linkage 원인을 재구성할 수 없다.
 - 현재 runner의 사후 검사 실패 처리와 새 안전 요약 진단 저장 회귀를 포함한 집중 테스트 `23 passed`를 확인했다. 향후 manifest에는 고정된 4개 query의 행/고유 주문 개수와 linkage 판정 bool만 저장하며 식별자·원문 응답·stderr는 저장하지 않는다. 테스트는 합성·오프라인 검증이며 브로커 상태 확인이 아니다.
 - 로컬 검증: 전체 pytest `381 passed`; REST verifier `6/6` 및 REST pytest `172 passed`; Ruff check/format 통과; REST adapter basedpyright `0 errors`; Node `63 passed`; `npm run build` dry-run 성공; `git diff --check` 통과. 실계좌·브로커·주문은 실행하지 않았다.
+- 커밋 `a6cf0a2`를 `main`에 push했고 GitHub Actions run `42823659024`의 `offline-rest`, `windows-engine` 두 job이 모두 성공했다.
 - 저장 결과로는 왜 다른 history endpoint가 같은 주문 행을 반환하지 않았는지 확정할 수 없다. 추가 조회 없이 원인 미확정을 유지하고, 별도 승인된 마스킹 증거가 없으면 `LINKAGE_UNCONFIRMED`, `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false`를 유지한다.
