@@ -70,3 +70,11 @@
 - **[0351] 금일주문체결내역** 캡처도 비어 있었지만 이는 조회 당일 목록이므로 11/06 과거 체결의 증거로 사용하지 않는다.
 - 판정: HTS가 주문 접수 및 1주 체결, 캡처 시점의 미체결 없음이라는 사용자 화면 근거를 제공한다. 다만 REST 이력과의 API linkage/Q01 다중 일치는 여전히 `LINKAGE_UNCONFIRMED`; R04의 계좌 identity mapping과 원장 대조도 미완료다.
 - 추가 주문·정정·취소·브로커 조회는 하지 않았다. `orders_enabled=false`, `account_reconciled=false`, `can_reconcile=false` 유지.
+
+## 2026-11-10 로컬 linkage 판정 및 진단 보존 개선
+
+- 저장된 `results/r045-20261106/manifest.json`의 최상위 `DONE`은 과거 실행기 산출물이다. 같은 manifest의 `LINKAGE` 단계는 exit 1과 `LINKAGE_UNCONFIRMED`를 기록하므로 성공적인 linkage로 해석하지 않는다. 원본 결과 파일은 증거 보존을 위해 수정하지 않았다.
+- 저장된 요약은 `ka10076` 행 1건, 나머지 세 이력/미체결 query 행 0건, `order_seen_in_multiple=false`, `order_sets_equal=false`, `orig_link_clean=false`다. 검증기는 최소 두 query의 주문 집합이 있어야 교차 확인으로 보고, 원주문 참조가 있으면 원주문 연결이 깨끗하다고 판정하지 않는다. 따라서 저장 증거상 미확정 사유는 다중 query 교차 근거 부족 및 원주문 연결 조건 미충족이다. 어떤 응답 차이로 이 상태가 생겼는지는 raw 행을 저장하지 않았으므로 알 수 없다.
+- 자동 분석의 안전성을 높이기 위해 현재 R045 runner가 향후 linkage manifest에 고정된 네 query의 행 수·고유 주문 수와 판정 bool만 보존하도록 개선했다. 원문 주문번호·계좌·토큰·응답·stderr는 allowlist에 포함하지 않는다.
+- 회귀 검증: `tests/rest/test_order_demo.py`와 `tests/rest/test_morning_run.py` 집중 실행 `23 passed`; 실제 브로커 조회·주문·정정·취소·재전송은 하지 않았다.
+- 이후 실행 결과가 추가되더라도 linkage/account reconciliation을 자동 승격하지 않는다. `LINKAGE_UNCONFIRMED`, `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false`를 유지한다.

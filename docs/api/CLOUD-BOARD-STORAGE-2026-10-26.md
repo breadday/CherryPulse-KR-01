@@ -73,7 +73,7 @@ npx wrangler deploy
 
 미결: 운영 Worker 재배포와 URL 확인, 실제 이메일 인증·로그인 후 두 기기 저장 왕복,
 Auth Site URL/메일 링크 목적지 설정, 이메일 발송 제한 및 필요시 SMTP 설정,
-물리 iOS Safari·Android Chrome 인수. 계정 삭제/보존 정책 확정과 UI는 별도다.
+물리 Android Chrome 인수. iOS 실기기 인수는 2026-11-10 사용자 결정으로 제외한다. 계정 삭제/보존 정책 확정과 UI는 별도다.
 R04/R05 지정 PC 실증·시세/계좌/주문·엔진 연결은 기존 미결 상태를 유지한다.
 
 ## 검증 기록

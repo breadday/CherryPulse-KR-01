@@ -27,6 +27,19 @@ DEFAULT_SYMBOL = "067310"
 PRICE_CAP = 36800
 MAX_DIAGNOSTIC_REASON_LENGTH = 64
 MAX_DIAGNOSTIC_COUNT = 1_000_000
+LINKAGE_QUERY_IDS = ("kt00007", "kt00009", "ka10076", "ka10075")
+BOOLEAN_DIAGNOSTIC_FIELDS = (
+    "network",
+    "fresh_before_close",
+    "orders_enabled",
+    "account_reconciled",
+    "quote_saved",
+    "order_seen_in_multiple",
+    "order_sets_equal",
+    "orig_link_clean",
+    "fills_seen",
+    "fill_numbers_seen",
+)
 MARKET_OPEN = (9, 0)
 MARKET_CLOSE = (15, 20)
 WEEKEND_START = 5  # Monday is 0; Saturday is the first weekend weekday.
@@ -92,12 +105,6 @@ def _safe_diagnostic(stdout: str) -> dict[str, object]:
         value = report.get(name)
         if type(value) is int and 0 <= value <= MAX_DIAGNOSTIC_COUNT:
             diagnostic[name] = value
-    bool_fields = (
-        "fresh_before_close",
-        "orders_enabled",
-        "account_reconciled",
-        "quote_saved",
-    )
     safe_codes = {
         "failure_stage": {"TOKEN", "PACING", "CONNECT", "PROTOCOL", "CLOSE", "SETUP"},
         "failure_kind": {
@@ -114,11 +121,35 @@ def _safe_diagnostic(stdout: str) -> dict[str, object]:
         value = report.get(name)
         if isinstance(value, str) and value in allowed:
             diagnostic[name] = value
-    for name in bool_fields:
+    for name in ("row_counts", "distinct_order_counts"):
+        counts = _safe_linkage_counts(report.get(name))
+        if counts is not None:
+            diagnostic[name] = counts
+    _copy_safe_booleans(report, diagnostic)
+    return diagnostic
+
+
+def _safe_linkage_counts(value: object) -> dict[str, int] | None:
+    """Allow only bounded counts for the four fixed linkage queries."""
+    if not isinstance(value, dict):
+        return None
+    if not all(
+        type(value.get(query_id)) is int
+        and 0 <= cast("int", value[query_id]) <= MAX_DIAGNOSTIC_COUNT
+        for query_id in LINKAGE_QUERY_IDS
+    ):
+        return None
+    return {query_id: cast("int", value[query_id]) for query_id in LINKAGE_QUERY_IDS}
+
+
+def _copy_safe_booleans(
+    report: dict[str, object], diagnostic: dict[str, object]
+) -> None:
+    """Copy only explicit boolean diagnostic fields from a child report."""
+    for name in BOOLEAN_DIAGNOSTIC_FIELDS:
         value = report.get(name)
         if type(value) is bool:
             diagnostic[name] = value
-    return diagnostic
 
 
 class MorningRun:

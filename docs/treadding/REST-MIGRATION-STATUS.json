@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-11-09",
+  "updated_on": "2026-11-10",
   "baseline_commit": "1ec7966",
   "branch": "main",
   "orders_enabled": false,
-  "current_task": "R04",
+  "current_task": "R05",
   "tasks": {
     "R00": "DOCUMENTED",
     "R01": "OFFLINE_VERIFIED_ACCOUNT_UNVERIFIED",
@@ -16,7 +16,7 @@
     "R07": "TODO",
     "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
   },
-  "next_action": "2026-11-09 사용자가 제공한 영웅문4 캡처에서 2026-11-06 067310 PAPER 1주 지정가의 체결량 1, 평균체결가 24,700, 체결시각 12:54:35를 확인했고, [0341]에서 067310 전체 미체결 조회 결과가 비어 있음을 확인(캡처 시점 기준). [0351] 당일 빈 결과는 11/06 과거 체결 근거로 사용하지 않는다. REST linkage는 여전히 LINKAGE_UNCONFIRMED(Q01 다중 일치 false), R04의 보유 1행 identity도 미매핑이다. 재주문·수정·취소 금지; account_reconciled=false, can_reconcile=false, orders_enabled=false 유지. 다음은 주문 API 결과와 HTS 체결 증거의 linkage 불일치를 읽기 전용 로컬 분석으로 좁히되, 추가 브로커 조회/주문은 하지 않는다.",
+  "next_action": "2026-11-10 자동 개발: 2026-11-06 manifest는 전체 status DONE이지만 LINKAGE 단계 exit 1 및 LINKAGE_UNCONFIRMED를 기록한다. 이는 runner 수정 전의 과거 산출물이다. 현재 runner는 사후 검사 실패를 PARTIAL_POST_ORDER_CHECKS_UNCONFIRMED로 보존하고, 향후 manifest에 고정된 4개 query의 행/고유 주문 개수 및 linkage 판정 bool만 안전하게 기록하도록 개선했다(집중 테스트 23개 통과). 원문 행/주문 식별자는 저장되지 않아 기존 건의 endpoint 간 차이 원인을 확정할 수 없다. R05 linkage 및 R04 보유 1행 identity는 미확정; account_reconciled=false, can_reconcile=false, orders_enabled=false. 추가 브로커 조회·주문·정정·취소·재전송 없이 진행한다. Android Chrome 실기기 인수만 범위에 남고 iOS는 제외한다.",
   "checklists": {
     "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
     "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md",
@@ -37,7 +37,7 @@
     "WebSocket 장중 수신",
     "R05 broker linkage/Q01 증거 대조 (HTS 체결 확인, API linkage 미확정)",
     "계좌/PC 인계",
-    "실기기 체크리스트 6/6",
+    "Android Chrome 실기기 체크리스트 6/6",
     "클라우드 인증·동기화",
     "보드 CRUD REST API 호스트·인증·요청/응답 계약 및 서버 구현"
   ],
@@ -70,7 +70,6 @@
     "openapi_validation": "PASS_3_0_3",
     "synthetic_schema_examples": "PASS_10_OF_10",
     "actual_server_auth_and_cloud": "UNCONFIRMED",
-    "ios_safari": "NOT_RUN",
     "android_chrome": "NOT_RUN"
   },
   "software_verification": {
@@ -112,6 +111,8 @@
     "task_2026-11-04_r04_unmapped_position_guard": "PYTHON_3_15_2_X64_FULL_PYTEST_374_PASSED; REST_VERIFIER_EXIT0_6_OF_6_REST_169; RUFF_CHECK_FORMAT_PASS; ADAPTER_BASEDPYRIGHT_0_ERRORS; NODE_63_PASSED; BUILD_DRY_RUN_PASS; DIFF_CHECK_PASS; UV_LOCK_CHECK_UNAVAILABLE_EXIT127; BROKER_READS_ORDERS_AND_DEPLOYMENT_NOT_RUN; CAN_RECONCILE_FALSE; ORDERS_ENABLED_FALSE",
     "task_2026-11-05_full_ruff_cleanup": "REPO_RUFF_CHECK_PASS; RUFF_FORMAT_162_FILES; PYTHON_3_15_2_X64_FULL_PYTEST_374; REST_VERIFIER_6_OF_6_REST_169_ADAPTER_BASEDPYRIGHT_0; NODE_63; BUILD_DRY_RUN; DIFF_CHECK; UV_0_12_13_LOCK_CHECK_PASS; BROKER_CALLS_ORDERS_DEPLOYMENT_NOT_RUN; CAN_RECONCILE_FALSE; ORDERS_ENABLED_FALSE",
     "task_2026-11-06_paper_order_and_linkage_fix": "USER_REQUESTED_PAPER_R045_RUN_ONCE; PRE_READ_5_COMPLETE; WS_24_QUOTES_FRESH; ORDER_ACKED_SYMBOL_067310_QTY_1_PRICE_24700; POST_LINKAGE_UNCONFIRMED_CORRECT_SYMBOL; NO_RETRY_AMEND_CANCEL; RUNNER_SYMBOL_AND_PARTIAL_STATUS_FIX_TDD; PYTHON_380_REST_171_NODE_63_RUFF_FORMAT165_BASEDPYRIGHT0_UV_LOCK_BUILD_DIFF_PASS; ACCOUNT_RECONCILED_FALSE_CAN_RECONCILE_FALSE_ORDERS_ENABLED_FALSE",
-    "task_2026-11-09_hts_confirmation": "USER_PROVIDED_HTS_0343_CONFIRMS_2026-11-06_FILL_QTY1_AVG24700_TIME125435; HTS_0341_FILTER_067310_ALL_EMPTY_AT_SCREENSHOT_TIME; 0351_TODAY_EMPTY_NOT_USED_AS_2026-11-06_EVIDENCE; REST_LINKAGE_UNCONFIRMED_Q01_MULTI_MATCH_FALSE; NO_BROKER_CALLS_OR_TRADE; NEXT_READONLY_LOCAL_LINKAGE_ANALYSIS"
+    "task_2026-11-09_hts_confirmation": "USER_PROVIDED_HTS_0343_CONFIRMS_2026-11-06_FILL_QTY1_AVG24700_TIME125435; HTS_0341_FILTER_067310_ALL_EMPTY_AT_SCREENSHOT_TIME; 0351_TODAY_EMPTY_NOT_USED_AS_2026-11-06_EVIDENCE; REST_LINKAGE_UNCONFIRMED_Q01_MULTI_MATCH_FALSE; NO_BROKER_CALLS_OR_TRADE; NEXT_READONLY_LOCAL_LINKAGE_ANALYSIS",
+    "task_2026-11-10_scope_and_diagnostics": "IOS_EXCLUDED_ANDROID_CHROME_ONLY; CHERRYPULSE_SCHEDULED_TASKS_DELETED_2026-11-09; HISTORIC_MANIFEST_DONE_WITH_LINKAGE_EXIT1; SAFE_AGGREGATE_DIAGNOSTICS_TDD_RED_GREEN_23_PASS; NO_BROKER_CALL_OR_ORDER",
+    "task_2026-11-10_local_validation": "FULL_PYTEST_381; REST_VERIFIER_6_OF_6_REST_PYTEST_172; RUFF_CHECK_FORMAT_PASS; ADAPTER_BASEDPYRIGHT_0; NODE_63; BUILD_DRY_RUN; DIFF_CHECK_PASS; NO_BROKER_OR_ORDER"
   }
 }

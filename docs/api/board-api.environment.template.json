@@ -39,7 +39,6 @@
   "evidence": {
     "r04": "PENDING_DESIGNATED_PC",
     "r05": "PENDING_DESIGNATED_PC",
-    "iosSafari": "NOT_RUN",
     "androidChrome": "NOT_RUN"
   }
 }

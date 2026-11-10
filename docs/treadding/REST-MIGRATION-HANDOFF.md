@@ -1,6 +1,6 @@
 # REST 전환 작업 인계
 
-갱신일: 2026-11-02
+갱신일: 2026-11-10
 
 ## 현재 기준
 
@@ -62,3 +62,12 @@ npm run build
 - 2026-11-09 사용자가 HTS 캡처를 제공했다. [0343] 기간별 주문체결상세는 11/06 067310 1주 체결(평균 24,700, 12:54:35)을 표시했고, [0341]은 067310 전체 미체결 조회 완료 후 결과가 비어 있었다. [0351] 당일 빈 결과는 과거 체결 근거가 아니다.
 - HTS 근거로 접수 및 체결, 캡처 조회 시점의 미체결 없음은 확인했지만 REST history linkage/Q01 다중 일치는 `LINKAGE_UNCONFIRMED`다. R04 보유 1행 identity도 미매핑이므로 `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false` 유지.
 - 다음은 기록된 HTS 체결과 REST history linkage 간 차이를 로컬 코드/저장 증거로 읽기 전용 분석한다. 추가 브로커 조회나 주문·정정·취소는 하지 않고, R04/R05 완료로 승격하지 않는다.
+
+## 2026-11-10 진행 상태 및 범위 결정
+
+- 사용자가 iOS 실기기 인수를 범위에서 제외했다. Android Chrome 실기기 6/6만 남기며, 활성 계획·상태·보드 인계·체크리스트에서 iOS 항목을 제거했다. `docs/reference/legacy-development/`는 당시 기록을 보존하는 역사 자료이므로 수정하지 않는다.
+- 2026-11-09 사용자의 요청으로 `CherryPulse-paper-demo`, `CherryPulsePaperDemo`, `CherryPulse-R045-Demo`, `CherryPulseFIDMorning`을 삭제했다. Windows Task Scheduler에 CherryPulse 작업은 없으며 새 작업을 등록하지 않는다.
+- 로컬 manifest에서 2026-11-06 실행의 top-level `DONE`과 `LINKAGE` exit 1 / `LINKAGE_UNCONFIRMED`가 함께 확인됐다. 이는 현재 runner 수정 전의 과거 산출물이며, 당시 원문 행/주문 식별자는 저장되지 않아 정확한 linkage 원인을 재구성할 수 없다.
+- 현재 runner의 사후 검사 실패 처리와 새 안전 요약 진단 저장 회귀를 포함한 집중 테스트 `23 passed`를 확인했다. 향후 manifest에는 고정된 4개 query의 행/고유 주문 개수와 linkage 판정 bool만 저장하며 식별자·원문 응답·stderr는 저장하지 않는다. 테스트는 합성·오프라인 검증이며 브로커 상태 확인이 아니다.
+- 로컬 검증: 전체 pytest `381 passed`; REST verifier `6/6` 및 REST pytest `172 passed`; Ruff check/format 통과; REST adapter basedpyright `0 errors`; Node `63 passed`; `npm run build` dry-run 성공; `git diff --check` 통과. 실계좌·브로커·주문은 실행하지 않았다.
+- 저장 결과로는 왜 다른 history endpoint가 같은 주문 행을 반환하지 않았는지 확정할 수 없다. 추가 조회 없이 원인 미확정을 유지하고, 별도 승인된 마스킹 증거가 없으면 `LINKAGE_UNCONFIRMED`, `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false`를 유지한다.

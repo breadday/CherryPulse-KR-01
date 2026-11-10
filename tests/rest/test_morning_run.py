@@ -243,6 +243,70 @@ def test_failed_quote_step_persists_only_safe_probe_diagnostics(
     assert all("submit_paper_buy" not in " ".join(command) for command in commands)
 
 
+def test_linkage_step_persists_safe_aggregate_diagnostics_only(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    runner = make_runner(monkeypatch, tmp_path)
+    report = json.dumps(
+        {
+            "reason": "LINKAGE_UNCONFIRMED",
+            "network": True,
+            "orders_enabled": False,
+            "account_reconciled": False,
+            "row_counts": {"kt00007": 0, "kt00009": 0, "ka10076": 1, "ka10075": 0},
+            "distinct_order_counts": {
+                "kt00007": 0,
+                "kt00009": 0,
+                "ka10076": 1,
+                "ka10075": 0,
+            },
+            "order_seen_in_multiple": False,
+            "order_sets_equal": False,
+            "orig_link_clean": False,
+            "fills_seen": True,
+            "fill_numbers_seen": False,
+            "access_token": "secret-token-must-not-persist",
+            "ord_no": "sensitive-order-id-must-not-persist",
+            "account_number": "sensitive-account-must-not-persist",
+        }
+    )
+
+    def fake_command(command: list[str]) -> tuple[int, str, str]:
+        if "tools.verify_paper_linkage" in command:
+            return 1, report, "private stderr"
+        return 0, "{}", ""
+
+    monkeypatch.setattr(r045_morning_run, "run_command", fake_command)
+    runner.post_checks()
+
+    assert runner.status == "PARTIAL_POST_ORDER_CHECKS_UNCONFIRMED"
+    manifest = json.loads(evidence_path(tmp_path).read_text(encoding="utf-8"))
+    diagnostic = manifest["steps"][-1]["diagnostic"]
+    assert diagnostic == {
+        "reason": "LINKAGE_UNCONFIRMED",
+        "network": True,
+        "orders_enabled": False,
+        "account_reconciled": False,
+        "row_counts": {"kt00007": 0, "kt00009": 0, "ka10076": 1, "ka10075": 0},
+        "distinct_order_counts": {
+            "kt00007": 0,
+            "kt00009": 0,
+            "ka10076": 1,
+            "ka10075": 0,
+        },
+        "order_seen_in_multiple": False,
+        "order_sets_equal": False,
+        "orig_link_clean": False,
+        "fills_seen": True,
+        "fill_numbers_seen": False,
+    }
+    serialized = json.dumps(manifest)
+    assert "secret-token-must-not-persist" not in serialized
+    assert "sensitive-order-id-must-not-persist" not in serialized
+    assert "sensitive-account-must-not-persist" not in serialized
+    assert "private stderr" not in serialized
+
+
 def test_price_over_cap_skips_order_and_keeps_post_checks(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

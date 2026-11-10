@@ -147,9 +147,10 @@ If-Match누락428, 잘못된연결422, 구버전새패턴409, 비활성기존연
 
 ## 4. 모바일 실기기 인수
 
-[모바일 6항목 체크리스트](../D02-MOBILE-CHECKLIST.md)를 현행 보드에 맞춰 갱신했다.
-iOS Safari, Android Chrome 각각 기종·OS·브라우저·접속 URL·커밋·확인자·시각과
-6항목의 PASS/FAIL/NOT_RUN을 기록한다. 에뮬레이션/PC 창폭 확인은 대체 근거가 아니다.
+[Android Chrome 6항목 체크리스트](../D02-MOBILE-CHECKLIST.md)를 현행 보드에 맞춰 갱신했다.
+실제 Android Chrome 기종·OS·브라우저·접속 URL·커밋·확인자·시각과
+6항목의 PASS/FAIL/NOT_RUN을 기록한다. iOS 실기기 인수는 범위에서 제외한다.
+에뮬레이션/PC 창폭 확인은 대체 근거가 아니다.
 민감한 값이 없는 합성 종목·패턴으로 확인한다. 화면 공유 시 개인 메모/링크를 가린다.
 
 휴대폰의 localhost는 PC가 아니다. 같은 망의 검증용 PC에서 **web 디렉터리만**
