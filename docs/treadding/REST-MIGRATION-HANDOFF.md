@@ -1,11 +1,12 @@
 # REST 전환 작업 인계
 
-갱신일: 2026-11-10
+갱신일: 2026-11-13
 
 ## 현재 기준
 
 - 공식 REST API 및 WebSocket 경계를 기준으로 개발한다. 이전 개발 방향·계획·검증 기록은 `docs/reference/legacy-development/`에 참고용으로 보관하며 활성 개발 지시로 사용하지 않는다.
 - 프로젝트 런타임은 64-bit Python 3.15 (`>=3.15,<3.16`)이다. CI와 R045 실행기도 동일한 격리 환경을 사용한다.
+- 최종 결정: COM/ActiveX CLI 네 개는 REST-only 진입점에서 fail-closed로 종료한다. REST 조회와 WebSocket 도구는 유지하며 기본 오프라인 모드다. COM control 생성에는 REST 대체가 없다.
 - REST 오프라인 검증은 완료했지만 증권사 계좌·실시간 시세·주문·Windows 운영 엔진 인수는 미완료다.
 - `orders_enabled=false`를 유지한다. 실주문·모의주문·예약 작업 실행은 이번 변경에서 호출하지 않았다.
 - 기존 변경 중 REST 런타임 전환과 무관한 파일은 사용자 작업으로 간주하고 보존한다. 커밋할 때는 의도된 파일만 선별한다.
@@ -72,3 +73,28 @@ npm run build
 - 로컬 검증: 전체 pytest `381 passed`; REST verifier `6/6` 및 REST pytest `172 passed`; Ruff check/format 통과; REST adapter basedpyright `0 errors`; Node `63 passed`; `npm run build` dry-run 성공; `git diff --check` 통과. 실계좌·브로커·주문은 실행하지 않았다.
 - 커밋 `a6cf0a2`를 `main`에 push했고 GitHub Actions run `42823659024`의 `offline-rest`, `windows-engine` 두 job이 모두 성공했다.
 - 저장 결과로는 왜 다른 history endpoint가 같은 주문 행을 반환하지 않았는지 확정할 수 없다. 추가 조회 없이 원인 미확정을 유지하고, 별도 승인된 마스킹 증거가 없으면 `LINKAGE_UNCONFIRMED`, `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false`를 유지한다.
+
+## 2026-11-11 64-bit-only 결정 및 COM CLI 퇴역
+
+- 최종 런타임은 64-bit Python 3.15 `.venv-rest`다. REST/HTTP 및 WebSocket 구현은 유지했다.
+- `verify_kiwoom_com.py`, `verify_kiwoom_connection.py`, `verify_kiwoom_readonly.py`, `tools/inspect_kiwoom_realtime.py`의 공개 CLI는 `COM_RETIRED_REST_ONLY`와 대체 경로를 출력하고 exit 2로 닫힌다. 직접 실행에서 PyQt5/OCX를 불러오거나 네트워크를 호출하지 않는다. 기존 COM 구현과 역사 문서는 참고용이며 `docs/reference/legacy-development/`를 수정하지 않았다.
+- 대체: REST 조회는 `tools.probe_kiwoom_rest`, 시세 스트림은 `tools.probe_kiwoom_ws`; 둘 다 기본 오프라인이다. 실제 네트워크 읽기는 `--execute-read-only`의 명시적 opt-in과 별도 승인 전에는 하지 않는다. COM control 생성 및 구형 TR의 일대일 동등 대체는 없다.
+- TDD에서 일반 모드 4건과 `-I` isolated 모드 4건을 먼저 실패 재현한 뒤, 두 실행 모드의 COM 진입점 8건과 집중 테스트 10건이 통과했다. 전체 pytest 388, Node 63, Ruff check/format 168 files, adapter basedpyright 0 errors, build dry-run 및 `git diff --check`가 통과했다.
+- REST와 WebSocket 기본 CLI는 각각 `network=false`, `orders_enabled=false`를 반환했다. 네트워크·계좌·주문·예약 작업 변경은 하지 않았다.
+- `.venv-rest`는 Python 3.15.2 x64다. 다만 `py -0p`에는 Python 3.10.8 32-bit가 여전히 등록되어 있다. 전역 Python 제거는 이 작업에서 하지 않았으므로 OS 수준 32-bit 제거는 완료로 단정하지 않는다.
+- 2026-11-11 당시에는 커밋·push·CI 실행을 하지 않았다. 다음은 기존 R05/R04 로컬 linkage 분석이며, 필요하면 남은 전역 32-bit 설치의 정리는 별도 범위로 다룬다.
+
+## 2026-11-12 호스트 Python 정리 및 전달 상태
+
+- 사용자가 승인한 범위에서 등록된 정상 uninstaller로 사용자 전역 Python 3.10.8 32-bit를 제거했다. `py -0p`에는 프로젝트의 Python 3.15-64만 표시되고, `py -3.10-32`는 실행되지 않으며 제거 레지스트리 항목도 0개다.
+- 제거 후 재검증: 전체 pytest `388 passed`; Node `63 passed`; Ruff check 및 format `168 files`; REST adapter basedpyright `0 errors, 0 warnings, 0 notes`; build dry-run 통과; REST/WS 기본 실행 각각 `network=false`, `orders_enabled=false`; `git diff --check` 및 상태 JSON 파싱 통과.
+- 2026-11-12 당시에는 기존 사용자 변경을 보호하고 런타임/COM 퇴역 범위만 선별해 commit/push하겠다는 계획을 인계했으나 실제로 수행하지 않았다. 2026-11-13 사용자가 해당 범위의 commit/push를 명시 승인했다. 실계좌·주문·배포는 포함하지 않는다.
+
+## 2026-11-13 COM 퇴역 진입점 강화 및 R04/R05 로컬 분석
+
+- 독립 리뷰에서 직접 CLI는 종료되더라도 import 경로에 구형 PyQt/COM 구현이 남아 있음을 발견했다. 네 활성 진입점을 간결한 퇴역 stub으로 교체해 일반 import 및 isolated(`-I`) import 모두 PyQt/COM을 불러오지 않게 했다. `verify_kiwoom_readonly.py`는 구형 TR과 REST query가 동등하다고 암시하지 않도록 안내 문구를 조정했다.
+- TDD 회귀는 수정 전 두 실행 모드에서 `ModuleNotFoundError: PyQt5`로 실패했고, 수정 후 `.venv-rest/Scripts/python.exe -m pytest tests/test_com_scripts_retired.py tests/test_realtime_probe.py -q --tb=short` 결과 `12 passed`다.
+- 저장된 R05 자료만으로는 2026-11-06 API endpoint 간 행 차이를 복원할 수 없다. 안전한 manifest에는 집계 개수와 판정 bool만 있고 raw 응답 행/주문 식별자는 보존되지 않았다. HTS의 체결 확인은 유지하되 API linkage는 `LINKAGE_UNCONFIRMED`로 둔다.
+- R04 `kt00018` 보유 1행은 실제 계좌·종목 identity에 연결되지 않았다. 계좌/종목 mapping 및 원장 대조는 미완료이며 `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false`다. 비밀정보나 계좌·주문 식별자를 채팅/문서에 옮기지 않는다.
+- 추가 브로커 조회·주문·정정·취소·재전송, 예약 작업 변경 및 배포는 하지 않는다. 다음 가능한 소프트웨어 단위는 합성 테스트만 사용하는 R05 dispatcher의 SENDING/UNKNOWN/부분체결/취소경합/재시작 경계이며, 구현 전후에도 주문 OFF를 유지한다.
+- 별도 외부 인수 미완료: R04 identity 근거, R05 API linkage 증거, Android Chrome 실기기 6/6, 확정 보드 REST API 호스트·인증·CRUD 계약, Supabase 원격 migration 이력 대조, Windows 운영 엔진 인수.

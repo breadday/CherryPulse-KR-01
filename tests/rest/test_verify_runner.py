@@ -41,8 +41,8 @@ def test_verifier_defines_six_fixed_checks() -> None:
 def test_typecheck_uses_documented_node_entrypoint_when_tools_present() -> None:
     """With .tools/typecheck installed, run node index.js per docs.
 
-    The 32-bit engine Python cannot build basedpyright's nodejs-wheel
-    dependency; docs/DEVELOPMENT-ENVIRONMENT.md pins the node CLI path.
+    The local Node CLI is pinned in docs/DEVELOPMENT-ENVIRONMENT.md; CI falls
+    back to the Python module form when the local tools directory is absent.
     """
     local_entry = ROOT / ".tools" / "typecheck" / "basedpyright" / "index.js"
     command = module.typecheck_command()

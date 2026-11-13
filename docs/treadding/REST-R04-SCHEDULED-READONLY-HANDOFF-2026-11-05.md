@@ -1,6 +1,6 @@
 # CherryPulse 예약 작업·R04 읽기 전용 검증 인계 (2026-11-05)
 
-> 현재 상태 갱신 (2026-11-10): 아래 예약 작업 현황은 2026-11-05 당시의 기록이다. 2026-11-09 사용자의 후속 요청으로 CherryPulse 관련 네 작업을 모두 삭제했고, 재조회에서 남아 있지 않음을 확인했다. R04 읽기 전용 실행기는 코드로만 남아 있으며 새 Windows 예약 작업은 등록하지 않았다.
+> 현재 상태 갱신 (2026-11-11): 아래 예약 작업 현황은 2026-11-05 당시의 기록이다. 2026-11-09 사용자의 후속 요청으로 CherryPulse 관련 네 작업을 모두 삭제했고, 재조회에서 남아 있지 않음을 확인했다. R04 읽기 전용 실행기는 코드로만 남아 있으며 새 Windows 예약 작업은 등록하지 않았다. COM 기반 `tools/inspect_kiwoom_realtime.py` CLI도 2026-11-11부터 fail-closed로 비활성화됐다. 이 문서의 과거 COM 절차를 재실행하거나 예약 작업을 복구하지 않는다.
 
 ## 예약 작업 PC 실측
 
@@ -14,7 +14,7 @@
 
 설정/XML과 실행 이력은 삭제하지 않았다. 세 작업의 다음 실행은 비활성 상태라 예정되지 않는다.
 
-`CherryPulseFIDMorning`은 Enabled 상태이나 작업 action이 저장소 루트의 `run-fid-morning.bat`을 가리키고, 해당 경로가 현재 존재하지 않는다. Task Scheduler의 최근 결과는 1이다. legacy 보관 경로의 동명 BAT은 사용자 로그인 후 `tools\inspect_kiwoom_realtime.py 005930 --start-at 09:05 --seconds 120`만 실행하며, 파일 주석·명령에는 주문/취소/TR 조회가 없다. 다만 실행 대상 경로 자체가 없어 실제 action과 legacy 파일이 동일하다고 단정할 수 없다. 기존 예약 설정은 추가 변경하지 않았다. 기능 재개 전 action 경로를 사용자 확인 후 점검한다.
+`CherryPulseFIDMorning`은 2026-11-05 당시 Enabled 상태였으나 작업 action이 저장소 루트의 `run-fid-morning.bat`을 가리키고, 해당 경로가 없었다. legacy 보관 경로의 동명 BAT은 당시 `tools\inspect_kiwoom_realtime.py 005930 --start-at 09:05 --seconds 120`을 실행하도록 기록돼 있다. 실행 대상 경로가 없어 실제 action과 legacy 파일이 동일하다고 단정하지 않았다. 2026-11-09 작업 삭제 이후 해당 예약 작업은 남아 있지 않으며, 2026-11-11부터 `inspect_kiwoom_realtime.py` CLI도 fail-closed로 퇴역했다. 이 과거 명령은 실행·예약 복구 지침이 아니다.
 
 ## 2026-10-28 R04 기록 (파일 근거)
 

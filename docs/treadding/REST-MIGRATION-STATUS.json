@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-11-10",
+  "updated_on": "2026-11-13",
   "baseline_commit": "1ec7966",
-  "branch": "main",
+  "branch": "refactor/kiwoom-rest",
   "orders_enabled": false,
   "current_task": "R05",
   "tasks": {
@@ -16,7 +16,7 @@
     "R07": "TODO",
     "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
   },
-  "next_action": "2026-11-10 자동 개발: 2026-11-06 manifest는 전체 status DONE이지만 LINKAGE 단계 exit 1 및 LINKAGE_UNCONFIRMED를 기록한다. 이는 runner 수정 전의 과거 산출물이다. 현재 runner는 사후 검사 실패를 PARTIAL_POST_ORDER_CHECKS_UNCONFIRMED로 보존하고, 향후 manifest에 고정된 4개 query의 행/고유 주문 개수 및 linkage 판정 bool만 안전하게 기록하도록 개선했다(집중 테스트 23개 통과). 원문 행/주문 식별자는 저장되지 않아 기존 건의 endpoint 간 차이 원인을 확정할 수 없다. R05 linkage 및 R04 보유 1행 identity는 미확정; account_reconciled=false, can_reconcile=false, orders_enabled=false. 추가 브로커 조회·주문·정정·취소·재전송 없이 진행한다. Android Chrome 실기기 인수만 범위에 남고 iOS는 제외한다.",
+  "next_action": "다음 오프라인 단위는 합성 테스트 기반 R05 dispatcher의 SENDING/UNKNOWN/부분체결/취소경합/재시작 경계 구현이다. R04 보유 1행의 account/symbol identity와 R05 API linkage는 미확정이며, 2026-11-06 REST raw 행/주문 식별자는 보존되지 않아 endpoint 간 차이 원인은 복원 불가하다. account_reconciled=false, can_reconcile=false, orders_enabled=false를 유지하고 추가 브로커 조회·주문·정정·취소·재전송은 하지 않는다. Android Chrome 실기기 6/6, 보드 API 확정 계약, Supabase 원격 migration 이력 대조, Windows 운영 엔진 인수는 외부 대기다. 64-bit Python 3.15 REST/WebSocket만 활성 런타임이며 COM CLI는 import-safe 퇴역 stub이다.",
   "checklists": {
     "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
     "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md",
@@ -26,7 +26,7 @@
     "hermes_20261029": "docs/reference/legacy-development/HERMES-AUTODEVELOPMENT-2026-10-29.md",
     "python_runtime_review": "docs/treadding/REST-PYTHON-RUNTIME-MIGRATION-REVIEW-2026-11-02.md"
   },
-  "verification_command": "python tools/verify_rest_migration.py",
+  "verification_command": ".venv-rest/Scripts/python.exe tools/verify_rest_migration.py",
   "known_baseline": {
     "ruff_errors": 2,
     "basedpyright_errors": 255
@@ -114,6 +114,9 @@
     "task_2026-11-09_hts_confirmation": "USER_PROVIDED_HTS_0343_CONFIRMS_2026-11-06_FILL_QTY1_AVG24700_TIME125435; HTS_0341_FILTER_067310_ALL_EMPTY_AT_SCREENSHOT_TIME; 0351_TODAY_EMPTY_NOT_USED_AS_2026-11-06_EVIDENCE; REST_LINKAGE_UNCONFIRMED_Q01_MULTI_MATCH_FALSE; NO_BROKER_CALLS_OR_TRADE; NEXT_READONLY_LOCAL_LINKAGE_ANALYSIS",
     "task_2026-11-10_scope_and_diagnostics": "IOS_EXCLUDED_ANDROID_CHROME_ONLY; CHERRYPULSE_SCHEDULED_TASKS_DELETED_2026-11-09; HISTORIC_MANIFEST_DONE_WITH_LINKAGE_EXIT1; SAFE_AGGREGATE_DIAGNOSTICS_TDD_RED_GREEN_23_PASS; NO_BROKER_CALL_OR_ORDER",
     "task_2026-11-10_local_validation": "FULL_PYTEST_381; REST_VERIFIER_6_OF_6_REST_PYTEST_172; RUFF_CHECK_FORMAT_PASS; ADAPTER_BASEDPYRIGHT_0; NODE_63; BUILD_DRY_RUN; DIFF_CHECK_PASS; NO_BROKER_OR_ORDER",
-    "task_2026-11-10_ci": "COMMIT_A6CF0A2; GITHUB_ACTIONS_RUN_42823659024; OFFLINE_REST_SUCCESS; WINDOWS_ENGINE_SUCCESS"
+    "task_2026-11-10_ci": "COMMIT_A6CF0A2; GITHUB_ACTIONS_RUN_42823659024; OFFLINE_REST_SUCCESS; WINDOWS_ENGINE_SUCCESS",
+    "task_2026-11-11_64bit_only_com_retirement": "TDD_RED_4_NORMAL_AND_4_ISOLATED_EXPECTED_FAILURES; COM_ENTRYPOINTS_FAIL_CLOSED_8_MODE_CASES; FOCUSED_PYTEST_10; FULL_PYTEST_388; NODE_63; RUFF_CHECK_PASS_FORMAT_168; BASEDPYRIGHT_0_ERRORS_0_WARNINGS; BUILD_DRY_RUN_PASS; REST_WS_DEFAULT_NETWORK_FALSE_ORDERS_FALSE; DIFF_CHECK_PASS; NO_BROKER_CALLS_ORDERS_SCHEDULER_CHANGES_COMMIT_PUSH_OR_CI; PY_LAUNCHER_STILL_LISTS_PYTHON_3_10_8_32BIT",
+    "task_2026-11-12_host_python_cleanup": "REGISTERED_USER_UNINSTALLER_REMOVED_PYTHON_3_10_8_32BIT; PY_LAUNCHER_ONLY_PYTHON_3_15_64; PROJECT_ENV_PYTHON_3_15_2_X64; REMOVAL_VERIFIED_BY_LAUNCHER_AND_UNINSTALL_REGISTRY",
+    "task_2026-11-13_com_import_safety": "INDEPENDENT_REVIEW_FOUND_IMPORT_PATH_COULD_REACH_PYQT_COM; FOUR_ACTIVE_ENTRYPOINTS_REPLACED_WITH_RETIRED_STUBS; NORMAL_AND_ISOLATED_IMPORT_SAFETY_TESTS_RED_THEN_GREEN; FOCUSED_12_PASS; REST_TR_GUIDANCE_NOT_CLAIMED_EQUIVALENT; NO_BROKER_CALL_ORDER_SCHEDULER_CHANGE_OR_DEPLOY"
   }
 }

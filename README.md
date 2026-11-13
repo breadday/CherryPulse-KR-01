@@ -21,9 +21,10 @@
 - [기존 파일 보관 기록](docs/REBUILD-01-ARCHIVE.md)
 
 가상 데모는 프로젝트 루트에서 실행합니다. 매번 임시 DB를 사용하며 로그인·실제 주문 API를 호출하지 않습니다.
+활성 런타임은 64-bit Python 3.15 REST/WebSocket 전용입니다. COM/ActiveX 검사 CLI는 종료됐으며 REST 경로에 PyQt5를 추가하지 않습니다.
 
 ```powershell
-& .\.venv\Scripts\python.exe -m execution
+& .\.venv-rest\Scripts\python.exe -m execution
 ```
 
 기존 선정·전략 평가·스윙 실행 방식은 `back/legacy-2026-09-13/`에 보관했습니다. 보관본은 참고·복구용이며 활성 모듈에서 import하지 않습니다. 영구 삭제하지 않았습니다.

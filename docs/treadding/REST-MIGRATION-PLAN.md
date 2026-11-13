@@ -38,7 +38,7 @@ REST 조회 근거와 가상 원장 scope를 혼용하거나 가상 대조 결�
 | R01 | 읽기 전용 REST 경계 | whitelist·페이지·오류·부분 결과 검사 | 오프라인 완료, 계좌 검증 전 |
 | R02 | 토큰·환경·읽기 실행기 | 모의 토큰 만료·갱신·키 비노출·요청 속도 제한 | 오프라인 검증, 실제 계좌 전 |
 | R03 | WebSocket 수신·복구 | LOGIN/PING/REG/REAL 재생·재구독·신선도·세션 검증 | 관측 경계 오프라인 검증, 실제 수신·세션 전 |
-| R04 | 원장 연결·대조 | REST scope·조회 완전성·식별 근거·외부 보유 구별 | 조회 근거 경계 준비, 원장 연결 전 |
+| R04 | 원장 연결·대조 | REST scope·조회 완전성·식별 근거·외부 보유 구별 | 미매핑 보유 행 수 표시 추가, 실제 식별 매핑·원장 연결 대기 |
 | R05 | 주문 dispatcher | SENDING 내구성·UNKNOWN·부분체결·취소 경합·재시작 | 미구현·주문 OFF |
 | R06 | 패턴·독립 보호 연결 | 확정 Q12·일반 매도 정책·보호 우선 전체 흐름 | 기존 가상 코드 유지, 실연결 전 |
 | R07 | 무인 실행·상태·알림 | PC 예약·장중 감시·마감·장애 결과·브라우저 독립 | 미완료 |
@@ -48,6 +48,8 @@ R02/R03의 오프라인 개발은 키 없이 진행한다. 실제 API 근거는 
 Q01~Q11의 의미는 유지하되 실제 증권사 확인은 현재 공식 REST API 응답·페이지·식별자 근거로 검증한다.
 Supabase·실기기 6/6·기존 D07 검증은 삭제하지 않고 후속 인수 과제로 남긴다.
 REST 실행·테스트 기준은 64-bit Python 3.15이며 `pyproject.toml`, `uv.lock`, CI와 R045 실행기가 같은 격리 환경을 사용한다. REST/HTTP/WebSocket 개발과 증권사 연동은 공식 REST API 계약을 따른다.
+
+2026-11-11 최종 런타임 결정: **64-bit Python 3.15만 활성 지원**한다. COM/ActiveX 스크립트는 활성 경로에서 제외하며, REST 조회와 WebSocket 시세 도구만 유지한다. COM control 생성 검사는 REST로 대체할 수 없고, REST 조회/실시간 관측은 데이터 의미와 endpoint가 확인된 범위에서만 대체한다. `docs/DEVELOPMENT-ENVIRONMENT.md`의 비활성 CLI와 안전 실행 정책을 따른다. 과거 구현·실측 기록은 `docs/reference/legacy-development/`에 보존한다.
 
 2026-11-02: 런타임 및 CI 설정을 Python 3.15로 전환하고 오프라인 검증을 완료했다. 자세한 실행 결과와 남은 외부 검증은 `REST-MIGRATION-VERIFICATION.md`와 `REST-MIGRATION-HANDOFF.md`에 기록한다. 이 검증은 증권사 계좌·시세·주문 또는 Windows 엔진 인수를 뜻하지 않는다.
 

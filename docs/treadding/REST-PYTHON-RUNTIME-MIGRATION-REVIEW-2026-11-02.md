@@ -3,6 +3,8 @@
 갱신일: 2026-11-02
 상태: 구현 및 로컬 오프라인 검증 완료. 원격 CI 확인은 미완료.
 
+> 최종 결정 갱신 (2026-11-11): 이 검토의 대안 비교를 종료하고 **64-bit Python 3.15 REST/WebSocket 전용**으로 확정했다. COM/ActiveX CLI는 활성 실행에서 제외됐다. 아래 내용은 당시 런타임 전환 검토 기록이며, 현재 적용 기준은 `REST-MIGRATION-PLAN.md`와 `DEVELOPMENT-ENVIRONMENT.md`다.
+
 ## 결정
 
 - 프로젝트 실행·검증 기준은 64-bit Python 3.15 (`>=3.15,<3.16`)이다.

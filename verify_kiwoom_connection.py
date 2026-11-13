@@ -1,37 +1,23 @@
-"""Read Kiwoom connection state without logging in or querying an account."""
+"""Retired COM connection probe; use the REST read-only probe instead."""
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import sys
+from importlib import import_module
+from pathlib import Path
 
-from PyQt5.QAxContainer import QAxWidget
-from PyQt5.QtWidgets import QApplication
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 def main() -> int:
-    """Create the control, read GetConnectState once, and release it."""
-    app = QApplication([])
-    control = QAxWidget()
-    created = control.setControl("KHOPENAPI.KHOpenAPICtrl.1")
-    observed_at = datetime.now(timezone.utc).isoformat()
-    state = int(control.dynamicCall("GetConnectState()")) if created else -1
-    print(  # noqa: T201
-        "observed_at",
-        observed_at,
-        "control_created",
-        created,
-        "connect_state",
-        state,
-        "connected",
-        state == 1,
-        flush=True,
+    """Direct operators to the offline-by-default REST read-only probe."""
+    retire_com_script = import_module("tools.com_retired").retire_com_script
+    return retire_com_script(
+        "verify_kiwoom_connection.py",
+        "python -m tools.probe_kiwoom_rest (offline by default)",
     )
-    control.clear()
-    released = control.isNull()
-    del control
-    app.processEvents()
-    app.quit()
-    return 0 if created and released and state in {0, 1} else 1
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # REST 오프라인 검증 기록
 
-갱신일: 2026-11-02
+갱신일: 2026-11-13
 
 ## 이번 로컬 검증
 
@@ -60,3 +60,47 @@ Ruff 규칙을 저장소 전체에 적용하고 Pydantic이 런타임에 사용�
 - 올바른 종목의 실측 linkage 결과는 여전히 `LINKAGE_UNCONFIRMED`; HTS 주문 상태 확인 전 재주문·수정·취소하지 않는다. R04 계좌 identity mapping 및 reconciliation은 미확정.
 - 수정 후 Python 전체 회귀 `380 passed`; REST verifier `6/6` (REST pytest `171 passed`, adapter basedpyright `0 errors`); 전체 Ruff check 통과, 전체 format `165 files already formatted`; Worker/board Node `63 passed`; build dry-run, uv 0.12.13 `lock --check`, `git diff --check` 통과.
 - 이 검증은 PAPER 경로만 사용했으며 live-order API나 배포는 실행하지 않았다. `orders_enabled=false`, `account_reconciled=false`, `can_reconcile=false` 유지.
+
+## 2026-11-11 64-bit-only COM CLI 퇴역 검증
+
+| 구분 | 명령/환경 | 결과 | 범위 |
+|---|---|---:|---|
+| 런타임 | `.venv-rest/Scripts/python.exe`, Python 3.15.2 | 64-bit | 프로젝트 실행 환경 |
+| COM CLI 퇴역 회귀 | `pytest tests/test_com_scripts_retired.py tests/test_realtime_probe.py -q` | 10 passed | 네 진입점이 일반/isolated(`-I`) 모드에서 안내 후 exit 2 |
+| Python 전체 회귀 | `.venv-rest/Scripts/python.exe -m pytest -q --tb=short` | 388 passed | 오프라인 저장소 테스트 |
+| Ruff | `ruff check .`; `ruff format --check .` | 통과; 168 files | 저장소 전체 |
+| 타입 검사 | basedpyright REST adapters | 0 errors, 0 warnings | REST adapter 범위 |
+| Node | `npm test` | 63 passed | Worker/보드 |
+| 빌드 | `npm run build` | dry-run 성공 | 배포하지 않음 |
+| REST/WS 기본 모드 | `python -m tools.probe_kiwoom_rest`; `python -m tools.probe_kiwoom_ws` | 모두 `network=false`, `orders_enabled=false` | 실제 네트워크 미호출 |
+| diff 검사 | `git diff --check` | 통과 | 작업 트리 |
+
+레거시 진입점은 64-bit REST 전용 경로에서 fail-closed로 처리하며, REST/WS 도구를 사용한다. 2026-11-11 검증 시점에는 WebSocket 실측·계좌 조회·주문·예약 작업 변경·배포·commit/push·CI를 수행하지 않았다. 당시 `py -0p`에는 Python 3.10.8 32-bit가 남아 있었다.
+
+## 2026-11-12 호스트 런타임 정리 확인
+
+| 확인 | 결과 |
+|---|---|
+| Python 3.10.8 32-bit 제거 | 등록된 사용자 전역 Python uninstaller exit 0 |
+| `py -0p` | 프로젝트 Python 3.15-64만 표시 |
+| `py -3.10-32` | 더 이상 실행되지 않음 |
+| `Uninstall` 레지스트리 | Python 3.10.8 항목 0개 |
+| 프로젝트 `.venv-rest` | Python 3.15.2, 64-bit로 실행됨 |
+
+제거 후 전체 pytest `388 passed`, Worker/board Node `63 passed`, Ruff check 및 format `168 files`, REST adapter basedpyright `0 errors, 0 warnings, 0 notes`, build dry-run, REST/WS 기본 오프라인 실행, `git diff --check`, 상태 JSON 파싱이 통과했다. 원격 CI는 push 후 확인한다. 이 호스트 정리는 프로젝트 전용 `.venv-rest`를 변경하지 않았다.
+
+## 2026-11-13 퇴역 COM 진입점 import-safety 보강
+
+독립 리뷰가 기존 direct-CLI guard 뒤에 남은 COM 구현의 import 경로를 찾아냈다. 네 진입점을 COM/PyQt 의존성이 없는 퇴역 stub으로 바꾸고 import safety 회귀를 추가했다. 수정 전 normal/isolated 두 경우 모두 PyQt import 실패로 재현됐고, 수정 후 `.venv-rest/Scripts/python.exe -m pytest tests/test_com_scripts_retired.py tests/test_realtime_probe.py -q --tb=short` 결과 `12 passed`.
+
+| 구분 | 명령/환경 | 결과 | 범위 |
+|---|---|---:|---|
+| Python 전체 회귀 | `.venv-rest/Scripts/python.exe -m pytest -q --tb=short` | 390 passed | 저장소 오프라인 테스트 |
+| REST verifier | `python tools/verify_rest_migration.py` | 6/6, REST 172 passed | REST scope, Ruff, typecheck 및 Node subset 포함 |
+| Ruff | `ruff check .`; `ruff format --check .` | 통과; 168 files | 저장소 전체 |
+| REST adapter 타입 검사 | basedpyright | 0 errors, 0 warnings, 0 notes | REST adapter 범위 |
+| Node | `node --test cloud/worker.test.mjs web/board/*.test.js` | 63 passed | Worker/board |
+| 빌드 | `npm run build` | dry-run 성공 | 배포 아님 |
+| diff | `git diff --check` | 통과 | 작업 트리 |
+
+R04 보유 행 identity와 R05 API linkage는 여전히 증거 부족이다. 기존 2026-11-06 raw query rows/주문 식별자가 저장되지 않아 endpoint 차이의 정확한 원인은 재구성할 수 없다. 이 검증은 오프라인 코드 검사이며 broker/account/Windows-engine acceptance는 `false`다. 추가 조회·주문·예약 실행·배포는 하지 않았다.
