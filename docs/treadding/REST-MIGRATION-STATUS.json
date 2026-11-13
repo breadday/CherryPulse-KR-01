@@ -16,7 +16,7 @@
     "R07": "TODO",
     "R08": "BOARD_DRAFT_LINK_PREVIEW_VERIFIED_ENGINE_ACCEPTANCE_PENDING"
   },
-  "next_action": "다음 오프라인 단위는 합성 테스트 기반 R05 dispatcher의 SENDING/UNKNOWN/부분체결/취소경합/재시작 경계 구현이다. R04 보유 1행의 account/symbol identity와 R05 API linkage는 미확정이며, 2026-11-06 REST raw 행/주문 식별자는 보존되지 않아 endpoint 간 차이 원인은 복원 불가하다. account_reconciled=false, can_reconcile=false, orders_enabled=false를 유지하고 추가 브로커 조회·주문·정정·취소·재전송은 하지 않는다. Android Chrome 실기기 6/6, 보드 API 확정 계약, Supabase 원격 migration 이력 대조, Windows 운영 엔진 인수는 외부 대기다. 64-bit Python 3.15 REST/WebSocket만 활성 런타임이며 COM CLI는 import-safe 퇴역 stub이다.",
+  "next_action": "COM import-safety 변경은 6c39e1d12d0c765c60cefb5313279e1e4a0688fd로 feature branch에 push되었고 GitHub Actions run 93이 성공했다. 다음 오프라인 단위는 합성 테스트 기반 R05 dispatcher의 SENDING/UNKNOWN/부분체결/취소경합/재시작 경계 구현이다. R04 보유 1행의 account/symbol identity와 R05 API linkage는 미확정이며, 2026-11-06 REST raw 행/주문 식별자는 보존되지 않아 endpoint 간 차이 원인은 복원 불가하다. account_reconciled=false, can_reconcile=false, orders_enabled=false를 유지하고 추가 브로커 조회·주문·정정·취소·재전송은 하지 않는다. Android Chrome 실기기 6/6, 보드 API 확정 계약, Supabase 원격 migration 이력 대조, Windows 운영 엔진 인수는 외부 대기다. 64-bit Python 3.15 REST/WebSocket만 활성 런타임이며 COM CLI는 import-safe 퇴역 stub이다.",
   "checklists": {
     "live_probe": "docs/treadding/REST-R04-LIVE-PROBE-CHECKLIST-2026-10-21.md",
     "board_pc_acceptance": "docs/D02-PC-BROWSER-ACCEPTANCE-CHECKLIST-2026-10-21.md",
@@ -117,6 +117,6 @@
     "task_2026-11-10_ci": "COMMIT_A6CF0A2; GITHUB_ACTIONS_RUN_42823659024; OFFLINE_REST_SUCCESS; WINDOWS_ENGINE_SUCCESS",
     "task_2026-11-11_64bit_only_com_retirement": "TDD_RED_4_NORMAL_AND_4_ISOLATED_EXPECTED_FAILURES; COM_ENTRYPOINTS_FAIL_CLOSED_8_MODE_CASES; FOCUSED_PYTEST_10; FULL_PYTEST_388; NODE_63; RUFF_CHECK_PASS_FORMAT_168; BASEDPYRIGHT_0_ERRORS_0_WARNINGS; BUILD_DRY_RUN_PASS; REST_WS_DEFAULT_NETWORK_FALSE_ORDERS_FALSE; DIFF_CHECK_PASS; NO_BROKER_CALLS_ORDERS_SCHEDULER_CHANGES_COMMIT_PUSH_OR_CI; PY_LAUNCHER_STILL_LISTS_PYTHON_3_10_8_32BIT",
     "task_2026-11-12_host_python_cleanup": "REGISTERED_USER_UNINSTALLER_REMOVED_PYTHON_3_10_8_32BIT; PY_LAUNCHER_ONLY_PYTHON_3_15_64; PROJECT_ENV_PYTHON_3_15_2_X64; REMOVAL_VERIFIED_BY_LAUNCHER_AND_UNINSTALL_REGISTRY",
-    "task_2026-11-13_com_import_safety": "INDEPENDENT_REVIEW_FOUND_IMPORT_PATH_COULD_REACH_PYQT_COM; FOUR_ACTIVE_ENTRYPOINTS_REPLACED_WITH_RETIRED_STUBS; NORMAL_AND_ISOLATED_IMPORT_SAFETY_TESTS_RED_THEN_GREEN; FOCUSED_12_PASS; REST_TR_GUIDANCE_NOT_CLAIMED_EQUIVALENT; NO_BROKER_CALL_ORDER_SCHEDULER_CHANGE_OR_DEPLOY"
+    "task_2026-11-13_com_import_safety": "INDEPENDENT_REVIEW_FOUND_IMPORT_PATH_COULD_REACH_PYQT_COM; FOUR_ACTIVE_ENTRYPOINTS_REPLACED_WITH_RETIRED_STUBS; NORMAL_AND_ISOLATED_IMPORT_SAFETY_TESTS_RED_THEN_GREEN; FOCUSED_12_PASS; REST_TR_GUIDANCE_NOT_CLAIMED_EQUIVALENT; COMMIT_6C39E1D12D0C765C60CEFB5313279E1E4A0688FD_PUSHED_BRANCH_REFRACTOR_KIWOOM_REST; GITHUB_ACTIONS_RUN_93_SUCCESS; NOT_MERGED_MAIN; NO_BROKER_CALL_ORDER_SCHEDULER_CHANGE_OR_DEPLOY"
   }
 }

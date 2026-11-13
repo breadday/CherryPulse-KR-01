@@ -98,3 +98,4 @@ npm run build
 - R04 `kt00018` 보유 1행은 실제 계좌·종목 identity에 연결되지 않았다. 계좌/종목 mapping 및 원장 대조는 미완료이며 `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false`다. 비밀정보나 계좌·주문 식별자를 채팅/문서에 옮기지 않는다.
 - 추가 브로커 조회·주문·정정·취소·재전송, 예약 작업 변경 및 배포는 하지 않는다. 다음 가능한 소프트웨어 단위는 합성 테스트만 사용하는 R05 dispatcher의 SENDING/UNKNOWN/부분체결/취소경합/재시작 경계이며, 구현 전후에도 주문 OFF를 유지한다.
 - 별도 외부 인수 미완료: R04 identity 근거, R05 API linkage 증거, Android Chrome 실기기 6/6, 확정 보드 REST API 호스트·인증·CRUD 계약, Supabase 원격 migration 이력 대조, Windows 운영 엔진 인수.
+- 커밋 `6c39e1d12d0c765c60cefb5313279e1e4a0688fd`를 `origin/refactor/kiwoom-rest`에 push했고 원격 ref를 재확인했다. GitHub Actions REST migration verification run `#93`은 성공했다. 기존 PR `#3`은 이 커밋 이전에 이미 merge된 상태였으므로 이번 커밋은 `main`에 merge되지 않았고, 별도 merge는 수행하지 않았다.

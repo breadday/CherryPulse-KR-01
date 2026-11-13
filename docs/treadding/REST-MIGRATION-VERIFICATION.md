@@ -104,3 +104,8 @@ Ruff 규칙을 저장소 전체에 적용하고 Pydantic이 런타임에 사용�
 | diff | `git diff --check` | 통과 | 작업 트리 |
 
 R04 보유 행 identity와 R05 API linkage는 여전히 증거 부족이다. 기존 2026-11-06 raw query rows/주문 식별자가 저장되지 않아 endpoint 차이의 정확한 원인은 재구성할 수 없다. 이 검증은 오프라인 코드 검사이며 broker/account/Windows-engine acceptance는 `false`다. 추가 조회·주문·예약 실행·배포는 하지 않았다.
+
+## 2026-11-13 commit·push 및 CI 확인
+
+- `6c39e1d12d0c765c60cefb5313279e1e4a0688fd`를 `origin/refactor/kiwoom-rest`에 push했고 `git ls-remote`에서 원격 branch SHA가 일치하는 것을 확인했다. GitHub Actions REST migration verification run `#93`은 성공했다.
+- 기존 PR `#3`은 이 커밋 이전에 이미 merge되어 있었다. 이번 커밋은 feature branch에만 있으며 `main`은 기존 SHA에 그대로다. merge 또는 새 PR 생성은 하지 않았다.
