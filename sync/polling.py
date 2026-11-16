@@ -8,6 +8,14 @@ POLL_INTERVAL_SECONDS = 5
 REQUEST_TIMEOUT_SECONDS = 3
 INITIAL_BACKOFF_SECONDS = 5
 MAX_BACKOFF_SECONDS = 5 * 60
+BACKOFF_CAP_FAILURE_COUNT = 7
+
+HTTP_STATUS_SUCCESS_MIN = 200
+HTTP_STATUS_SUCCESS_MAX_EXCLUSIVE = 300
+HTTP_STATUS_CLIENT_ERROR_MIN = 400
+HTTP_STATUS_CLIENT_ERROR_MAX_EXCLUSIVE = 500
+HTTP_STATUS_SERVER_ERROR_MIN = 500
+HTTP_STATUS_SERVER_ERROR_MAX_EXCLUSIVE = 600
 
 PollStatus = Literal["NORMAL", "RETRY_WAIT", "OPERATOR_REVIEW"]
 PollOutcome = Literal["SUCCESS", "NETWORK_ERROR", "TIMEOUT"]
@@ -34,9 +42,45 @@ def retry_delay_seconds(consecutive_failures: int) -> int:
     """Return 5, 10, 20... seconds, capped at five minutes."""
     if consecutive_failures < 1:
         raise ValueError("POLL_FAILURE_COUNT_MUST_BE_POSITIVE")
-    if consecutive_failures >= 7:
+    if consecutive_failures >= BACKOFF_CAP_FAILURE_COUNT:
         return MAX_BACKOFF_SECONDS
-    return INITIAL_BACKOFF_SECONDS * (2 ** (consecutive_failures - 1))
+    return INITIAL_BACKOFF_SECONDS * (1 << (consecutive_failures - 1))
+
+
+OutcomeClass = Literal["SUCCESS", "RETRYABLE", "CLIENT_ERROR", "UNEXPECTED_RESPONSE"]
+
+_HTTP_STATUS_BANDS: tuple[tuple[int, int, OutcomeClass], ...] = (
+    (HTTP_STATUS_SUCCESS_MIN, HTTP_STATUS_SUCCESS_MAX_EXCLUSIVE, "SUCCESS"),
+    (
+        HTTP_STATUS_CLIENT_ERROR_MIN,
+        HTTP_STATUS_CLIENT_ERROR_MAX_EXCLUSIVE,
+        "CLIENT_ERROR",
+    ),
+    (
+        HTTP_STATUS_SERVER_ERROR_MIN,
+        HTTP_STATUS_SERVER_ERROR_MAX_EXCLUSIVE,
+        "RETRYABLE",
+    ),
+)
+
+_STRING_OUTCOME_CLASS: dict[str, OutcomeClass] = {
+    "SUCCESS": "SUCCESS",
+    "NETWORK_ERROR": "RETRYABLE",
+    "TIMEOUT": "RETRYABLE",
+}
+
+
+def _classify_poll_outcome(outcome: PollOutcome | int) -> OutcomeClass:
+    """Group declared poll outcomes and numeric statuses with no I/O."""
+    if isinstance(outcome, int):
+        for low, high, kind in _HTTP_STATUS_BANDS:
+            if low <= outcome < high:
+                return kind
+        return "UNEXPECTED_RESPONSE"
+    classified = _STRING_OUTCOME_CLASS.get(outcome)
+    if classified is not None:
+        return classified
+    return "UNEXPECTED_RESPONSE"
 
 
 def record_poll_outcome(
@@ -51,7 +95,8 @@ def record_poll_outcome(
     if state.status == "OPERATOR_REVIEW" and not operator_review_resolved:
         return state
 
-    if outcome == "SUCCESS" or (isinstance(outcome, int) and 200 <= outcome < 300):
+    classified = _classify_poll_outcome(outcome)
+    if classified == "SUCCESS":
         return PollingState(
             status="NORMAL",
             consecutive_failures=0,
@@ -59,7 +104,7 @@ def record_poll_outcome(
             last_success_at=occurred_at,
         )
 
-    if isinstance(outcome, int) and 400 <= outcome < 500:
+    if classified == "CLIENT_ERROR":
         return PollingState(
             status="OPERATOR_REVIEW",
             consecutive_failures=state.consecutive_failures,
@@ -67,10 +112,7 @@ def record_poll_outcome(
             operator_reason=f"HTTP_{outcome}",
         )
 
-    retryable = outcome in ("NETWORK_ERROR", "TIMEOUT") or (
-        isinstance(outcome, int) and 500 <= outcome < 600
-    )
-    if retryable:
+    if classified == "RETRYABLE":
         failures = state.consecutive_failures + 1
         delay = retry_delay_seconds(failures)
         return PollingState(
