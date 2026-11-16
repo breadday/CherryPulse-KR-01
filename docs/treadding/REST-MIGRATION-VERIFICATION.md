@@ -109,3 +109,15 @@ R04 보유 행 identity와 R05 API linkage는 여전히 증거 부족이다. 기
 
 - `6c39e1d12d0c765c60cefb5313279e1e4a0688fd`를 `origin/refactor/kiwoom-rest`에 push했고 `git ls-remote`에서 원격 branch SHA가 일치하는 것을 확인했다. GitHub Actions REST migration verification run `#93`은 성공했다.
 - 기존 PR `#3`은 이 커밋 이전에 이미 merge되어 있었다. 이번 커밋은 feature branch에만 있으며 `main`은 기존 SHA에 그대로다. merge 또는 새 PR 생성은 하지 않았다.
+
+## 2026-11-16 R05 recovery 회귀 검증
+
+| 구분 | 명령/환경 | 결과 | 범위 |
+|---|---|---:|---|
+| Python 전체 회귀 | `.venv-rest/Scripts/python.exe -m pytest -q --tb=short` | 391 passed | 저장소 Python 테스트 |
+| R05 내구성/preflight | `pytest tests/test_durability.py tests/test_dispatch_preflight.py -q` | 15 passed | 합성 원장·복구 경계 |
+| REST verifier | `python tools/verify_rest_migration.py` | exit 0, 6/6 | REST pytest 172, Ruff, basedpyright, Node 39 및 diff 검사 |
+| 변경 파일 Ruff | `ruff check` 및 `ruff format --check` (`execution/virtual.py`, `tests/test_durability.py`) | 통과 | 수정 대상 파일 |
+| diff 검사 | `git diff --check` | 통과 | 작업 트리 |
+
+재시작 때 `RECONCILING` 사실을 반복 append하던 것을 막고, unresolved 상태 반환과 재전송 금지 동작은 유지했다. 모든 검사는 오프라인 합성 테스트다. broker verified와 Windows 운영 엔진 verified는 false이며 `orders_enabled=false`를 유지한다. 별도 작업 트리의 사용자 변경은 검증 범위에 포함하지 않았고 staging하지 않았다.

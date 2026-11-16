@@ -176,10 +176,22 @@ class VirtualDispatcher:
                 state = request_state(journal, request)
                 if status(journal, request).unresolved:
                     unresolved.append(request.request_id)
+                    last_transport = next(
+                        (
+                            fact.state
+                            for fact in reversed(journal.facts)
+                            if isinstance(fact, Transport)
+                            and fact.request_id == request.request_id
+                        ),
+                        None,
+                    )
+                    recovery_state = "UNKNOWN" if state == "SENDING" else "RECONCILING"
+                    if last_transport == recovery_state:
+                        continue
                     fact = Transport(
                         event_id=uuid4(),
                         request_id=request.request_id,
-                        state="UNKNOWN" if state == "SENDING" else "RECONCILING",
+                        state=recovery_state,
                     )
                     store.append(
                         connection,

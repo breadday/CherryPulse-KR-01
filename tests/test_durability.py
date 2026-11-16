@@ -120,6 +120,35 @@ def test_reconciliation_when_process_dies_after_claim(scenario: Scenario) -> Non
     assert dispatcher.calls == []
 
 
+def test_recovery_does_not_append_duplicate_reconciliation_marker(
+    scenario: Scenario,
+) -> None:
+    request = scenario.book.submit(
+        New(
+            key="repeated-recovery",
+            symbol="005930",
+            side="BUY",
+            qty=100,
+            config_version=1,
+            order_type="MARKET",
+            session="REGULAR",
+            validity="DAY",
+        )
+    ).request
+    _ = scenario.book.ingest(
+        Transport(event_id=uuid4(), request_id=request.request_id, state="SENDING")
+    )
+    dispatcher = VirtualDispatcher(scenario.book)
+
+    assert dispatcher.recover() == (request.request_id,)
+    assert dispatcher.recover() == (request.request_id,)
+    assert scenario.book.transport(request.request_id) == "RECONCILING"
+    facts_after_transition = scenario.book.snapshot().facts
+
+    assert dispatcher.recover() == (request.request_id,)
+    assert scenario.book.snapshot().facts == facts_after_transition
+
+
 def test_uncertainty_when_acknowledged_cancel_has_no_effect(scenario: Scenario) -> None:
     # Given
     scenario.allocate(100)

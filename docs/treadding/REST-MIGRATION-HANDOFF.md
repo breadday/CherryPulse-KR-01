@@ -99,3 +99,11 @@ npm run build
 - 추가 브로커 조회·주문·정정·취소·재전송, 예약 작업 변경 및 배포는 하지 않는다. 다음 가능한 소프트웨어 단위는 합성 테스트만 사용하는 R05 dispatcher의 SENDING/UNKNOWN/부분체결/취소경합/재시작 경계이며, 구현 전후에도 주문 OFF를 유지한다.
 - 별도 외부 인수 미완료: R04 identity 근거, R05 API linkage 증거, Android Chrome 실기기 6/6, 확정 보드 REST API 호스트·인증·CRUD 계약, Supabase 원격 migration 이력 대조, Windows 운영 엔진 인수.
 - 커밋 `6c39e1d12d0c765c60cefb5313279e1e4a0688fd`를 `origin/refactor/kiwoom-rest`에 push했고 원격 ref를 재확인했다. GitHub Actions REST migration verification run `#93`은 성공했다. 기존 PR `#3`은 이 커밋 이전에 이미 merge된 상태였으므로 이번 커밋은 `main`에 merge되지 않았고, 별도 merge는 수행하지 않았다.
+
+## 2026-11-16 R05 recovery 기록 멱등성
+
+- `VirtualDispatcher.recover()`가 unresolved 요청의 최신 전송 상태가 이미 `RECONCILING`이어도 매 시작마다 같은 상태 사실을 새로 append하는 문제를 합성 테스트로 재현했다.
+- 복구 때 필요한 `UNKNOWN` 또는 `RECONCILING` 전이가 이미 마지막 전송 사실과 같으면 새 원장 사실을 쓰지 않도록 수정했다. unresolved 요청은 계속 반환되고 자동 재전송되지 않는다.
+- TDD: 새 회귀 테스트가 수정 전 중복 원장 사실로 실패한 뒤 수정 후 통과했다. 집중 내구성·preflight 테스트 `15 passed`; 전체 pytest `391 passed`; REST verifier `6/6` (REST pytest `172`, REST 범위 Ruff/typecheck/Node 39 포함); 관련 파일 Ruff check/format 및 `git diff --check` 통과.
+- 이 변경은 가상 원장 상태 복구만 검증한다. 실 REST 주문 dispatcher, R05 endpoint linkage, R04 계좌 identity는 미완료이며 `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false` 유지. 브로커 조회·주문·취소·정정·재전송·배포는 하지 않았다.
+- 작업 당시 다른 사용자 수정이 여러 파일에 남아 있어 해당 변경은 staging/수정하지 않았다. 이번 오프라인 회귀 변경만 분리해 검토·저장한다.
