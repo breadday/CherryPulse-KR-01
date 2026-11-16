@@ -1,12 +1,14 @@
 import json
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
 
 import pytest
 
 from execution.facts import Transport
 from execution.models import LedgerError, New, Request
-from tests.conftest import Scenario
+
+if TYPE_CHECKING:
+    from tests.conftest import Scenario
 
 
 def pending_sell(scenario: Scenario) -> Request:

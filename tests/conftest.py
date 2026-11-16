@@ -1,6 +1,4 @@
-from collections.abc import Generator
-from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
 
 import pytest
@@ -10,6 +8,10 @@ from execution.ledger import Ledger
 from execution.models import Allocation, Amend, Cancel, Control, New, Request, Scope
 from execution.ownership import AccountLease, account_lock
 from execution.virtual import VirtualDispatcher
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from pathlib import Path
 
 
 class Scenario:
@@ -132,7 +134,7 @@ class Scenario:
 
 
 @pytest.fixture
-def lease(tmp_path: Path) -> Generator[AccountLease, None, None]:
+def lease(tmp_path: Path) -> Generator[AccountLease]:
     scope = Scope(account_id="DEMO", environment="PAPER", execution_scope=uuid4())
     with account_lock(tmp_path / "locks", scope) as acquired:
         yield acquired

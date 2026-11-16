@@ -3,9 +3,7 @@
 import sqlite3
 from contextlib import closing
 from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
 from contracts.settings import (
@@ -15,6 +13,10 @@ from contracts.settings import (
     decide,
     digest,
 )
+
+if TYPE_CHECKING:
+    from datetime import datetime
+    from pathlib import Path
 
 
 class CommandConflictError(ValueError):

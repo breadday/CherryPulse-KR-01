@@ -1,14 +1,17 @@
 """Local simulator configuration and absolute command deadline checks."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from execution.models import LedgerError, OrderCommand
-from execution.storage import Journal
+
+if TYPE_CHECKING:
+    from execution.storage import Journal
 
 
 def utc_now() -> datetime:
     """Supply an aware real clock unless a deterministic test clock is injected."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def applied_version(journal: Journal, symbol: str) -> int:

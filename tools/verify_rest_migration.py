@@ -41,10 +41,9 @@ def typecheck_command(
 ) -> list[str]:
     """Build the basedpyright check command for this environment.
 
-    The 32-bit engine Python cannot build basedpyright's nodejs-wheel
-    dependency, so docs/DEVELOPMENT-ENVIRONMENT.md pins the node CLI
-    entrypoint installed under .tools/typecheck. CI installs basedpyright
-    via pip instead and has no .tools directory: fall back to ``-m`` there.
+    The local environment uses the basedpyright Node CLI installed under
+    .tools/typecheck. CI installs basedpyright through pip and has no .tools
+    directory, so fall back to ``-m`` there.
     """
     adapters = [
         str(path.relative_to(ROOT))

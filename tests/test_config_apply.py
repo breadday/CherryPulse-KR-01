@@ -2,8 +2,8 @@
 
 import sqlite3
 from contextlib import closing
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
@@ -14,11 +14,15 @@ from execution.config_apply import ConfigApplyCoordinator
 from execution.facts import Fill
 from execution.ledger import Ledger
 from execution.models import LedgerError, New, VirtualStopBinding
-from execution.ownership import AccountLease
 from execution.projection import confirmed_stop_holdings
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from execution.ownership import AccountLease
+
 AUTH_CONTEXT = object()
-NOW = datetime(2026, 9, 26, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 26, tzinfo=UTC)
 
 
 class FakeConfigAuthenticator:

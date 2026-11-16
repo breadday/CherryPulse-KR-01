@@ -1,6 +1,6 @@
 """Observe stops without creating a trade from incomplete market evidence."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
@@ -19,7 +19,7 @@ from contracts.stop_evaluation import (
 
 
 def test_both_configurable_stop_rules_use_exact_decimal_thresholds() -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     position = ManagedPosition(symbol="005930", confirmed_qty=3, average_cost="10000")
     quote = Quote(symbol="005930", price="9799", received_at=now)
     timing = ObserveAt(now=now, max_quote_age_seconds=2)
@@ -39,7 +39,7 @@ def test_both_configurable_stop_rules_use_exact_decimal_thresholds() -> None:
 
 
 def test_missing_stale_future_or_wrong_symbol_quote_cannot_trigger() -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     position = ManagedPosition(symbol="005930", confirmed_qty=1, average_cost="10000")
     timing = ObserveAt(now=now, max_quote_age_seconds=2)
     rule = StopRule(kind="PRICE_AT_OR_BELOW", threshold="9800")
@@ -57,7 +57,7 @@ def test_missing_stale_future_or_wrong_symbol_quote_cannot_trigger() -> None:
 
 
 def test_no_confirmed_shares_cannot_trigger() -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     position = ManagedPosition(symbol="005930", confirmed_qty=0, average_cost="10000")
     quote = Quote(symbol="005930", price="9000", received_at=now)
     result = evaluate_stop(
@@ -70,7 +70,7 @@ def test_no_confirmed_shares_cannot_trigger() -> None:
 
 
 def test_fixed_price_needs_no_cost_but_percentage_needs_confirmed_cost() -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     position = ManagedPosition(symbol="005930", confirmed_qty=2)
     quote = Quote(symbol="005930", price="9700", received_at=now)
     timing = ObserveAt(now=now, max_quote_age_seconds=2)
@@ -85,7 +85,7 @@ def test_fixed_price_needs_no_cost_but_percentage_needs_confirmed_cost() -> None
 
 
 def test_nonfinite_market_inputs_are_rejected() -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     with pytest.raises(ValidationError):
         _ = ManagedPosition(symbol="005930", confirmed_qty=1, average_cost="Infinity")
     with pytest.raises(ValidationError):
@@ -93,7 +93,7 @@ def test_nonfinite_market_inputs_are_rejected() -> None:
 
 
 def test_partial_fill_protection_and_existing_sell_reservation() -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     rule = StopRule(kind="AVERAGE_COST_DROP", threshold="0.02")
     quote = Quote(symbol="005930", price="9700", received_at=now)
     timing = ObserveAt(now=now, max_quote_age_seconds=2)
@@ -128,7 +128,7 @@ def test_partial_fill_protection_and_existing_sell_reservation() -> None:
 def test_unknown_sell_or_restart_reconciliation_blocks_new_candidate(
     *, reconciliation_required: bool, sell_uncertain: bool
 ) -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     position = ManagedPosition(symbol="005930", confirmed_qty=4, average_cost="10000")
     observation = evaluate_stop(
         position,
@@ -150,7 +150,7 @@ def test_unknown_sell_or_restart_reconciliation_blocks_new_candidate(
 
 
 def test_mismatched_position_and_ledger_quantities_are_blocked() -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     position = ManagedPosition(symbol="005930", confirmed_qty=4, average_cost="10000")
     observation = evaluate_stop(
         position,
@@ -189,5 +189,5 @@ def test_confirmed_buy_cost_is_weighted_and_ignores_fees() -> None:
             symbol="005930",
             source="BID",
             price="9700",
-            received_at=datetime.now(timezone.utc),
+            received_at=datetime.now(UTC),
         )

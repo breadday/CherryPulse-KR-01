@@ -1,6 +1,6 @@
 """Virtual multi-query completeness metadata, separate from broker I/O."""
 
-from uuid import UUID
+from uuid import UUID  # noqa: TC003 -- Pydantic requires UUID at runtime.
 
 from pydantic import AwareDatetime, Field
 

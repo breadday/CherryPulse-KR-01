@@ -1,12 +1,16 @@
 """Checkpoint freshness does not prove live connectivity or exchange hours."""
 
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 from contracts.stop_evaluation import ObserveAt
 from execution.ledger import Ledger
 from execution.models import StopQuoteCheckpoint
-from execution.ownership import AccountLease
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from execution.ownership import AccountLease
 
 
 def test_quote_status_is_read_only_and_does_not_infer_connection(
@@ -14,7 +18,7 @@ def test_quote_status_is_read_only_and_does_not_infer_connection(
 ) -> None:
     path = tmp_path / "status.sqlite3"
     book = Ledger(path, lease)
-    now = datetime(2026, 9, 26, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 26, tzinfo=UTC)
     timing = ObserveAt(now=now, max_quote_age_seconds=2)
     missing = book.virtual_quote_status("005930", timing)
     assert (missing.freshness, missing.connection, missing.exchange_session) == (

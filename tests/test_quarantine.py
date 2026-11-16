@@ -1,6 +1,7 @@
 import json
 import sqlite3
 from contextlib import closing
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 import pytest
@@ -8,7 +9,9 @@ import pytest
 from execution.facts import Ack
 from execution.models import LedgerError
 from execution.quarantine import reprocess
-from tests.conftest import Scenario
+
+if TYPE_CHECKING:
+    from tests.conftest import Scenario
 
 
 def payload(event_id: UUID, broker_no: str) -> str:

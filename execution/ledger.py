@@ -1,14 +1,9 @@
 """Transactional facade for simulator requests, evidence and ownership."""
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date, datetime
-from decimal import Decimal
 from hashlib import sha256
-from pathlib import Path
+from typing import TYPE_CHECKING, assert_never
 from uuid import UUID, uuid4, uuid5
-
-from typing_extensions import assert_never
 
 from contracts.settings import ConfigCommand, StopRule
 from contracts.settings import digest as config_digest
@@ -42,7 +37,6 @@ from execution.models import (
     VirtualStopBinding,
 )
 from execution.outcomes import request_state, status
-from execution.ownership import AccountLease
 from execution.projection import (
     Order,
     Portfolio,
@@ -57,6 +51,14 @@ from execution.quote_status import VirtualQuoteStatus, virtual_quote_status
 from execution.stop_obligations import StopObligationView, stop_obligation_views
 from execution.storage import Entry, Journal, Storage
 from execution.validation import check_command, check_fact
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from datetime import date, datetime
+    from decimal import Decimal
+    from pathlib import Path
+
+    from execution.ownership import AccountLease
 
 
 @dataclass(frozen=True, slots=True)
@@ -588,9 +590,7 @@ class Ledger:
         ]
         if any(fill.trading_date is None for fill in fills):
             raise LedgerError("BUY_FILL_TRADING_DATE_UNKNOWN")
-        return sum(
-            fill.qty for fill in fills if fill.trading_date == trading_date
-        )
+        return sum(fill.qty for fill in fills if fill.trading_date == trading_date)
 
     def confirmed_stop_cost_basis(self, symbol: str) -> StopCostBasis | None:
         """Read a conservative cost basis for assigned and unsold buy fills."""

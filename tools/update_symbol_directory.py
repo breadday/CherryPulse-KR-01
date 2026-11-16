@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.request import urlopen
 from zipfile import ZipFile
@@ -78,7 +78,7 @@ def main() -> None:
         raise MasterError("CROSS_MARKET_DUPLICATE_CODE")
     result = {
         "schemaVersion": 1,
-        "fetchedAt": datetime.now(timezone.utc).isoformat(),
+        "fetchedAt": datetime.now(UTC).isoformat(),
         "provider": "한국투자증권 공개 종목 마스터",
         "sources": sources,
         "scope": "숫자 6자리 KOSPI/KOSDAQ 주식·ETF (KONEX·영문 혼합 코드 제외)",

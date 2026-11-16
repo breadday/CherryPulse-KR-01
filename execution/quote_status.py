@@ -1,14 +1,14 @@
 """Read-only freshness of the last accepted virtual stop quote."""
 
 from dataclasses import dataclass
-from datetime import datetime
 from typing import TYPE_CHECKING, Literal
 
-from contracts.stop_evaluation import ObserveAt
-from execution.storage import Journal
-
 if TYPE_CHECKING:
+    from datetime import datetime
+
+    from contracts.stop_evaluation import ObserveAt
     from execution.models import StopQuoteCheckpoint
+    from execution.storage import Journal
 
 
 @dataclass(frozen=True, slots=True)

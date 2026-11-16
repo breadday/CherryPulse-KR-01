@@ -1,6 +1,7 @@
 """Request transport and effect projections with contradictory evidence retained."""
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from execution.facts import (
     Ack,
@@ -13,7 +14,9 @@ from execution.facts import (
     Transport,
 )
 from execution.models import Amend, Cancel, Request
-from execution.storage import Journal
+
+if TYPE_CHECKING:
+    from execution.storage import Journal
 
 
 @dataclass(frozen=True, slots=True)

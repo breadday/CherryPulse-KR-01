@@ -1,8 +1,12 @@
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from execution.ledger import Ledger
 from execution.models import Allocation, New
-from execution.ownership import AccountLease
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from execution.ownership import AccountLease
 
 
 def test_reservation_survives_restart_when_sell_is_submitted(

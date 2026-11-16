@@ -2,10 +2,9 @@
 
 from datetime import timedelta
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
 from pydantic import AwareDatetime, Field, field_validator, model_validator
-from typing_extensions import Self
 
 from contracts.settings import Contract, StopRule
 

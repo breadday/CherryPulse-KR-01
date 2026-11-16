@@ -3,9 +3,10 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from contracts.stop_evaluation import ObserveAt, Quote
+if TYPE_CHECKING:
+    from contracts.stop_evaluation import ObserveAt, Quote
 
 MAX_BUY_TARGET_PRICE = Decimal(100000)
 BUY_QTY = 1
@@ -24,7 +25,7 @@ def _target_block_reason(target_price: str) -> str | None:
     """Reject an unusable or over-budget target before any market inspection."""
     try:
         target = Decimal(target_price)
-    except (InvalidOperation, ValueError):
+    except InvalidOperation, ValueError:
         return "TARGET_PRICE_INVALID"
     if not target.is_finite() or target <= 0:
         return "TARGET_PRICE_INVALID"

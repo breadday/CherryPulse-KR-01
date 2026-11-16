@@ -1,12 +1,15 @@
 import json
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 import pytest
 
 from execution.facts import Discrepancy
 from execution.models import LedgerError
-from tests.conftest import Scenario
 from tests.query_fixtures import complete_query
+
+if TYPE_CHECKING:
+    from tests.conftest import Scenario
 
 
 def discrepancy(scenario: Scenario) -> UUID:

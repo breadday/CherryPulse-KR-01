@@ -1,10 +1,13 @@
 """Exact simulator acknowledgement linkage; never infer by price or symbol alone."""
 
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid5
 
 from execution.facts import Ack, Fill, QuarantinedFill, QuarantineReleased
 from execution.models import LedgerError, New
-from execution.storage import Journal
+
+if TYPE_CHECKING:
+    from execution.storage import Journal
 
 
 def linked_fill(journal: Journal, quarantine_id: UUID) -> Fill:

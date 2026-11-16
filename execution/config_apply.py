@@ -1,12 +1,15 @@
 """Resumable bridge from the desired-settings inbox to the local ledger."""
 
 from dataclasses import dataclass
-from typing import Literal
-from uuid import UUID
+from typing import TYPE_CHECKING, Literal
 
-from contracts.inbox import ConfigInbox, InboxApplication
-from execution.ledger import Ledger
 from execution.models import LedgerError
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from contracts.inbox import ConfigInbox, InboxApplication
+    from execution.ledger import Ledger
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,13 +1,16 @@
 """Atomic virtual quarantine reprocessing with retained source evidence."""
 
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid5
 
 from execution.facts import QuarantineReleased
-from execution.ledger import Ledger
 from execution.linkage import linked_fill
 from execution.models import LedgerError
 from execution.storage import Entry
 from execution.validation import check_fact
+
+if TYPE_CHECKING:
+    from execution.ledger import Ledger
 
 
 def reprocess(

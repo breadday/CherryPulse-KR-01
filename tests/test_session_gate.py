@@ -1,4 +1,4 @@
-from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
@@ -6,6 +6,9 @@ import pytest
 from execution.ledger import Ledger
 from execution.models import Allocation, Control, LedgerError, Scope
 from execution.ownership import account_lock
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_busy_session_never_creates_a_ledger(tmp_path: Path) -> None:

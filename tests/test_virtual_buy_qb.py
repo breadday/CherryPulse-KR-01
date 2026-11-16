@@ -1,8 +1,8 @@
 """Virtual Q12 first-version buy scenarios; no brokerage calls."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from contracts.buy_evaluation import evaluate_virtual_buy
@@ -11,12 +11,16 @@ from execution.facts import Cancelled, Fill
 from execution.ledger import Ledger
 from execution.models import Cancel, New, Request, VirtualStopBinding
 from execution.outcomes import effect_confirmed, request_state
-from execution.ownership import AccountLease
 from execution.virtual import VirtualDispatcher
 
-SESSION_NOW = datetime(2026, 10, 12, 0, 30, tzinfo=timezone.utc)
-SESSION_END = datetime(2026, 10, 12, 6, 20, tzinfo=timezone.utc)
-SESSION_EXPIRY = datetime(2026, 10, 12, 6, 20, tzinfo=timezone.utc)
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from execution.ownership import AccountLease
+
+SESSION_NOW = datetime(2026, 10, 12, 0, 30, tzinfo=UTC)
+SESSION_END = datetime(2026, 10, 12, 6, 20, tzinfo=UTC)
+SESSION_EXPIRY = datetime(2026, 10, 12, 6, 20, tzinfo=UTC)
 
 
 def _qb_book(tmp_path: Path, lease: AccountLease, name: str) -> Ledger:

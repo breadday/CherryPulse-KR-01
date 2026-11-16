@@ -1,18 +1,18 @@
 """Single virtual dispatcher, with durable claim-before-send and no network."""
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal, assert_never
 from uuid import UUID, uuid4
-
-from typing_extensions import assert_never
 
 from execution.facts import Ack, Fact, Transport
 from execution.freshness import applied_version, check_freshness
-from execution.ledger import Ledger
 from execution.models import Amend, Cancel, LedgerError, New, Request
 from execution.outcomes import request_state, status
 from execution.projection import portfolio
 from execution.stop_obligations import stop_obligation_views
 from execution.storage import Entry
+
+if TYPE_CHECKING:
+    from execution.ledger import Ledger
 
 
 class VirtualDispatcher:

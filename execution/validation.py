@@ -1,8 +1,6 @@
 """Business checks performed after normalized idempotency comparison."""
 
-from uuid import UUID
-
-from typing_extensions import assert_never
+from typing import TYPE_CHECKING, assert_never
 
 from execution.facts import (
     Ack,
@@ -23,7 +21,11 @@ from execution.linkage import check_release
 from execution.models import Amend, Cancel, LedgerError, New, OrderCommand, Request
 from execution.outcomes import effect_confirmed, effect_settled, status
 from execution.projection import order, portfolio
-from execution.storage import Journal
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from execution.storage import Journal
 
 
 def _check_new(journal: Journal, command: New) -> None:

@@ -2,9 +2,7 @@
 
 from dataclasses import dataclass
 from decimal import Decimal
-from uuid import UUID
-
-from typing_extensions import assert_never
+from typing import TYPE_CHECKING, assert_never
 
 from execution.facts import (
     Amended,
@@ -17,7 +15,11 @@ from execution.facts import (
 )
 from execution.models import Amend, Cancel, LedgerError, New
 from execution.outcomes import effect_settled, request_state, status
-from execution.storage import Journal
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from execution.storage import Journal
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,10 +1,13 @@
-from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
 
 from execution import ownership
 from execution.models import LedgerError, Scope
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_same_account_excludes_another_execution_scope(tmp_path: Path) -> None:

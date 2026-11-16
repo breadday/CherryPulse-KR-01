@@ -1,14 +1,16 @@
 """Normalized virtual evidence; no claim about real brokerage event semantics."""
 
-from datetime import date
+from datetime import date  # noqa: TC003 -- Pydantic needs runtime type names.
 from decimal import Decimal
 from typing import Annotated, Final, Literal
-from uuid import UUID
+from uuid import UUID  # noqa: TC003 -- Pydantic needs runtime type names.
 
 from pydantic import Field, TypeAdapter, field_validator
 
 from execution.models import Boundary, Delta, Key, PositiveQty, Price, Quantity
-from execution.query_evidence import QueryEvidence
+from execution.query_evidence import (
+    QueryEvidence,  # noqa: TC001 -- Pydantic resolves nested model at runtime.
+)
 
 
 class Evidence(Boundary):

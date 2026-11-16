@@ -1,14 +1,18 @@
 """Read-only progress of durable virtual stop sell obligations."""
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
 from execution.facts import Rejected, SendFailed
 from execution.models import New
 from execution.outcomes import status
 from execution.projection import order, portfolio
-from execution.storage import Journal
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from execution.storage import Journal
 
 
 @dataclass(frozen=True, slots=True)

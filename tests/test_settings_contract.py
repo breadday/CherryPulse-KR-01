@@ -2,8 +2,8 @@
 
 import sqlite3
 from contextlib import closing
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
@@ -19,6 +19,9 @@ from contracts.settings import (
     decide,
     digest,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 AUTH_CONTEXT = "verified-test-context"
 
@@ -73,7 +76,7 @@ def inbox(path: Path) -> ConfigInbox:
 
 
 def test_desired_settings_acceptance_is_only_a_pure_decision() -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     request = command(now)
     result = decide(request, actor(), current_version=0, now=now)
     assert result.state == "ACCEPTED"
@@ -93,7 +96,7 @@ def test_desired_settings_acceptance_is_only_a_pure_decision() -> None:
 def test_wrong_scope_or_permission_is_rejected(
     change: dict[str, object], reason: str
 ) -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     result = decide(
         command(now), actor().model_copy(update=change), current_version=0, now=now
     )
@@ -101,7 +104,7 @@ def test_wrong_scope_or_permission_is_rejected(
 
 
 def test_expired_and_stale_commands_are_rejected() -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     request = command(now)
     assert (
         decide(request, actor(), current_version=0, now=request.expires_at).reason
@@ -114,7 +117,7 @@ def test_expired_and_stale_commands_are_rejected() -> None:
 
 
 def test_rule_rejects_missing_policy_activation_and_invalid_fraction() -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     desired = command(now).settings
     with pytest.raises(ValidationError, match="PATTERN_EXECUTION_NOT_SPECIFIED"):
         _ = Settings.model_validate(
@@ -127,7 +130,7 @@ def test_rule_rejects_missing_policy_activation_and_invalid_fraction() -> None:
 
 
 def test_inbox_replays_after_restart_without_advancing_version(tmp_path: Path) -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     request = command(now)
     path = tmp_path / "desired-settings.sqlite3"
     settings_inbox = inbox(path)
@@ -163,7 +166,7 @@ def test_inbox_replays_after_restart_without_advancing_version(tmp_path: Path) -
 
 
 def test_inbox_rejects_changed_identity_and_unauthorized_replay(tmp_path: Path) -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     request = command(now)
     settings_inbox = inbox(tmp_path / "desired-settings.sqlite3")
     assert (
@@ -189,7 +192,7 @@ def test_inbox_rejects_changed_identity_and_unauthorized_replay(tmp_path: Path) 
 
 
 def test_inbox_rejects_command_id_reused_for_another_symbol(tmp_path: Path) -> None:
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     request = command(now)
     settings_inbox = inbox(tmp_path / "desired-settings.sqlite3")
     assert (
@@ -214,7 +217,7 @@ def test_legacy_actor_claim_acceptance_is_blocked_during_apply_state_migration(
     tmp_path: Path,
 ) -> None:
     path = tmp_path / "legacy-inbox.sqlite3"
-    request = command(datetime(2026, 9, 24, tzinfo=timezone.utc))
+    request = command(datetime(2026, 9, 24, tzinfo=UTC))
     with closing(sqlite3.connect(path)) as connection, connection:
         _ = connection.execute(
             """CREATE TABLE config_commands (
@@ -252,7 +255,7 @@ def test_legacy_actor_claim_acceptance_is_blocked_during_apply_state_migration(
     assert inbox(path).begin_apply(request.command_id, retry_blocked=True).state == (
         "APPLY_BLOCKED"
     )
-    replacement_now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    replacement_now = datetime(2026, 9, 24, tzinfo=UTC)
     replacement = command(replacement_now).model_copy(
         update={"command_id": uuid4(), "idempotency_key": "replacement-after-migration"}
     )

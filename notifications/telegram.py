@@ -9,11 +9,18 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 MAX_MESSAGE_LENGTH = 4096
 
+HTTP_STATUS_SUCCESS_MIN = 200
+HTTP_STATUS_SUCCESS_MAX_EXCLUSIVE = 300
+HTTP_STATUS_CLIENT_ERROR_MIN = 400
+HTTP_STATUS_CLIENT_ERROR_MAX_EXCLUSIVE = 500
+HTTP_STATUS_SERVER_ERROR_MIN = 500
+
 
 class TelegramDeliveryError(RuntimeError):
     """A sanitized delivery failure that never includes token or response text."""
 
     def __init__(self, code: str, *, http_status: int | None = None) -> None:
+        """Hold only the sanitized code and optional HTTP status."""
         self.code = code
         self.http_status = http_status
         super().__init__(code)
@@ -46,6 +53,7 @@ class TelegramNotifier:
     """Send one outgoing message; caller owns retry and local failure recording."""
 
     def __init__(self, token: str, chat_id: str, *, timeout_seconds: float) -> None:
+        """Validate inputs eagerly; chat identity stays in memory only."""
         if not token.strip() or not chat_id.strip():
             raise TelegramDeliveryError("TELEGRAM_CONFIGURATION_MISSING")
         if timeout_seconds <= 0:
@@ -55,7 +63,7 @@ class TelegramNotifier:
         self._timeout_seconds = timeout_seconds
 
     @classmethod
-    def from_environment(cls, *, timeout_seconds: float) -> "TelegramNotifier":
+    def from_environment(cls, *, timeout_seconds: float) -> TelegramNotifier:
         """Read runtime secrets without printing or storing them."""
         token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
         chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
@@ -82,23 +90,29 @@ class TelegramNotifier:
                 payload = json.loads(response.read())
         except HTTPError as exc:
             status = exc.code
-            if 400 <= status < 500:
+            if (
+                HTTP_STATUS_CLIENT_ERROR_MIN
+                <= status
+                < HTTP_STATUS_CLIENT_ERROR_MAX_EXCLUSIVE
+            ):
                 raise TelegramDeliveryError(
                     "TELEGRAM_HTTP_4XX", http_status=status
                 ) from None
-            if status >= 500:
+            if status >= HTTP_STATUS_SERVER_ERROR_MIN:
                 raise TelegramDeliveryError(
                     "TELEGRAM_HTTP_5XX", http_status=status
                 ) from None
             raise TelegramDeliveryError(
                 "TELEGRAM_HTTP_UNEXPECTED", http_status=status
             ) from None
-        except (TimeoutError, URLError, OSError, HTTPException):
+        except TimeoutError, URLError, OSError, HTTPException:
             raise TelegramDeliveryError("TELEGRAM_NETWORK_ERROR") from None
-        except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
+        except UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError:
             raise TelegramDeliveryError("TELEGRAM_RESPONSE_INVALID") from None
 
-        if not 200 <= status < 300 or not isinstance(payload, dict):
+        if not (
+            HTTP_STATUS_SUCCESS_MIN <= status < HTTP_STATUS_SUCCESS_MAX_EXCLUSIVE
+        ) or not isinstance(payload, dict):
             raise TelegramDeliveryError("TELEGRAM_RESPONSE_INVALID", http_status=status)
         if payload.get("ok") is not True:
             raise TelegramDeliveryError("TELEGRAM_API_REJECTED", http_status=status)

@@ -1,4 +1,4 @@
-from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
@@ -8,7 +8,11 @@ from execution.facts import Fill
 from execution.ledger import Ledger
 from execution.models import Allocation, LedgerError, Scope
 from execution.ownership import account_lock
-from tests.conftest import Scenario
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from tests.conftest import Scenario
 
 
 @pytest.mark.parametrize("qty", ["true", "1.0", '"1"', "0", "-1", "null"])

@@ -4,11 +4,11 @@ The transport adapter must authenticate the sender before constructing Actor.
 This module never submits an order or activates the virtual ledger's version.
 """
 
-from datetime import datetime
-from decimal import Decimal
+from datetime import datetime  # noqa: TC003 -- Pydantic needs runtime type names.
+from decimal import Decimal  # noqa: TC003 -- Pydantic needs runtime type names.
 from hashlib import sha256
-from typing import Annotated, ClassVar, Literal, Protocol
-from uuid import UUID
+from typing import Annotated, ClassVar, Literal, Protocol, Self
+from uuid import UUID  # noqa: TC003 -- Pydantic needs runtime type names.
 
 from pydantic import (
     AwareDatetime,
@@ -18,7 +18,6 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from typing_extensions import Self
 
 
 class Contract(BaseModel):

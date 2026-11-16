@@ -1,11 +1,13 @@
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
 
 import pytest
 
 from execution.facts import Discrepancy, Fill
 from execution.models import Control, New, Request
-from tests.conftest import Scenario
+
+if TYPE_CHECKING:
+    from tests.conftest import Scenario
 
 
 def pending(scenario: Scenario, side: Literal["BUY", "SELL"]) -> Request:

@@ -1,8 +1,8 @@
 """Validated simulator boundaries and immutable request records."""
 
 from decimal import Decimal
-from typing import Annotated, ClassVar, Final, Literal
-from uuid import UUID
+from typing import Annotated, ClassVar, Final, Literal, Self, assert_never
+from uuid import UUID  # noqa: TC003 -- Pydantic needs runtime type names.
 
 from pydantic import (
     AwareDatetime,
@@ -13,7 +13,6 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from typing_extensions import Self, assert_never
 
 PositiveQty = Annotated[int, Field(strict=True, gt=0)]
 Quantity = Annotated[int, Field(strict=True, ge=0)]

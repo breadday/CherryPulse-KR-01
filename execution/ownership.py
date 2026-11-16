@@ -3,16 +3,16 @@
 import errno
 import msvcrt
 import os
-from collections.abc import Generator
 from contextlib import ExitStack, contextmanager
 from hashlib import sha256
-from pathlib import Path
 from threading import RLock
-from typing import Final
-
-from typing_extensions import Self
+from typing import TYPE_CHECKING, Final, Self
 
 from execution.models import LedgerError, Scope
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from pathlib import Path
 
 
 class AccountLease:
@@ -29,7 +29,7 @@ class AccountLease:
 
     @classmethod
     @contextmanager
-    def acquire(cls, directory: Path, scope: Scope) -> Generator[Self, None, None]:
+    def acquire(cls, directory: Path, scope: Scope) -> Generator[Self]:
         """Acquire account/environment exclusion before any ledger connection."""
         namespace = scope.model_dump_json(exclude={"execution_scope"})
         path = directory / (sha256(namespace.encode()).hexdigest() + ".lock")
@@ -51,7 +51,7 @@ class AccountLease:
                 lease.retire()
 
     @contextmanager
-    def operation(self) -> Generator[None, None, None]:
+    def operation(self) -> Generator[None]:
         """Keep the account lease alive until the guarded operation finishes."""
         with self._mutex:
             if not self._held or os.getpid() != self._pid:

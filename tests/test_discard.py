@@ -1,8 +1,12 @@
+from typing import TYPE_CHECKING
+
 import pytest
 
 from execution.models import Cancel, LedgerError
-from tests.conftest import Scenario
 from tests.test_request_outcomes import pending_sell
+
+if TYPE_CHECKING:
+    from tests.conftest import Scenario
 
 
 def test_discard_releases_only_unsent_reservation(scenario: Scenario) -> None:

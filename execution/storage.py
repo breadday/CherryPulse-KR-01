@@ -1,14 +1,11 @@
 """Append-only SQLite journal and transactional outbox for virtual execution."""
 
 import sqlite3
-from collections.abc import Generator
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Final, Literal
+from typing import TYPE_CHECKING, Final, Literal, assert_never
 
 from pydantic import TypeAdapter
-from typing_extensions import assert_never
 
 from execution.facts import FACT, Fact
 from execution.models import (
@@ -23,7 +20,12 @@ from execution.models import (
     StopSellObligation,
     VirtualStopBinding,
 )
-from execution.ownership import AccountLease
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from pathlib import Path
+
+    from execution.ownership import AccountLease
 
 EntryKind = Literal[
     "request",
@@ -146,7 +148,7 @@ class Storage:
                     raise LedgerError("UNSUPPORTED_SCHEMA_VERSION")
 
     @contextmanager
-    def transaction(self) -> Generator[sqlite3.Connection, None, None]:
+    def transaction(self) -> Generator[sqlite3.Connection]:
         """Commit the entire operation or roll it back, including its outbox."""
         with (
             self.lease.operation(),

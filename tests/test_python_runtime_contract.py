@@ -7,7 +7,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_project_targets_python_315_rest_environment_without_activex_dependency() -> None:
+def test_project_targets_python_315_rest_environment_without_activex_dependency() -> (
+    None
+):
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     runtime = project["project"]["requires-python"]
     dependencies = project["project"]["dependencies"]

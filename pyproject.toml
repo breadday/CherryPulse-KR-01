@@ -47,4 +47,4 @@ filterwarnings = ["error"]
 "tests/**/*.py" = ["S101", "PLR2004", "D", "ARG", "INP001"]
 "check.py" = ["T201"] # 진행 체크 스크립트: stdout 출력이 목적.
 "notifications/telegram.py" = ["ARG002", "PLR0913", "PLR0917"] # 리다이렉트 거절이 urllib 핸들러 시그니처를 그대로 유지.
-"tools/inspect_kiwoom_realtime.py" = ["T201", "PLC0415"] # ActiveX 관측 도구: stdout 출력과 검증 후 지연 import가 목적.
+"tools/inspect_kiwoom_realtime.py" = ["T201", "PLC0415"] # Retired COM implementation is retained; its public CLI is disabled.

@@ -1,9 +1,12 @@
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
 
 from execution.facts import Discrepancy, Fill
-from tests.conftest import Scenario
+
+if TYPE_CHECKING:
+    from tests.conftest import Scenario
 
 
 def test_t05_more_shares_when_buy_fill_arrives_during_liquidation(

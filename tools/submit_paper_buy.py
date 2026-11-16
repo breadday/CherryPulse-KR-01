@@ -21,10 +21,8 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, override
 from urllib.request import HTTPRedirectHandler, Request, build_opener
-
-from typing_extensions import override
 
 from adapters.kiwoom_rest_auth import (
     MAX_RESPONSE_BYTES,

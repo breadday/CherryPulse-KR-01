@@ -1,14 +1,15 @@
-from typing import Literal
+from typing import TYPE_CHECKING, Literal, assert_never
 
 import pytest
-from typing_extensions import assert_never
 
 from execution.facts import Reconciled
 from execution.models import LedgerError
 from execution.query_evidence import QueryPages
-from tests.conftest import Scenario
 from tests.query_fixtures import complete_query
 from tests.test_reconciliation import discrepancy, review
+
+if TYPE_CHECKING:
+    from tests.conftest import Scenario
 
 Condition = Literal[
     "missing", "duplicate", "error", "changed", "unfinished", "complete"

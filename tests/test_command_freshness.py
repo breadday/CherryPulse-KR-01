@@ -1,12 +1,16 @@
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 import pytest
 
 from execution.ledger import Ledger
 from execution.models import LedgerError, New
-from execution.ownership import AccountLease
 from execution.virtual import VirtualDispatcher
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from execution.ownership import AccountLease
 
 
 def command(now: datetime) -> New:
@@ -29,7 +33,7 @@ def test_expired_command_rejected_without_journal_write(
     tmp_path: Path,
     lease: AccountLease,
 ) -> None:
-    now = datetime(2026, 9, 15, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 15, tzinfo=UTC)
     book = Ledger(tmp_path / "ledger.sqlite3", lease, clock=lambda: now)
     book.approve_virtual_reconciliation(0)
     before = book.snapshot()
@@ -42,7 +46,7 @@ def test_expired_persisted_request_is_not_sent_or_extended(
     tmp_path: Path,
     lease: AccountLease,
 ) -> None:
-    now = datetime(2026, 9, 15, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 15, tzinfo=UTC)
     book = Ledger(tmp_path / "ledger.sqlite3", lease, clock=lambda: now)
     book.approve_virtual_reconciliation(0)
     intention = command(now + timedelta(seconds=1))
@@ -63,7 +67,7 @@ def test_configuration_change_blocks_old_pending_request(
     tmp_path: Path,
     lease: AccountLease,
 ) -> None:
-    now = datetime(2026, 9, 15, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 15, tzinfo=UTC)
     book = Ledger(tmp_path / "ledger.sqlite3", lease, clock=lambda: now)
     book.approve_virtual_reconciliation(0)
     request = book.submit(command(now + timedelta(minutes=1))).request
@@ -95,7 +99,7 @@ def test_new_request_rejected_when_config_is_stale_after_reload(
     tmp_path: Path,
     lease: AccountLease,
 ) -> None:
-    now = datetime(2026, 9, 15, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 15, tzinfo=UTC)
     book = Ledger(tmp_path / "ledger.sqlite3", lease, clock=lambda: now)
     book.approve_virtual_reconciliation(0)
     book.apply_config("005930", expected_version=1, version=2)
@@ -110,7 +114,7 @@ def test_replay_cannot_extend_original_deadline(
     tmp_path: Path,
     lease: AccountLease,
 ) -> None:
-    now = datetime(2026, 9, 15, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 15, tzinfo=UTC)
     book = Ledger(tmp_path / "ledger.sqlite3", lease, clock=lambda: now)
     book.approve_virtual_reconciliation(0)
     _ = book.submit(command(now + timedelta(seconds=1)))
@@ -124,7 +128,7 @@ def test_fresh_request_can_be_sent_before_deadline(
     tmp_path: Path,
     lease: AccountLease,
 ) -> None:
-    now = datetime(2026, 9, 15, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 15, tzinfo=UTC)
     book = Ledger(tmp_path / "ledger.sqlite3", lease, clock=lambda: now)
     book.approve_virtual_reconciliation(0)
     request = book.submit(command(now + timedelta(microseconds=1))).request

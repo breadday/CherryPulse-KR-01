@@ -1,10 +1,13 @@
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
 
 from execution.facts import Discrepancy, Fill
 from execution.models import Amend, Cancel, Control, LedgerError, New
-from tests.conftest import Scenario
+
+if TYPE_CHECKING:
+    from tests.conftest import Scenario
 
 
 def test_t01_partial_cancellations_when_amendment_reduces_quantity(

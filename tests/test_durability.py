@@ -1,7 +1,7 @@
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
-from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
@@ -9,9 +9,13 @@ import pytest
 from execution.facts import Fill, Transport
 from execution.ledger import Ledger
 from execution.models import LedgerError, New
-from execution.ownership import AccountLease
 from execution.virtual import VirtualDispatcher
-from tests.conftest import Scenario
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from execution.ownership import AccountLease
+    from tests.conftest import Scenario
 
 
 def test_single_submission_when_two_writers_use_same_key(scenario: Scenario) -> None:

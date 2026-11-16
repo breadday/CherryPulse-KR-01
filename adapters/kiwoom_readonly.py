@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from types import MappingProxyType
 from typing import Final, Protocol
 from uuid import UUID, uuid4
 
 
-class QueryStatus(str, Enum):
+class QueryStatus(StrEnum):
     """Evidence state of a read-only query."""
 
     COMPLETE = "COMPLETE"
@@ -215,7 +215,7 @@ def event_matches_request(
 
 def utc_now() -> datetime:
     """Return an aware timestamp for evidence metadata."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def normalize_rows(

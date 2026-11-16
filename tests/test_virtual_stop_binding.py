@@ -3,9 +3,9 @@
 import sqlite3
 from contextlib import closing
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
@@ -15,9 +15,13 @@ from contracts.stop_evaluation import ObserveAt, Quote
 from execution.facts import Cancelled, Fill, Rejected, SendFailed, Transport
 from execution.ledger import Ledger
 from execution.models import Allocation, Cancel, LedgerError, New, VirtualStopBinding
-from execution.ownership import AccountLease
 from execution.stop_obligations import stop_obligation_views
 from execution.virtual import VirtualDispatcher
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from execution.ownership import AccountLease
 
 
 def test_stop_rule_replays_after_restart_and_version_mismatch_is_inert(
@@ -119,7 +123,7 @@ def test_buy_partial_fills_assign_order_rule_once_and_restore_after_restart(
     assert restored.virtual_stop_binding("005930") is None
     assert restored.buy_order_average_cost(buy.order_id) is None
     assert restored.confirmed_stop_cost_basis("005930") is None
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     decision = restored.virtual_price_stop_candidate(
         "005930",
         Quote(symbol="005930", price="9700", received_at=now),
@@ -164,7 +168,7 @@ def test_fixed_price_stop_accounts_for_partial_sell_without_cost(
             evidence_version=1,
         )
     )
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     quote = Quote(symbol="005930", price="9700", received_at=now)
     timing = ObserveAt(now=now, max_quote_age_seconds=2)
     assert (
@@ -274,7 +278,7 @@ def test_fixed_stop_latch_survives_restart_and_protects_late_buy_fill(  # noqa: 
             evidence_version=1,
         )
     )
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     timing = ObserveAt(now=now, max_quote_age_seconds=2)
     quote = Quote(symbol="005930", price="9700", received_at=now)
     quote_result = book.process_virtual_stop_quote("005930", quote, timing)
@@ -429,7 +433,7 @@ def test_cost_stop_latch_requires_price_then_preserves_residual_after_sale(
             validity="DAY",
         )
     ).request
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     timing = ObserveAt(now=now, max_quote_age_seconds=2)
     quote = Quote(symbol="005930", price="9700", received_at=now)
     assert book.latch_virtual_cost_stop("005930", quote, timing) is None
@@ -519,7 +523,7 @@ def test_stop_obligation_remains_one_request_during_partial_sell(
             evidence_version=1,
         )
     )
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     assert (
         book.latch_virtual_price_stop(
             "005930",
@@ -601,7 +605,7 @@ def test_blocked_obligation_prevents_later_virtual_stop_sell(
             evidence_version=1,
         )
     )
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     assert (
         book.latch_virtual_price_stop(
             "005930",
@@ -666,7 +670,7 @@ def test_virtual_send_requires_durable_obligation_in_claim_transaction(
             evidence_version=1,
         )
     )
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     latch = book.latch_virtual_price_stop(
         "005930",
         Quote(symbol="005930", price="9700", received_at=now),
@@ -783,7 +787,7 @@ def test_cancelled_stop_obligation_requires_review_before_another_sell(
             evidence_version=1,
         )
     )
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     latch = book.latch_virtual_price_stop(
         "005930",
         Quote(symbol="005930", price="9700", received_at=now),
@@ -868,7 +872,7 @@ def test_failed_stop_requires_review_without_auto_retry(
             evidence_version=1,
         )
     )
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     latch = book.latch_virtual_price_stop(
         "005930",
         Quote(symbol="005930", price="9700", received_at=now),
@@ -1022,7 +1026,7 @@ def test_multiple_priced_buy_orders_share_one_basis_until_sell(
     basis = Ledger(path, lease).confirmed_stop_cost_basis("005930")
     assert basis is not None
     assert (basis.qty, basis.average_cost, basis.rule_version) == (3, Decimal(9900), 2)
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     timing = ObserveAt(now=now, max_quote_age_seconds=2)
     restored = Ledger(path, lease)
     observation = restored.observe_virtual_cost_stop(
@@ -1129,7 +1133,7 @@ def test_quote_ingress_blocks_replay_reverse_order_and_restarts_safely(
             evidence_version=1,
         )
     )
-    now = datetime(2026, 9, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 24, tzinfo=UTC)
     timing = ObserveAt(now=now, max_quote_age_seconds=2)
 
     first = Quote(
