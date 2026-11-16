@@ -3,14 +3,15 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from contracts.stop_evaluation import (
-    ManagedPosition,
-    ObserveAt,
-    ProtectionExposure,
-    Quote,
-)
+if TYPE_CHECKING:
+    from contracts.stop_evaluation import (
+        ManagedPosition,
+        ObserveAt,
+        ProtectionExposure,
+        Quote,
+    )
 
 ProfitMilestone = Literal["PLUS_5_PERCENT", "PLUS_10_PERCENT"]
 SellQuantityMode = Literal["FULL", "HALF"]
@@ -92,6 +93,72 @@ def observe_profit_targets(
     )
 
 
+def _blocked(reason: str) -> ManualSellProposal:
+    """Every rejected manual sell shares one sanitized BLOCKED shape."""
+    return ManualSellProposal(status="BLOCKED", reason=reason)
+
+
+def _manual_submission_reason(
+    *,
+    submitted_by_user: bool,
+    quantity_mode: SellQuantityMode,
+    order_kind: SellOrderKind,
+    stop_priority_due: bool,
+) -> str | None:
+    """Reject anything without an explicit, valid user sell choice first."""
+    if not submitted_by_user:
+        return "MANUAL_SUBMISSION_REQUIRED"
+    if quantity_mode not in ("FULL", "HALF"):
+        return "QUANTITY_MODE_UNSUPPORTED"
+    if order_kind not in ("LIMIT", "MARKET"):
+        return "ORDER_KIND_UNSUPPORTED"
+    if stop_priority_due:
+        return "STOP_HAS_PRIORITY"
+    return None
+
+
+def _position_evidence_reason(
+    position: ManagedPosition, exposure: ProtectionExposure
+) -> str | None:
+    """Confirm holding equality and unreserved, reconciled sell evidence."""
+    if position.confirmed_qty <= 0:
+        return "NO_MANAGED_POSITION"
+    if exposure.managed_qty != position.confirmed_qty:
+        return "POSITION_EVIDENCE_MISMATCH"
+    if exposure.reserved_sell_qty > exposure.managed_qty:
+        return "SELL_RESERVATION_EXCEEDS_HOLDING"
+    if exposure.reconciliation_required or exposure.sell_uncertain:
+        return "SELL_EVIDENCE_UNRESOLVED"
+    if exposure.reserved_sell_qty:
+        return "SELL_ALREADY_RESERVED"
+    return None
+
+
+def _session_window_reason(
+    *, timing: ObserveAt, session_start: datetime, session_end: datetime
+) -> str | None:
+    """Require one aware same-day session containing the observation time."""
+    if session_start.utcoffset() is None or session_end.utcoffset() is None:
+        return "SESSION_TIMEZONE_REQUIRED"
+    local_day = timing.now.astimezone(session_start.tzinfo).date()
+    if session_start.date() != session_end.date() or session_start.date() != local_day:
+        return "SAME_DAY_SESSION_REQUIRED"
+    if session_start >= session_end:
+        return "INVALID_SESSION_RANGE"
+    if timing.now < session_start:
+        return "SESSION_NOT_STARTED"
+    if timing.now >= session_end:
+        return "SESSION_EXPIRED"
+    return None
+
+
+def _half_sell_qty(position: ManagedPosition) -> int | None:
+    """Wholeness check for HALF mode; None means the proposal must stay blocked."""
+    if position.confirmed_qty % 2:
+        return None
+    return position.confirmed_qty // 2
+
+
 def propose_manual_general_sell(  # noqa: PLR0913 - safety inputs stay explicit.
     *,
     position: ManagedPosition,
@@ -107,67 +174,33 @@ def propose_manual_general_sell(  # noqa: PLR0913 - safety inputs stay explicit.
     stop_priority_due: bool = False,
 ) -> ManualSellProposal:
     """Validate one explicit manual sell choice without constructing a command."""
-    if not submitted_by_user:
-        return ManualSellProposal(
-            status="BLOCKED", reason="MANUAL_SUBMISSION_REQUIRED"
+    reason = _manual_submission_reason(
+        submitted_by_user=submitted_by_user,
+        quantity_mode=quantity_mode,
+        order_kind=order_kind,
+        stop_priority_due=stop_priority_due,
+    ) or _position_evidence_reason(position, exposure)
+    if reason is None:
+        reason = _session_window_reason(
+            timing=timing, session_start=session_start, session_end=session_end
         )
-    if quantity_mode not in ("FULL", "HALF"):
-        return ManualSellProposal(
-            status="BLOCKED", reason="QUANTITY_MODE_UNSUPPORTED"
+    if reason is None and order_kind == "MARKET" and not market_confirmed:
+        reason = "MARKET_CONFIRMATION_REQUIRED"
+    if reason is None:
+        quote_error = _fresh_quote_reason(
+            symbol=position.symbol, quote=quote, timing=timing
         )
-    if order_kind not in ("LIMIT", "MARKET"):
-        return ManualSellProposal(status="BLOCKED", reason="ORDER_KIND_UNSUPPORTED")
-    if stop_priority_due:
-        return ManualSellProposal(status="BLOCKED", reason="STOP_HAS_PRIORITY")
-    if position.confirmed_qty <= 0:
-        return ManualSellProposal(status="BLOCKED", reason="NO_MANAGED_POSITION")
-    if exposure.managed_qty != position.confirmed_qty:
-        return ManualSellProposal(status="BLOCKED", reason="POSITION_EVIDENCE_MISMATCH")
-    if exposure.reserved_sell_qty > exposure.managed_qty:
-        return ManualSellProposal(
-            status="BLOCKED", reason="SELL_RESERVATION_EXCEEDS_HOLDING"
-        )
-    if exposure.reconciliation_required or exposure.sell_uncertain:
-        return ManualSellProposal(status="BLOCKED", reason="SELL_EVIDENCE_UNRESOLVED")
-    if exposure.reserved_sell_qty:
-        return ManualSellProposal(status="BLOCKED", reason="SELL_ALREADY_RESERVED")
-    if session_start.utcoffset() is None or session_end.utcoffset() is None:
-        return ManualSellProposal(
-            status="BLOCKED", reason="SESSION_TIMEZONE_REQUIRED"
-        )
-    local_day = timing.now.astimezone(session_start.tzinfo).date()
-    if (
-        session_start.date() != session_end.date()
-        or session_start.date() != local_day
-    ):
-        return ManualSellProposal(
-            status="BLOCKED", reason="SAME_DAY_SESSION_REQUIRED"
-        )
-    if session_start >= session_end:
-        return ManualSellProposal(status="BLOCKED", reason="INVALID_SESSION_RANGE")
-    if timing.now < session_start:
-        return ManualSellProposal(status="BLOCKED", reason="SESSION_NOT_STARTED")
-    if timing.now >= session_end:
-        return ManualSellProposal(status="BLOCKED", reason="SESSION_EXPIRED")
-    if order_kind == "MARKET" and not market_confirmed:
-        return ManualSellProposal(
-            status="BLOCKED", reason="MARKET_CONFIRMATION_REQUIRED"
-        )
-    quote_error = _fresh_quote_reason(
-        symbol=position.symbol, quote=quote, timing=timing
-    )
-    if quote_error is not None or quote is None:
-        return ManualSellProposal(
-            status="BLOCKED",
-            reason=quote_error or "QUOTE_UNAVAILABLE",
-        )
+        if quote_error is not None or quote is None:
+            reason = quote_error or "QUOTE_UNAVAILABLE"
 
     if quantity_mode == "FULL":
         qty = position.confirmed_qty
-    elif position.confirmed_qty % 2:
-        return ManualSellProposal(status="BLOCKED", reason="HALF_QTY_NOT_WHOLE")
     else:
-        qty = position.confirmed_qty // 2
+        qty = _half_sell_qty(position) if reason is None else None
+        if qty is None and reason is None:
+            reason = "HALF_QTY_NOT_WHOLE"
+    if reason is not None:
+        return _blocked(reason)
     return ManualSellProposal(
         status="READY",
         reason="EXPLICIT_MANUAL_SELL_VALIDATED",
