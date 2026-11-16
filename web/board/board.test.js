@@ -71,12 +71,16 @@ function boardWithDraft(draft, options = {}) {
     "threshold-hint", "pattern-threshold", "pattern-name", "pattern-form",
     "symbol-input", "symbol-name", "symbol-source", "symbol-note",
     "buy-pattern-form", "buy-pattern-name", "buy-target-price", "buy-pattern-list",
+    "manual-order-form", "manual-order-symbol", "manual-order-side", "manual-order-quantity",
+    "manual-order-type", "manual-order-price", "manual-order-review", "manual-order-summary",
+    "confirm-manual-order", "cancel-manual-order", "manual-order-confirmation",
   ];
   const elements = new Map(ids.map((id) => [id, new Element("div", id)]));
   const stored = new Map([["cherrypulse-board-draft-v1", JSON.stringify(draft)]]);
   const downloads = [];
   const revokedUrls = [];
   let failStorageWrites = false;
+  let storageWriteCount = 0;
   let downloadSequence = 0;
   class TestURL extends URL {}
   TestURL.createObjectURL = (blob) => {
@@ -102,6 +106,7 @@ function boardWithDraft(draft, options = {}) {
       getItem(key) { return stored.get(key) ?? null; },
       setItem(key, value) {
         if (failStorageWrites) throw new Error("QUOTA_EXCEEDED");
+        storageWriteCount += 1;
         stored.set(key, value);
       },
     },
@@ -109,6 +114,7 @@ function boardWithDraft(draft, options = {}) {
     CherryPulseDraftImport: require("./draft-import.js"),
     CherryPulseBoardBackup: require("./board-backup.js"),
     CherryPulseBuyPreview: require("./buy-preview.js"),
+    CherryPulseManualOrderPreview: require("./manual-order-preview.js"),
     URL: TestURL,
     Blob: class {
       constructor(parts, options) {
@@ -125,6 +131,7 @@ function boardWithDraft(draft, options = {}) {
   return {
     getElement: (id) => elements.get(id),
     getDraft: () => JSON.parse(stored.get("cherrypulse-board-draft-v1")),
+    getStorageWriteCount: () => storageWriteCount,
     setExternalDraft: (draft) => stored.set("cherrypulse-board-draft-v1", JSON.stringify(draft)),
     getDownloads: () => downloads,
     getRevokedUrls: () => revokedUrls,
@@ -159,6 +166,42 @@ function sampleBoardBackup() {
     ],
   };
 }
+
+test("manual order screen previews then confirms locally without changing the board or sending", () => {
+  const draft = {
+    symbols: [
+      {code: "005930", name: "삼성전자", archived: false},
+      {code: "000660", name: "보관 종목", archived: true},
+    ],
+    patterns: [],
+  };
+  const fixture = boardWithDraft(draft);
+  const symbolSelect = fixture.getElement("manual-order-symbol");
+  assert.deepEqual(symbolSelect.children.map((option) => [option.value, option.textContent]), [
+    ["", "관심 종목을 선택하세요"], ["005930", "삼성전자 · 005930"],
+  ]);
+  symbolSelect.value = "005930";
+  fixture.getElement("manual-order-side").value = "BUY";
+  fixture.getElement("manual-order-quantity").value = "2";
+  fixture.getElement("manual-order-type").value = "LIMIT";
+  fixture.getElement("manual-order-price").value = "70000";
+
+  fixture.getElement("manual-order-form").dispatch("submit");
+  assert.equal(fixture.getElement("manual-order-review").hidden, false);
+  assert.match(fixture.getElement("manual-order-summary").textContent, /삼성전자.*매수.*2주.*지정가 70000원/);
+  fixture.getElement("manual-order-quantity").value = "4";
+  fixture.getElement("manual-order-form").dispatch("input");
+  assert.equal(fixture.getElement("manual-order-review").hidden, true);
+  fixture.getElement("manual-order-quantity").value = "2";
+  fixture.getElement("manual-order-form").dispatch("submit");
+  const beforeConfirmation = fixture.getDraft();
+  const writesBeforeConfirmation = fixture.getStorageWriteCount();
+
+  fixture.getElement("confirm-manual-order").click();
+  assert.match(fixture.getElement("manual-order-confirmation").textContent, /오프라인.*주문 전송 없음/);
+  assert.deepEqual(fixture.getDraft(), beforeConfirmation);
+  assert.equal(fixture.getStorageWriteCount(), writesBeforeConfirmation);
+});
 
 test("pattern edits append a new version and preserve existing symbol bindings", () => {
   const fixture = boardWithDraft({

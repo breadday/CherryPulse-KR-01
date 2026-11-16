@@ -7,6 +7,7 @@ const MAX_NAME_LENGTH = 100;
 const MAX_NOTE_LENGTH = 1000;
 const MAX_SOURCE_LENGTH = 2048;
 let state;
+let pendingManualOrderReview = null;
 let symbolView = "active";
 let pendingBoardRestore = null;
 let restoreBaseline = null;
@@ -347,6 +348,32 @@ function render() {
     card.append(title, description, edit, toggle); patterns.append(card);
   }
   renderBuyPatterns();
+  renderManualOrderSymbols();
+}
+
+function renderManualOrderSymbols() {
+  const select = $("manual-order-symbol");
+  if (!select) return;
+  const selectedCode = select.value;
+  select.replaceChildren();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "관심 종목을 선택하세요";
+  select.append(placeholder);
+  const activeSymbols = state.symbols.filter((item) => item && item.archived !== true);
+  for (const item of activeSymbols) {
+    const option = document.createElement("option");
+    option.value = item.code;
+    option.textContent = `${item.name || "종목명 미입력"} · ${item.code}`;
+    select.append(option);
+  }
+  select.value = activeSymbols.some((item) => item.code === selectedCode) ? selectedCode : "";
+  if (pendingManualOrderReview) {
+    const current = activeSymbols.find((item) => item.code === pendingManualOrderReview.symbol);
+    if (!current || (current.name || current.code) !== pendingManualOrderReview.name) {
+      clearManualOrderReview();
+    }
+  }
 }
 function renderBuyPatterns() {
   const buyList = $("buy-pattern-list");
@@ -594,6 +621,86 @@ $("buy-preview-form").addEventListener("submit", (event) => {
   card.append(text);
   box.append(card);
 });
+
+function clearManualOrderReview() {
+  pendingManualOrderReview = null;
+  $("manual-order-review").hidden = true;
+  $("manual-order-summary").textContent = "";
+  $("manual-order-confirmation").hidden = true;
+  $("manual-order-confirmation").textContent = "";
+  $("confirm-manual-order").disabled = true;
+}
+
+function manualOrderErrorMessage(code) {
+  const messages = {
+    ORDER_INPUT_INVALID: "주문 내용을 다시 입력하세요.",
+    ORDER_SYMBOL_INVALID: "종목코드를 확인하세요.",
+    ORDER_SYMBOL_UNAVAILABLE: "보드에 등록된 관심 종목을 선택하세요. 보관 종목은 사용할 수 없습니다.",
+    ORDER_SIDE_INVALID: "매수 또는 매도를 선택하세요.",
+    ORDER_QUANTITY_INVALID: "수량은 0보다 큰 정수로 입력하세요.",
+    ORDER_TYPE_INVALID: "시장가 또는 지정가를 선택하세요.",
+    ORDER_PRICE_INVALID: "지정가를 0보다 큰 숫자로 입력하세요.",
+  };
+  return messages[code] || "주문 내용을 확인하지 못했습니다. 다시 입력하세요.";
+}
+
+function syncManualOrderPriceControl() {
+  const isLimit = $("manual-order-type").value === "LIMIT";
+  $("manual-order-price").disabled = !isLimit;
+  $("manual-order-price").required = isLimit;
+  if (!isLimit) $("manual-order-price").value = "";
+}
+
+const manualOrderForm = $("manual-order-form");
+manualOrderForm.addEventListener("input", clearManualOrderReview);
+manualOrderForm.addEventListener("change", clearManualOrderReview);
+$("manual-order-type").addEventListener("change", syncManualOrderPriceControl);
+manualOrderForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  clearManualOrderReview();
+  const api = typeof CherryPulseManualOrderPreview !== "undefined"
+    ? CherryPulseManualOrderPreview
+    : (typeof globalThis !== "undefined" ? globalThis.CherryPulseManualOrderPreview : null);
+  if (!api) { notice("오프라인 주문 미리보기 모듈을 읽지 못했습니다."); return; }
+  const result = api.buildManualOrderPreview({
+    symbol: $("manual-order-symbol").value,
+    side: $("manual-order-side").value,
+    quantity: $("manual-order-quantity").value,
+    orderType: $("manual-order-type").value,
+    limitPrice: $("manual-order-price").value,
+  }, state.symbols);
+  if (!result.ok) { notice(manualOrderErrorMessage(result.code)); return; }
+  pendingManualOrderReview = result.review;
+  const side = result.review.side === "BUY" ? "매수" : "매도";
+  const price = result.review.orderType === "LIMIT"
+    ? `지정가 ${result.review.limitPrice}원`
+    : "시장가 · 가격 지정 없음";
+  $("manual-order-summary").textContent =
+    `${result.review.name} (${result.review.symbol}) · ${side} · ${result.review.quantity}주 · ${price}`;
+  $("manual-order-review").hidden = false;
+  $("confirm-manual-order").disabled = false;
+  notice("검토용 화면입니다. 여기서 실제 주문은 전송되지 않습니다.");
+});
+$("confirm-manual-order").addEventListener("click", () => {
+  if (!pendingManualOrderReview) return;
+  const api = typeof CherryPulseManualOrderPreview !== "undefined"
+    ? CherryPulseManualOrderPreview
+    : (typeof globalThis !== "undefined" ? globalThis.CherryPulseManualOrderPreview : null);
+  const result = api?.confirmManualOrderPreview(pendingManualOrderReview);
+  if (!result?.ok) { clearManualOrderReview(); notice("검토 내용이 만료됐습니다. 다시 미리보기 하세요."); return; }
+  pendingManualOrderReview = result.confirmation;
+  $("manual-order-confirmation").textContent =
+    "확인 완료 · 오프라인 화면 확인만 기록했습니다. 주문 전송 없음 · 계좌 조회·저장 없음.";
+  $("manual-order-confirmation").hidden = false;
+  $("confirm-manual-order").disabled = true;
+});
+$("cancel-manual-order").addEventListener("click", () => {
+  clearManualOrderReview();
+  manualOrderForm.reset();
+  syncManualOrderPriceControl();
+  notice("오프라인 주문 검토를 취소했습니다. 주문은 전송되지 않았습니다.");
+});
+syncManualOrderPriceControl();
 
 function safeSourceUrl(value) {
   if (!value) return "";

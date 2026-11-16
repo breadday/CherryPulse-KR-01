@@ -4,14 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CherryPulse · 메인 보드</title>
-  <link rel="stylesheet" href="styles.css?v=20261026-search-timer-fix">
+  <link rel="stylesheet" href="styles.css?v=20261116-offline-order-review">
   <script defer src="cloud-setup.js?v=20261026-search-timer-fix"></script>
   <script defer src="draft-import.js?v=20261026-search-timer-fix"></script>
   <script defer src="board-backup.js?v=20261026-search-timer-fix"></script>
   <script defer src="log-view.js?v=20261026-search-timer-fix"></script>
   <script defer src="buy-preview.js?v=20261026-search-timer-fix"></script>
+  <script defer src="manual-order-preview.js?v=20261116-offline-order-review"></script>
   <script defer src="cloud-client.js?v=20261026-search-timer-fix"></script>
-  <script defer src="board.js?v=20261026-search-timer-fix"></script>
+  <script defer src="board.js?v=20261116-offline-order-review"></script>
   <script defer src="symbol-lookup.js?v=20261026-search-timer-fix"></script>
   <script defer src="cloud-health.js?v=20261026-search-timer-fix"></script>
 </head>
@@ -31,7 +32,7 @@
     </section>
     <nav class="board-nav" aria-label="보드 메뉴">
       <a href="#symbols-heading">메인 보드</a><a href="#overview">운영 현황</a>
-      <a href="#patterns-heading">손절 패턴</a><a href="#entry-patterns-heading">매수 패턴</a><a href="#log-view-heading">실측 로그</a>
+      <a href="#patterns-heading">손절 패턴</a><a href="#entry-patterns-heading">매수 패턴</a><a href="#manual-order-heading">주문 확인</a><a href="#log-view-heading">실측 로그</a>
     </nav>
     <section id="overview" class="overview" aria-labelledby="overview-heading">
       <h2 id="overview-heading">초안 현황 <span class="badge">브라우저 초안</span></h2>
@@ -203,6 +204,46 @@
           <button type="submit">미리보기</button>
         </form>
         <div id="buy-preview-result" class="pattern-list" role="status" aria-live="polite"></div>
+      </section>
+      <section class="panel manual-order-panel" aria-labelledby="manual-order-heading">
+        <div class="panel-heading">
+          <h2 id="manual-order-heading">오프라인 주문 확인</h2>
+          <span>브라우저 화면 전용</span>
+        </div>
+        <p class="manual-order-warning" role="note"><strong>실제 주문 전송 기능이 없습니다.</strong> 계좌·시세를 조회하거나 주문을 보내지 않습니다. 확인 결과는 이 화면에서만 보이며 저장되지 않습니다.</p>
+        <form id="manual-order-form" class="stack-form">
+          <label for="manual-order-symbol">관심 종목</label>
+          <select id="manual-order-symbol" name="symbol" required>
+            <option value="">관심 종목을 선택하세요</option>
+          </select>
+          <label for="manual-order-side">매수·매도</label>
+          <select id="manual-order-side" name="side" required>
+            <option value="">선택하세요</option>
+            <option value="BUY">매수</option>
+            <option value="SELL">매도</option>
+          </select>
+          <label for="manual-order-quantity">수량 (주)</label>
+          <input id="manual-order-quantity" name="quantity" type="number" min="1" step="1" inputmode="numeric" required>
+          <label for="manual-order-type">주문 방식</label>
+          <select id="manual-order-type" name="orderType" required>
+            <option value="">선택하세요</option>
+            <option value="MARKET">시장가</option>
+            <option value="LIMIT">지정가</option>
+          </select>
+          <label for="manual-order-price">지정가 (원, 지정가 선택 시)</label>
+          <input id="manual-order-price" name="limitPrice" type="text" inputmode="decimal" maxlength="30" placeholder="예: 70000" autocomplete="off" disabled>
+          <button type="submit">내용 검토 화면 만들기</button>
+        </form>
+        <section id="manual-order-review" class="manual-order-review" aria-labelledby="manual-order-review-heading" hidden>
+          <h3 id="manual-order-review-heading">검토할 내용</h3>
+          <p id="manual-order-summary" class="manual-order-summary"></p>
+          <p class="hint">아래 확인 버튼은 화면에서 읽었음을 표시할 뿐입니다. 실제 주문 요청·계좌 변경은 일어나지 않습니다.</p>
+          <div class="form-row manual-order-actions">
+            <button id="confirm-manual-order" type="button" disabled>내용 확인 완료 (전송 없음)</button>
+            <button id="cancel-manual-order" class="archive-button" type="button">취소</button>
+          </div>
+          <p id="manual-order-confirmation" class="manual-order-confirmation" role="status" aria-live="polite" hidden></p>
+        </section>
       </section>
     </div>
     <p class="footnote">이 화면은 입력·연결 기능을 확인하는 초안입니다. Windows 엔진의 적용 설정은 연결되지 않았으며, 여기서 주문이 생성되지 않습니다.</p>
