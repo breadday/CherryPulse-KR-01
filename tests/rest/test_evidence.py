@@ -11,7 +11,7 @@ from adapters.kiwoom_rest_evidence import (
     RestReadBatch,
     observe_query,
 )
-from adapters.kiwoom_rest_readonly import RestPage, RestQuery
+from adapters.kiwoom_rest_readonly import ROW_KEYS, RestPage, RestQuery
 
 NOW = datetime(2026, 10, 14, tzinfo=UTC)
 SCOPE = PaperReadScope("PAPER-PC", "PAPER-APP")
@@ -25,6 +25,15 @@ class Transport:
         return RestPage(
             {"return_code": 0, "acnt_evlt_remn_indv_tot": [], "oso": []}, "N", ""
         )
+
+
+class SyntheticHoldingsTransport:
+    def fetch_page(
+        self, query: RestQuery, body: dict[str, str], cont_yn: str, next_key: str
+    ) -> RestPage:
+        _ = body, cont_yn, next_key
+        rows = [{"synthetic": True}] if query is RestQuery.POSITIONS else []
+        return RestPage({"return_code": 0, ROW_KEYS[query]: rows}, "N", "")
 
 
 def observation() -> ObservedQuery:
@@ -126,3 +135,40 @@ def test_two_queries_still_require_order_and_fill_evidence() -> None:
         RestReadBatch(SCOPE, (overlapping, second)).review_reason
         == "QUERY_INTERVAL_OVERLAP"
     )
+
+
+def test_complete_batch_keeps_broker_positions_unmapped() -> None:
+    bodies = {
+        RestQuery.POSITIONS: BODY,
+        RestQuery.UNFILLED: {
+            "all_stk_tp": "0",
+            "trde_tp": "0",
+            "stex_tp": "0",
+        },
+        RestQuery.ORDER_DETAIL: {
+            "qry_tp": "1",
+            "stk_bond_tp": "0",
+            "sell_tp": "0",
+            "dmst_stex_tp": "%",
+        },
+        RestQuery.FILLS: {"qry_tp": "0", "sell_tp": "0", "stex_tp": "0"},
+    }
+    queries = tuple(
+        observe_query(
+            SyntheticHoldingsTransport(),
+            SCOPE,
+            query,
+            body,
+            max_pages=1,
+            revision=lambda: 7,
+            now=lambda: NOW,
+        )
+        for query, body in bodies.items()
+    )
+
+    batch = RestReadBatch(SCOPE, queries)
+
+    assert batch.missing_sections == frozenset()
+    assert batch.unmapped_position_rows == 1
+    assert batch.review_reason == "BROKER_POSITIONS_UNMAPPED"
+    assert not batch.can_reconcile

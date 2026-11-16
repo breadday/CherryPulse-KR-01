@@ -6,9 +6,10 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from itertools import pairwise
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from adapters.kiwoom_rest_readonly import (
+    ROW_KEYS,
     ReadOnlyTransport,
     RestCapture,
     RestQuery,
@@ -133,7 +134,28 @@ class RestReadBatch:
             return "EVENT_REVISION_CHANGED"
         if self.missing_sections:
             return "MISSING_QUERY_SECTIONS"
+        position_rows = self.unmapped_position_rows
+        if position_rows is None:
+            return "POSITION_ROWS_UNCONFIRMED"
+        if position_rows > 0:
+            return "BROKER_POSITIONS_UNMAPPED"
         return "BROKER_IDENTITY_MAPPING_UNVERIFIED"
+
+    @property
+    def unmapped_position_rows(self) -> int | None:
+        """Count broker position rows without treating them as managed holdings."""
+        count = 0
+        for query in self.queries:
+            if query.capture.query is not RestQuery.POSITIONS:
+                continue
+            for page in query.capture.pages:
+                rows = page.payload.get(ROW_KEYS[RestQuery.POSITIONS])
+                if not isinstance(rows, list) or any(
+                    not isinstance(row, dict) for row in cast("list[object]", rows)
+                ):
+                    return None
+                count += len(cast("list[object]", rows))
+        return count
 
     @property
     def can_reconcile(self) -> bool:
