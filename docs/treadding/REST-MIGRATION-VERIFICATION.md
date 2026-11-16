@@ -121,3 +121,18 @@ R04 보유 행 identity와 R05 API linkage는 여전히 증거 부족이다. 기
 | diff 검사 | `git diff --check` | 통과 | 작업 트리 |
 
 재시작 때 `RECONCILING` 사실을 반복 append하던 것을 막고, unresolved 상태 반환과 재전송 금지 동작은 유지했다. 모든 검사는 오프라인 합성 테스트다. broker verified와 Windows 운영 엔진 verified는 false이며 `orders_enabled=false`를 유지한다. 별도 작업 트리의 사용자 변경은 검증 범위에 포함하지 않았고 staging하지 않았다.
+
+## 2026-11-17 기존 변경 오프라인 검증 재개
+
+- 기준 커밋 `a7ae21cdfa18a1b1270223b5c332e031229f9307`, 브랜치 `refactor/kiwoom-rest`. 검증 시작 시 변경 67개(추적 파일 61, 미추적 6, staged 0). 소스·테스트 수정, 새 테스트, stage/commit/push는 하지 않았다.
+- 변경 파일과 인접 REST runner 검증을 먼저 수행했다. 저장소 루트에서 프로젝트 Python 3.15 환경으로 `pytest -q --tb=short -p no:cacheprovider --basetemp <profile scratch> <변경 테스트와 REST runner 관련 29개 파일>`: **241 passed**. 그 다음 전체 `pytest -q --tb=short -p no:cacheprovider --basetemp <profile scratch>`: **392 passed**. 자격 증명 관련 환경 변수와 `PYTHONPATH`는 하위 프로세스에서 제거했다.
+- 저장소 루트에서 `ruff check .`: **All checks passed** (Python 3.15 지원 단계 안내 경고만 표시). `ruff format --check .`: **169 files already formatted**. Ruff cache는 profile scratch로 분리했다.
+- `node .tools/typecheck/basedpyright/index.js --pythonpath .venv-rest/Scripts/python.exe adapters/kiwoom_rest*.py`: **0 errors, 0 warnings, 0 notes**. `pyproject.toml`의 전체 `execution`/`tests` 타입 검사 범위는 실행하지 않았다. `REST-MIGRATION-STATUS.json`에 255개 기존 기준 오류가 기록되어 있어 이 작업에서는 migration verifier의 adapter 범위만 검사했다.
+- `node --test cloud/worker.test.mjs web/board/*.test.js`: **67 passed**.
+- `node node_modules/wrangler/bin/wrangler.js deploy --dry-run --outdir <profile scratch>/wrangler-local-build/output`: Wrangler 4.152.0 dry-run 성공, `web` 자산 23개 읽음. 배포하지 않았다.
+- `git diff --check`: 통과. Git의 LF→CRLF 변환 경고만 있었으며 파일을 수정하지 않았다.
+- `tools/verify_rest_migration.py`는 기존 `results/rest-migration-verification.json`을 원자적으로 덮어쓰는 구현이어서 실행하지 않았다. 대신 해당 runner의 오프라인 검사와 겹치는 테스트·Ruff·format·adapter typecheck·Node·diff 검사를 직접 실행했고, 전체 pytest도 통과했다. Wrangler 출력은 repo 밖 scratch로 보냈다.
+- 잘못된 작업 디렉터리에서 실행된 선행 Ruff/basedpyright/Wrangler 호출은 이 검증 결과로 세지 않았다. 이후 프로젝트 루트를 명시해 다시 실행한 결과만 위에 기록했다. 재확인 시 해당 Ruff 프로세스는 이미 종료되어 있었으며 어떤 프로세스도 종료하지 않았다. 남은 프로젝트 관련 프로세스는 loopback 주소에 `web`만 제공하는 읽기 전용 `python -m http.server`였다.
+- 최종 `git status --short --untracked-files=all`은 68개(추적 변경 62, 미추적 6, staged 0)다. 시작 당시 67개에 요청된 이 검증 기록 `docs/treadding/REST-MIGRATION-VERIFICATION.md` 1개가 추가되었고, 소스·테스트 변경은 없었다.
+- 최초 ZIP 생성 스크립트 파일은 safe-root 쓰기 제한으로 생성되지 않았고, 그 실패가 ZIP 생성에는 영향을 주지 않았다. ZIP은 별도 inline Python 호출로 만들어졌다. 이후 갱신된 문서를 포함하도록 Git-ignored `results/local-recovery/` 아래 최종 복구 ZIP을 생성·검증했다. ZIP에는 변경 스냅샷 67개가 있고, 미추적 예약 작업 인벤토리 CSV 1개는 의도적으로 제외했다. 따라서 CSV는 ZIP에서 복구할 수 없는 미보존 변경으로 남으며, 원본은 저장소의 미추적 상태로 유지된다.
+- 실제 broker/API·계좌·주문·정정·취소·재전송, 예약 실행/변경, 운영 배포는 하지 않았다. `orders_enabled=false`, `can_reconcile=false`, `account_reconciled=false`를 유지한다. 실 REST dispatcher는 미구현, PAPER API linkage는 미확정이다.

@@ -1,6 +1,6 @@
 # REST 전환 작업 인계
 
-갱신일: 2026-11-13
+갱신일: 2026-11-16
 
 ## 현재 기준
 
@@ -107,3 +107,22 @@ npm run build
 - TDD: 새 회귀 테스트가 수정 전 중복 원장 사실로 실패한 뒤 수정 후 통과했다. 집중 내구성·preflight 테스트 `15 passed`; 전체 pytest `391 passed`; REST verifier `6/6` (REST pytest `172`, REST 범위 Ruff/typecheck/Node 39 포함); 관련 파일 Ruff check/format 및 `git diff --check` 통과.
 - 이 변경은 가상 원장 상태 복구만 검증한다. 실 REST 주문 dispatcher, R05 endpoint linkage, R04 계좌 identity는 미완료이며 `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false` 유지. 브로커 조회·주문·취소·정정·재전송·배포는 하지 않았다.
 - 작업 당시 다른 사용자 수정이 여러 파일에 남아 있어 해당 변경은 staging/수정하지 않았다. 이번 오프라인 회귀 변경만 분리해 검토·저장한다.
+
+## 2026-11-16 R05 취소·부분체결 재시작 조합
+
+- 기존 시나리오에는 취소 요청이 `SENDING`인 동안 대상 주문에 부분체결이 발생하고, 그 상태에서 Ledger가 여러 차례 재시작되는 조합 테스트가 없었다. `tests/test_recovery_restart_edges.py`에 합성 SQLite 회귀 테스트를 추가했다.
+- 두 번의 Ledger 재생성에서 취소 요청이 `UNKNOWN`에서 `RECONCILING`으로 유지되고 재전송되지 않는 점, 부분체결 후 managed/reserved 수량이 `70/70`으로 보존되는 점, 반복 recovery가 원장 사실을 중복 추가하지 않는 점을 검증했다. 기존 구현이 충족해 런타임 코드는 수정하지 않았다.
+- 검증: 신규 테스트 `1 passed`; 전체 pytest `392 passed`; Worker/board Node `67 passed`; Wrangler `npm run build` dry-run 통과; 신규 테스트 Ruff 통과; `git diff --check` 통과.
+- 브로커 조회·주문·정정·취소·재전송·배포는 하지 않았다. `account_reconciled=false`, `can_reconcile=false`, `orders_enabled=false` 유지. 다른 사용자 수정은 보존하며 커밋·push하지 않았다.
+- 다음은 남은 가상 dispatcher SENDING/UNKNOWN/부분체결/취소경합/재시작 조합을 계속 점검한다. 실제 REST dispatcher 및 API linkage는 미구현/미확정이다.
+
+## 2026-11-17 기존 변경 보존 검증
+
+- 사전 확인: `ZENBOOK`, `E:/hermes-local/workspace/CherryPulse-KR-01`, `refactor/kiwoom-rest`, HEAD `a7ae21cdfa18a1b1270223b5c332e031229f9307`. 67개 변경(추적 61, 미추적 6, staged 0)을 보존했다.
+- 변경 연관 Python 테스트 29개 파일 `241 passed`; 이어 전체 Python 회귀 `392 passed`. 전체 Worker/board Node `67 passed`.
+- 프로젝트 루트에서 Ruff check 통과, format check `169 files`; REST adapter basedpyright `0 errors/warnings/notes`; Wrangler 4.152.0 local dry-run은 web 자산 23개를 읽고 성공; `git diff --check` 통과. 명령과 실행 경계는 `REST-MIGRATION-VERIFICATION.md`에 기록했다.
+- 검증은 오프라인 코드·합성 테스트다. 실제 broker/API·계좌·주문·정정·취소·재전송·예약 실행·배포는 하지 않았다. 소스나 테스트를 고치거나 추가하지 않았고 commit/push도 하지 않았다.
+- 재개 전 Ruff 잔여 프로세스 확인에서 대상 프로세스는 이미 종료되어 있었으므로 아무 프로세스도 종료하지 않았다. 저장소 관련 실행 프로세스는 `127.0.0.1`에 `web` 정적 파일만 제공하는 읽기 전용 서버였다.
+- 기록 파일 `docs/treadding/REST-MIGRATION-VERIFICATION.md`가 검증 과정에서 새로 변경되었다. 따라서 최종 상태는 68개(추적 62, 미추적 6, staged 0)이며, 시작 당시 67개에 이 문서 1개가 추가된 것 외에 소스·테스트 변경은 없다.
+- 복구 ZIP은 Git-ignored `results/local-recovery/`에 갱신 후 생성하고 무결성 및 각 파일 hash를 확인했다. 변경 스냅샷 67개를 보존했으나 미추적 `windows-scheduled-tasks-2026-11-09.csv` 1개는 사용자 요청대로 제외했다. 따라서 CSV는 ZIP에서 복구할 수 없는 미보존 변경으로 남고, 원본은 저장소 미추적 상태로 유지된다. 이전 safe-root 스크립트 파일 생성 거부는 ZIP 생성에 영향을 주지 않았다.
+- R05 상태는 그대로다: 가상 recovery 경계 검증 완료, 실 REST dispatcher 미구현, PAPER API linkage 미확정. `orders_enabled=false`, `can_reconcile=false`, `account_reconciled=false` 유지.
