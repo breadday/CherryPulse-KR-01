@@ -1,5 +1,8 @@
 # GitHub 작업 전달함 — 1단계 연결 시험
 
+2단계의 별도 Codex 읽기 전용 검토 실행기는 [GITHUB-INBOX-EXECUTION.md](GITHUB-INBOX-EXECUTION.md)를 따른다.
+아래 내용은 기존 receiver.py의 연결 시험 범위이며, 실행기 업데이트가 자동 적용되는 것은 아니다.
+
 2026-11-17. 중앙 PC는 AI5. 전달함은 `breadday/CherryPulse-KR-01`이다.
 이 저장소는 공개 저장소다. Issue·댓글에 계좌·키·토큰·로컬 경로·파일명·diff·비공개 저장소 정보를 기록하지 않는다.
 
