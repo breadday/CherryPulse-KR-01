@@ -42,6 +42,28 @@ PUBLIC_CODES = {"PR_CREATED", "PUBLISH_PENDING", "INTERRUPTED_NO_RETRY", "TASK_C
                 "TESTS_FAILED", "PATCH_REJECTED", "DEVELOPMENT_BLOCKED", "CODEX_FAILED",
                 "CODEX_TIMEOUT", "CHATGPT_LOGIN_REQUIRED", "CODEX_CAPABILITY_MISSING",
                 "NATIVE_CODEX_REQUIRED", "BASE_MISMATCH", "WORKSPACE_EXISTS", "BRANCH_CONFLICT"}
+REJECTION_REASONS = {
+    "RESPONSE_MISSING", "RESPONSE_TOO_LARGE", "INVALID_JSON", "INVALID_RESPONSE_SHAPE",
+    "FILE_COUNT", "INVALID_FILE_ENTRY", "PATH_NOT_ALLOWED", "DUPLICATE_PATH",
+    "INVALID_CONTENT", "CONTENT_SIZE", "CONTENT_NUL", "SECRET_PATTERN", "TOTAL_SIZE",
+    "PYTHON_SYNTAX", "FORBIDDEN_NODE", "FORBIDDEN_NAME", "FORBIDDEN_ATTRIBUTE",
+    "DECORATOR", "CLASS_CONTRACT", "IMPORT_CONTRACT", "FROM_IMPORT_CONTRACT",
+    "CALL_CONTRACT", "MAIN_ARGUMENTS",
+}
+
+
+class PatchRejected(ValueError):
+    """Only enumerated diagnostics are public; rejected source stays private."""
+
+    def __init__(self, reason, path=None, line=None):
+        if reason not in REJECTION_REASONS:
+            raise ValueError("INVALID_REJECTION_REASON")
+        super().__init__("PATCH_REJECTED")
+        self.fields = {"rejection_reason": reason}
+        if path in FILES:
+            self.fields["file_index"] = FILES.index(path)
+        if type(line) is int and 1 <= line <= 100000:
+            self.fields["line"] = line
 
 
 def parse_task(issue, target):
@@ -103,23 +125,31 @@ def prepare(task, issue, root):
 
 def validate_patch(value):
     if not isinstance(value, dict) or set(value) != {"files"} or not isinstance(value["files"], list):
-        raise ValueError("PATCH_REJECTED")
+        raise PatchRejected("INVALID_RESPONSE_SHAPE")
     if len(value["files"]) != len(FILES):
-        raise ValueError("PATCH_REJECTED")
+        raise PatchRejected("FILE_COUNT")
     changes = {}
     for item in value["files"]:
-        if (not isinstance(item, dict) or set(item) != {"path", "content"}
-                or not isinstance(item["path"], str) or item["path"] not in FILES
-                or item["path"] in changes or not isinstance(item["content"], str)
-                or not 1 <= len(item["content"].encode("utf-8")) <= 24000
-                or "\x00" in item["content"]
-                or re.search(r"-----BEGIN .*PRIVATE KEY|\b(?:ghp_|github_pat_|sk-)[A-Za-z0-9_\-]{20,}", item["content"])):
-            raise ValueError("PATCH_REJECTED")
+        if not isinstance(item, dict) or set(item) != {"path", "content"}:
+            raise PatchRejected("INVALID_FILE_ENTRY")
+        path = item["path"]
+        if not isinstance(path, str) or path not in FILES:
+            raise PatchRejected("PATH_NOT_ALLOWED")
+        if path in changes:
+            raise PatchRejected("DUPLICATE_PATH", path)
+        if not isinstance(item["content"], str):
+            raise PatchRejected("INVALID_CONTENT", path)
+        if not 1 <= len(item["content"].encode("utf-8")) <= 24000:
+            raise PatchRejected("CONTENT_SIZE", path)
+        if "\x00" in item["content"]:
+            raise PatchRejected("CONTENT_NUL", path)
+        if re.search(r"-----BEGIN .*PRIVATE KEY|\b(?:ghp_|github_pat_|sk-)[A-Za-z0-9_\-]{20,}", item["content"]):
+            raise PatchRejected("SECRET_PATTERN", path)
         changes[item["path"]] = item["content"].replace("\r\n", "\n")
         if item["path"].endswith(".py"):
             validate_python(item["path"], changes[item["path"]])
     if sum(len(text.encode("utf-8")) for text in changes.values()) > 60000:
-        raise ValueError("PATCH_REJECTED")
+        raise PatchRejected("TOTAL_SIZE")
     return changes
 
 
@@ -128,7 +158,7 @@ def validate_python(path, content):
     try:
         tree = ast.parse(content)
     except SyntaxError as error:
-        raise ValueError("PATCH_REJECTED") from error
+        raise PatchRejected("PYTHON_SYNTAX", path, error.lineno) from error
     tests = path.endswith("test_status_text.py")
     allowed_calls = {"isinstance", "TypeError", "len", "str", "describe"}
     allowed_attrs = {"get", "assertEqual", "assertRaises", "subTest", "TestCase", "main", "describe"}
@@ -136,32 +166,32 @@ def validate_python(path, content):
                        ast.AsyncFunctionDef, ast.Await, ast.Yield, ast.YieldFrom, ast.Delete)
     for node in ast.walk(tree):
         if isinstance(node, forbidden_nodes):
-            raise ValueError("PATCH_REJECTED")
+            raise PatchRejected("FORBIDDEN_NODE", path, getattr(node, "lineno", None))
         if isinstance(node, ast.Name):
             if (node.id.startswith("__") and node.id != "__name__") or (
                     node.id in vars(builtins) and node.id not in allowed_calls | {"__name__"}):
-                raise ValueError("PATCH_REJECTED")
+                raise PatchRejected("FORBIDDEN_NAME", path, node.lineno)
         if isinstance(node, ast.Attribute) and node.attr not in allowed_attrs:
-            raise ValueError("PATCH_REJECTED")
+            raise PatchRejected("FORBIDDEN_ATTRIBUTE", path, node.lineno)
         if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.decorator_list:
-            raise ValueError("PATCH_REJECTED")
+            raise PatchRejected("DECORATOR", path, node.lineno)
         if isinstance(node, ast.ClassDef) and (not tests or node.keywords):
-            raise ValueError("PATCH_REJECTED")
+            raise PatchRejected("CLASS_CONTRACT", path, node.lineno)
         if isinstance(node, ast.Import):
             if not tests or any(alias.name not in {"unittest", "status_text"} or alias.asname for alias in node.names):
-                raise ValueError("PATCH_REJECTED")
+                raise PatchRejected("IMPORT_CONTRACT", path, node.lineno)
         if isinstance(node, ast.ImportFrom):
             if (not tests or node.level or node.module != "status_text"
                     or any(alias.name != "describe" or alias.asname for alias in node.names)):
-                raise ValueError("PATCH_REJECTED")
+                raise PatchRejected("FROM_IMPORT_CONTRACT", path, node.lineno)
         if isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name):
                 if node.func.id not in allowed_calls:
-                    raise ValueError("PATCH_REJECTED")
+                    raise PatchRejected("CALL_CONTRACT", path, node.lineno)
             elif not isinstance(node.func, ast.Attribute) or node.func.attr not in allowed_attrs - {"TestCase"}:
-                raise ValueError("PATCH_REJECTED")
+                raise PatchRejected("CALL_CONTRACT", path, node.lineno)
             elif node.func.attr == "main" and (node.args or node.keywords):
-                raise ValueError("PATCH_REJECTED")
+                raise PatchRejected("MAIN_ARGUMENTS", path, node.lineno)
 
 
 def generate(task, workspace, codex, root):
@@ -179,9 +209,14 @@ def generate(task, workspace, codex, root):
             "status_text.py의 describe(code)는 아래 문자열 매핑을 반환한다. 미지정 문자열은 "
             "UNKNOWN의 값, 문자열이 아니면 TypeError다. test_status_text.py는 unittest로 이를 "
             "검증한다. STATUS-TEXT.md는 함수 사용법과 한계를 한국어로 설명한다. "
-            "구현에는 import 없이 dict.get, isinstance, TypeError만 사용한다. 테스트는 "
+            "구현에는 import 없이 사전 리터럴 변수의 .get, isinstance, TypeError만 사용한다. "
+            "dict(...) 생성이나 dict.get(...) 클래스 호출 대신 LABELS.get(...) 형태를 쓴다. 테스트는 "
             "import unittest와 from status_text import describe, unittest.TestCase, "
             "self.assertEqual/assertRaises/subTest만 사용한다. 데코레이터/동적 실행은 쓰지 않는다. "
+            "from __future__ import, typing import, dict/list 타입 주석, assertIsInstance, "
+            "테스트의 다른 helper 호출은 이 프로필에서 허용하지 않는다. 타입 주석이 필요하면 "
+            "str만 쓴다. 응답 최상위는 files 하나이며 배열 항목은 path와 content만 갖는다. "
+            "Markdown 코드블록 없이 output schema에 맞는 JSON을 반환한다. "
             "코드 실행/테스트 성공을 주장하지 마라. 전체 파일 내용을 반환한다.\n"
             + json.dumps({"instruction": task["instruction"], "labels": LABELS,
                           "current_files": current}, ensure_ascii=False)
@@ -191,9 +226,34 @@ def generate(task, workspace, codex, root):
         if result.returncode:
             raise ValueError("CODEX_FAILED")
         answer = work / "answer.json"
-        if answer.stat().st_size > 200000:
-            raise ValueError("PATCH_REJECTED")
-        return validate_patch(json.loads(answer.read_text(encoding="utf-8")))
+        diagnostics = root / "generation-diagnostics"
+        diagnostics.mkdir(exist_ok=True)
+        metadata = {"task_hash": executor.digest(task), "expected_head": task["expected_head"]}
+        diagnostic = diagnostics / (workspace.name + ".diagnostic.json")
+        try:
+            if not answer.is_file():
+                raise PatchRejected("RESPONSE_MISSING")
+            metadata["response_bytes"] = answer.stat().st_size
+            if metadata["response_bytes"] > 200000:
+                raise PatchRejected("RESPONSE_TOO_LARGE")
+            raw = answer.read_bytes()
+            metadata["response_sha256"] = hashlib.sha256(raw).hexdigest()
+            # Exclusive create prevents overwriting prior evidence if a directory is reused.
+            with (diagnostics / (workspace.name + ".response.json")).open("xb") as handle:
+                handle.write(raw)
+            try:
+                value = json.loads(raw)
+            except (ValueError, UnicodeError) as error:
+                raise PatchRejected("INVALID_JSON") from error
+            changes = validate_patch(value)
+        except PatchRejected as error:
+            metadata.update(code="PATCH_REJECTED", **error.fields)
+            raise
+        else:
+            metadata["code"] = "PATCH_ACCEPTED"
+            return changes
+        finally:
+            diagnostic.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
 
 def apply_patch(workspace, changes):
@@ -316,6 +376,8 @@ def develop(issue, task, codex, journal):
         stage = "PUBLISH"
         called = True
         result = publish(ready, task, issue)
+    except PatchRejected as error:
+        result = report(task, "PATCH_REJECTED", stage, called, **error.fields)
     except subprocess.TimeoutExpired:
         result = report(task, "CODEX_TIMEOUT" if stage == "GENERATE" else "DEVELOPMENT_BLOCKED", stage, called)
     except (ValueError, OSError, RuntimeError) as error:

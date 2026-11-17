@@ -230,6 +230,91 @@ class AutodevTests(unittest.TestCase):
             self.assertIn(":done -->", api.call_args.args[1]["body"])
         self.assertEqual(develop.call_count, 1)
 
+    def capture_generation(self, text):
+        def capture(argv, cwd, env, **kwargs):
+            if text is not None:
+                (cwd / "answer.json").write_bytes(text.encode("utf-8"))
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        return capture
+
+    def test_python_rejection_reason_and_location_are_specific(self):
+        for source, reason in (("import os", "IMPORT_CONTRACT"),
+                               ("x = ().__class__", "FORBIDDEN_ATTRIBUTE"),
+                               ("open('private')", "CALL_CONTRACT"),
+                               ("x = __builtins__", "FORBIDDEN_NAME"),
+                               ("def broken(:", "PYTHON_SYNTAX")):
+            with self.subTest(source=source):
+                with self.assertRaises(autodev.PatchRejected) as caught:
+                    autodev.validate_python(autodev.FILES[0], source)
+                self.assertEqual(caught.exception.fields,
+                                 {"rejection_reason": reason, "file_index": 0, "line": 1})
+                self.assertEqual(str(caught.exception), "PATCH_REJECTED")
+
+    def test_response_shape_and_path_have_distinct_reasons(self):
+        for value, reason in (({}, "INVALID_RESPONSE_SHAPE"), ({"files": []}, "FILE_COUNT"),
+                              ({"files": [{"path": "secret", "content": "x"}] * 3}, "PATH_NOT_ALLOWED")):
+            with self.subTest(reason=reason), self.assertRaises(autodev.PatchRejected) as caught:
+                autodev.validate_patch(value)
+            self.assertEqual(caught.exception.fields["rejection_reason"], reason)
+
+    def test_rejected_generation_is_preserved_and_reported_without_source(self):
+        workspace = self.workspace()
+        changes = dict(self.changes)
+        changes[autodev.FILES[0]] = "import os  # PRIVATE_GENERATION_CONTENT\n"
+        raw = json.dumps({"files": [{"path": p, "content": c} for p, c in changes.items()]})
+        with patch.object(autodev, "prepare", return_value=workspace), \
+                patch.object(executor, "preflight"), \
+                patch.object(executor, "run_capture", side_effect=self.capture_generation(raw)):
+            result = autodev.develop(self.issue, self.task, "fake", self.journal)
+        self.assertEqual(result["code"], "PATCH_REJECTED")
+        self.assertEqual(result["rejection_reason"], "IMPORT_CONTRACT")
+        self.assertEqual(result["stage"], "GENERATE")
+        self.assertNotIn("PRIVATE_GENERATION_CONTENT", json.dumps(result))
+        directory = self.journal.root / "generation-diagnostics"
+        self.assertEqual((directory / "workspace.response.json").read_text(encoding="utf-8"), raw)
+        metadata = json.loads((directory / "workspace.diagnostic.json").read_text(encoding="utf-8"))
+        self.assertEqual(metadata["response_sha256"], hashlib.sha256(raw.encode()).hexdigest())
+        self.assertEqual(metadata["rejection_reason"], "IMPORT_CONTRACT")
+        self.assertFalse((workspace / autodev.FILES[0]).exists())
+
+    def test_invalid_json_is_preserved_with_reason(self):
+        workspace = self.workspace()
+        with patch.object(executor, "preflight"), \
+                patch.object(executor, "run_capture", side_effect=self.capture_generation("not json")):
+            with self.assertRaises(autodev.PatchRejected) as caught:
+                autodev.generate(self.task, workspace, "fake", self.journal.root)
+        self.assertEqual(caught.exception.fields["rejection_reason"], "INVALID_JSON")
+        self.assertEqual((self.journal.root / "generation-diagnostics/workspace.response.json").read_text(), "not json")
+
+    def test_missing_response_is_diagnosed(self):
+        workspace = self.workspace()
+        with patch.object(executor, "preflight"), \
+                patch.object(executor, "run_capture", side_effect=self.capture_generation(None)):
+            with self.assertRaises(autodev.PatchRejected) as caught:
+                autodev.generate(self.task, workspace, "fake", self.journal.root)
+        self.assertEqual(caught.exception.fields["rejection_reason"], "RESPONSE_MISSING")
+        self.assertTrue((self.journal.root / "generation-diagnostics/workspace.diagnostic.json").exists())
+
+    def test_oversized_response_has_metadata_without_unbounded_copy(self):
+        workspace = self.workspace()
+        with patch.object(executor, "preflight"), \
+                patch.object(executor, "run_capture", side_effect=self.capture_generation("x" * 200001)):
+            with self.assertRaises(autodev.PatchRejected) as caught:
+                autodev.generate(self.task, workspace, "fake", self.journal.root)
+        self.assertEqual(caught.exception.fields["rejection_reason"], "RESPONSE_TOO_LARGE")
+        self.assertFalse((self.journal.root / "generation-diagnostics/workspace.response.json").exists())
+
+    def test_accepted_generation_records_hash_and_matches_validator(self):
+        workspace = self.workspace()
+        raw = json.dumps({"files": [{"path": p, "content": c} for p, c in self.changes.items()]})
+        with patch.object(executor, "preflight"), \
+                patch.object(executor, "run_capture", side_effect=self.capture_generation(raw)):
+            changes = autodev.generate(self.task, workspace, "fake", self.journal.root)
+        self.assertEqual(changes, self.changes)
+        metadata = json.loads((self.journal.root / "generation-diagnostics/workspace.diagnostic.json").read_text())
+        self.assertEqual(metadata["code"], "PATCH_ACCEPTED")
+        self.assertEqual(metadata["task_hash"], executor.digest(self.task))
+
 
 if __name__ == "__main__":
     unittest.main()
