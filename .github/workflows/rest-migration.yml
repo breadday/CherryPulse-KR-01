@@ -7,6 +7,20 @@ on:
 permissions:
   contents: read
 jobs:
+  inbox-recovery:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Inbox unit and subprocess recovery tests (no AI or network calls)
+        run: python -B -m unittest discover -s tools/github_inbox -p "test_*.py" -v
   offline-rest:
     runs-on: ubuntu-latest
     steps:

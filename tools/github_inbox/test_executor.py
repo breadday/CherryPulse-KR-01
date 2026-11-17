@@ -1,8 +1,12 @@
 """Offline contract and crash/retry tests; no real AI, network or broker access."""
 import json
+import os
 from pathlib import Path
+import sqlite3
 import subprocess
+import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -198,5 +202,204 @@ class ReviewTests(unittest.TestCase):
         execute.assert_not_called()
 
 
+class ProcessRecoveryTests(unittest.TestCase):
+    """Real processes/SQLite/OS locks; only AI and GitHub are local doubles."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+
+    def start(self, mode):
+        process = subprocess.Popen(
+            [sys.executable, "-B", str(Path(__file__).resolve()),
+             "--process-fixture", str(self.root), mode],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, encoding="utf-8", shell=False,
+        )
+
+        def cleanup():
+            if process.poll() is None:
+                process.kill()
+            process.communicate(timeout=10)
+
+        self.addCleanup(cleanup)
+        return process
+
+    def run_child(self, mode, expected_code=0):
+        process = self.start(mode)
+        stdout, stderr = process.communicate(timeout=15)
+        self.assertEqual(process.returncode, expected_code, stdout + stderr)
+
+    def wait_ready(self, process, mode):
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            if (self.root / (mode + ".ready")).exists():
+                return
+            if process.poll() is not None:
+                stdout, stderr = process.communicate(timeout=5)
+                self.fail("Fixture exited before ready: " + stdout + stderr)
+            time.sleep(0.02)
+        self.fail("Fixture readiness timeout")
+
+    def lines(self, filename):
+        path = self.root / filename
+        return path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+
+    def report(self):
+        body = json.loads(self.lines("posts.jsonl")[-1])["body"]
+        return json.loads(body.split("```json\n", 1)[1].split("\n```", 1)[0])
+
+    def test_killed_after_claim_restarts_without_ai(self):
+        child = self.start("hold-after-claim")
+        self.wait_ready(child, "hold-after-claim")
+        child.kill()  # SIGKILL on POSIX, TerminateProcess on Windows; no DB close.
+        child.communicate(timeout=10)
+        self.assertNotEqual(child.returncode, 0)
+        self.run_child("normal")
+        self.assertEqual(self.lines("ai-calls.jsonl"), [])
+        self.assertEqual(self.report()["code"], "INTERRUPTED_NO_RETRY")
+        with sqlite3.connect(self.root / "state" / "review-journal.sqlite3") as database:
+            self.assertEqual(database.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+            self.assertEqual(database.execute("SELECT count(*) FROM jobs").fetchone()[0], 1)
+
+    def test_restart_after_failed_post_reuses_durable_result(self):
+        self.run_child("fail-post", expected_code=2)
+        with sqlite3.connect(self.root / "state" / "review-journal.sqlite3") as database:
+            saved = json.loads(database.execute("SELECT report FROM jobs").fetchone()[0])
+        self.assertEqual(saved["code"], "REVIEW_COMPLETED")
+        self.run_child("normal")
+        self.run_child("normal")
+        self.assertEqual(len(self.lines("ai-calls.jsonl")), 1)
+        self.assertEqual(len(self.lines("posts.jsonl")), 2)
+        self.assertEqual(self.report(), saved)
+
+    def test_killed_after_ai_invocation_does_not_invoke_again(self):
+        child = self.start("hold-after-ai")
+        self.wait_ready(child, "hold-after-ai")
+        child.kill()
+        child.communicate(timeout=10)
+        self.run_child("normal")
+        self.assertEqual(len(self.lines("ai-calls.jsonl")), 1)
+        self.assertEqual(self.report()["code"], "INTERRUPTED_NO_RETRY")
+
+    def test_killed_before_post_reuses_saved_result(self):
+        child = self.start("hold-before-post")
+        self.wait_ready(child, "hold-before-post")
+        child.kill()
+        child.communicate(timeout=10)
+        self.run_child("normal")
+        self.assertEqual(len(self.lines("ai-calls.jsonl")), 1)
+        self.assertEqual(len(self.lines("posts.jsonl")), 1)
+        self.assertEqual(self.report()["code"], "REVIEW_COMPLETED")
+
+    def test_accepted_post_with_lost_response_is_found_on_restart(self):
+        self.run_child("lose-post-response", expected_code=2)
+        self.run_child("normal")
+        self.assertEqual(len(self.lines("ai-calls.jsonl")), 1)
+        self.assertEqual(len(self.lines("posts.jsonl")), 1)
+        self.assertEqual(self.report()["code"], "REVIEW_COMPLETED")
+
+    def test_changed_body_after_restart_never_calls_ai_again(self):
+        self.run_child("normal")
+        self.run_child("changed-body")
+        self.run_child("changed-body")
+        self.assertEqual(len(self.lines("ai-calls.jsonl")), 1)
+        self.assertEqual(len(self.lines("posts.jsonl")), 2)
+        self.assertEqual(self.report()["code"], "TASK_CHANGED_NO_RETRY")
+
+    def test_process_lock_rejects_second_owner_and_releases_after_kill(self):
+        child = self.start("hold-lock")
+        self.wait_ready(child, "hold-lock")
+        self.run_child("probe-lock", expected_code=3)
+        child.kill()
+        child.communicate(timeout=10)
+        self.run_child("probe-lock")
+
+
+def process_fixture(directory, mode):
+    """Child entrypoint used only by tests; never invokes a real CLI or network."""
+    root = Path(directory)
+
+    def append(filename, value):
+        with (root / filename).open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(value) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+
+    def hold_ready():
+        append(mode + ".ready", "ready")
+        sys.stdin.readline()  # Parent keeps stdin open until forcibly killing this child.
+        raise RuntimeError("Fixture must be killed by parent")
+
+    if mode in ("hold-lock", "probe-lock"):
+        # Isolate the real OS file lock from the installed AI5 receiver's lock.
+        with patch.dict(os.environ, {"LOCALAPPDATA": str(root / "locks")}):
+            try:
+                with executor.receiver.single_instance("AI5"):
+                    if mode == "hold-lock":
+                        hold_ready()
+            except OSError:
+                return 3
+        return 0
+
+    task = {"version": 2, "target": "AI5", "action": "review",
+            "project": "cherrypulse-inbox", "expected_head": "a" * 40,
+            "instruction": "changed" if mode == "changed-body" else "review public fixture"}
+    issue = {"number": 100, "state": "open", "title": "[hermes-task] process fixture",
+             "user": {"login": "breadday"}, "body": json.dumps(task)}
+
+    def fake_ai(argv, cwd, env, **kwargs):
+        append("ai-calls.jsonl", {"invoked": True})
+        if mode == "hold-after-ai":
+            hold_ready()
+        answer = {"verdict": "READY", "next_step": "VERIFY_LOCAL_RUNTIME",
+                  "evidence": [executor.SOURCES[0]], "analysis": "SYNTHETIC_LOCAL_ANALYSIS"}
+        (cwd / "answer.json").write_text(json.dumps(answer), encoding="utf-8")
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    def fake_api(path, payload=None, paginate=False):
+        if path == "user":
+            return {"login": "breadday"}
+        if "/comments" not in path:
+            return [[issue]]
+        if payload is None:
+            accepted = root / "accepted.jsonl"
+            comments = [json.loads(line) for line in accepted.read_text(encoding="utf-8").splitlines()] if accepted.exists() else []
+            return [comments]
+        if mode == "hold-before-post":
+            hold_ready()
+        append("posts.jsonl", payload)
+        if mode != "fail-post":
+            append("accepted.jsonl", {"user": {"login": "breadday"}, "body": payload["body"]})
+        if mode in ("fail-post", "lose-post-response"):
+            raise RuntimeError("SIMULATED_TRANSPORT_FAILURE")
+        return {"id": 1}
+
+    journal = executor.Journal(root / "state")
+    original_claim = journal.claim
+
+    def claim(issue, task):
+        result = original_claim(issue, task)  # Real SQLite commit completed before readiness.
+        if mode == "hold-after-claim" and result is None:
+            hold_ready()
+        return result
+
+    try:
+        with patch.object(journal, "claim", side_effect=claim), \
+                patch.object(executor, "snapshot", return_value={"public": "fixture"}), \
+                patch.object(executor, "preflight"), \
+                patch.object(executor, "run_capture", side_effect=fake_ai), \
+                patch.object(executor.receiver, "api", side_effect=fake_api):
+            executor.poll_reviews("AI5", "unused", "unused", journal)
+    except RuntimeError:
+        return 2
+    finally:
+        journal.close()
+    return 0
+
+
 if __name__ == "__main__":
+    if len(sys.argv) == 4 and sys.argv[1] == "--process-fixture":
+        raise SystemExit(process_fixture(sys.argv[2], sys.argv[3]))
     unittest.main()

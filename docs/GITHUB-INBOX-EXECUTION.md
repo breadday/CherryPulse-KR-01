@@ -120,3 +120,37 @@ API 키 환경변수 제거, 로그인 방식, SHA 불일치, 공개 결과 제�
 - https://learn.chatgpt.com/docs/non-interactive-mode
 - https://learn.chatgpt.com/docs/cli/reference
 - https://learn.chatgpt.com/docs/config-file/config-reference
+
+## 2026-11-17: #25 검토에 따른 프로세스 복구 검증 보강
+
+#25의 `NEEDS_WORK / FIX_REVIEW_RUNNER` 상세 분석은 확인된 실행 결함보다
+실제 프로세스 경계에서의 검증 부족을 지적했다. 기존 단위 테스트 26건에
+`ProcessRecoveryTests` 7건을 더했다. 실행기·수신기 운영 코드는 변경하지 않았다.
+
+| 시나리오 | 별도 프로세스에서 확인하는 결과 |
+|---|---|
+| SQLite 선점 커밋 직후 강제 종료·재시작 | 모의 AI 호출 0회 유지, `INTERRUPTED_NO_RETRY`, DB integrity 정상 |
+| 모의 AI 호출 직후 강제 종료·재시작 | 모의 AI 호출 총 1회 유지, `INTERRUPTED_NO_RETRY` |
+| 결과 저장 후 댓글 전송 직전 강제 종료 | 저장된 완료 결과 회수, 모의 AI 총 1회 |
+| 결과 저장 후 GitHub 전송 실패·새 프로세스 재시작 | 저장 결과만 다시 전송, 모의 AI 총 1회 |
+| 댓글은 반영되고 응답만 유실 | 재시작 시 완료 마커를 찾아 추가 AI·POST 없음 |
+| 재시작 후 같은 Issue의 작업 본문 변경 | `TASK_CHANGED_NO_RETRY`, 모의 AI 총 1회 |
+| 프로세스 잠금 소유자가 강제 종료됨 | 살아 있는 동안 두 번째 소유자 차단, 종료 뒤 잠금 재획득 |
+
+부모는 표준 Python으로 별도 자식 프로세스를 시작하고 준비 신호를 받은 뒤
+`Popen.kill()`로 종료한다. POSIX에서는 SIGKILL, Windows에서는 TerminateProcess를 사용한다.
+선점·완료 결과는 실제 임시 SQLite 파일에 저장하며, 새 Python 프로세스가 동일 DB를 연다.
+AI 호출 횟수·모의 GitHub 결과도 디스크에 기록하므로 프로세스 메모리만으로 판정하지 않는다.
+OS 잠금 시험은 별도 임시 경로를 사용해 설치된 감시기의 잠금 파일과 분리한다.
+
+로컬 Linux/Python 3.12 검증: 기존 26건 + 프로세스 통합 7건 = **33건 통과**.
+`.github/workflows/rest-migration.yml`의 독립 `inbox-recovery` job은
+Python 3.12에서 Ubuntu와 Windows 양쪽에 동일한 33건을 실행한다.
+Windows 결과는 해당 PR의 실제 CI 결과로 판정하며 로컬 통과로 대체하지 않는다.
+
+한계: AI·GitHub는 대역이다. 실제 AI 사용량이나 GitHub 서버의 조회 지연,
+전원 차단/디스크 손상, journal과 원격 댓글 동시 유실을 재현한 시험은 아니다.
+응답 유실 시험도 모의 서버에서 완료 댓글이 즉시 조회되는 경우만 다룬다.
+GitHub 반영·조회 지연 중 댓글 자체가 중복될 가능성은 계속 남으며,
+같은 대상의 journal이 보존된 범위에서 AI 재호출을 막는 정책을 확인한다.
+이 변경은 테스트·CI·문서이므로 AI5 실행기 교체나 추가 모델 호출을 요구하지 않는다.
