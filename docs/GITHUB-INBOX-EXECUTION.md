@@ -1,5 +1,8 @@
 # GitHub 전달함 2단계: Codex 읽기 전용 검토
 
+수정·테스트·Draft PR을 수행하는 3단계 시험 실행기는 [GITHUB-INBOX-AUTODEV.md](GITHUB-INBOX-AUTODEV.md)를 따른다.
+v2 수신기에 자동 설치되는 기능은 아니며 별도 업데이트가 필요하다.
+
 2026-11-17. 대상은 AI5이며 최초 설치와 모델 실행은 아직 AI5에서 검증해야 한다.
 기존 `receiver.py`의 ping/status는 유지한다. 새 `executor.py`는 이 기능과 v2 review를
 한 프로세스에서 처리하며, 같은 대상 잠금을 공유하므로 기존 감시기와 동시에 실행하지 않는다.
