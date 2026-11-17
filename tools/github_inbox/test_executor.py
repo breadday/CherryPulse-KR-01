@@ -1,4 +1,5 @@
 """Offline contract and crash/retry tests; no real AI, network or broker access."""
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -259,13 +260,13 @@ class ProcessRecoveryTests(unittest.TestCase):
         self.run_child("normal")
         self.assertEqual(self.lines("ai-calls.jsonl"), [])
         self.assertEqual(self.report()["code"], "INTERRUPTED_NO_RETRY")
-        with sqlite3.connect(self.root / "state" / "review-journal.sqlite3") as database:
+        with closing(sqlite3.connect(self.root / "state" / "review-journal.sqlite3")) as database:
             self.assertEqual(database.execute("PRAGMA integrity_check").fetchone()[0], "ok")
             self.assertEqual(database.execute("SELECT count(*) FROM jobs").fetchone()[0], 1)
 
     def test_restart_after_failed_post_reuses_durable_result(self):
         self.run_child("fail-post", expected_code=2)
-        with sqlite3.connect(self.root / "state" / "review-journal.sqlite3") as database:
+        with closing(sqlite3.connect(self.root / "state" / "review-journal.sqlite3")) as database:
             saved = json.loads(database.execute("SELECT report FROM jobs").fetchone()[0])
         self.assertEqual(saved["code"], "REVIEW_COMPLETED")
         self.run_child("normal")

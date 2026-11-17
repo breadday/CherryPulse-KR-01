@@ -144,7 +144,7 @@ AI 호출 횟수·모의 GitHub 결과도 디스크에 기록하므로 프로세
 OS 잠금 시험은 별도 임시 경로를 사용해 설치된 감시기의 잠금 파일과 분리한다.
 
 로컬 Linux/Python 3.12 검증: 기존 26건 + 프로세스 통합 7건 = **33건 통과**.
-`.github/workflows/rest-migration.yml`의 독립 `inbox-recovery` job은
+별도 `.github/workflows/github-inbox.yml`의 `inbox-recovery` job은
 Python 3.12에서 Ubuntu와 Windows 양쪽에 동일한 33건을 실행한다.
 Windows 결과는 해당 PR의 실제 CI 결과로 판정하며 로컬 통과로 대체하지 않는다.
 
