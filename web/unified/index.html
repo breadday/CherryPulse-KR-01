@@ -65,7 +65,7 @@ el("preview").addEventListener("click",()=>{
  if(!/^\d{6}$/.test(code)||qty===null||(type==="지정가"&&price===null)){
    dst.textContent="종목명 선택, 수량, 지정가를 확인하세요.";return;
  }
- dst.textContent="입력 확인: "+code+" · "+val("direction")+" "+qty+"주 · "+type+(type==="지정가"?" "+money(price)+" · 예상 주문금액 "+money(qty*price):" (금액 미확정)")+" · +(reserved?"예약 "+date+" "+time+" KST (거래일 확인 전)":"즉시 (모의 UI)")+" — 화면 미리보기만 수행, 주문/예약 저장·전송 없음.";
+ dst.textContent="입력 확인: "+code+" · "+val("direction")+" "+qty+"주 · "+type+(type==="지정가"?" "+money(price)+" · 예상 주문금액 "+money(qty*price):" (금액 미확정)")+" · "+(reserved?"예약 "+date+" "+time+" KST (거래일 확인 전)":"즉시 (모의 UI)")+" — 화면 미리보기만 수행, 주문/예약 저장·전송 없음.";
 });
 recalc();
 })();
