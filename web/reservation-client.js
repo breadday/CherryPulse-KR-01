@@ -95,6 +95,7 @@ const CherryReservations = {
       try {await api("POST",{action:"logout"}); ++generation; session(false); el("reservation-status").textContent="로그아웃했습니다.";}
       catch(e){error(e);} finally {pending=false;}
     };
+    window.addEventListener("pin-rotated",()=>{++generation;session(false);el("reservation-status").textContent="새 PIN으로 로그인하세요.";});
     el("reservation-refresh").onclick = refresh;
     window.setInterval(() => {
       if (signed && !pending && !document.hidden && location.hash==="#orders") refresh();

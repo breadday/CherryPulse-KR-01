@@ -31,6 +31,14 @@ module.exports = async function reservations(req,res) {
   const token = (req.headers.cookie || "").split(/;\s*/).find(c=>c.startsWith(cookie+"="))?.slice(cookie.length+1);
   const body = req.body || {};
   try {
+    if ((req.method==="GET" && req.query?.view==="pin-status") || (req.method==="POST" && body.action==="recover-pin")) {
+      const reset = req.method==="POST";
+      if (reset && (!/^[a-f0-9]{64}$/.test(body.code || "") || typeof body.pin!=="string" || !/^\d{4}$/.test(body.pin))) return fail(422);
+      const result = await rpc("cp_owner_pin_settings",{p_code:reset?body.code:null,p_pin:reset?body.pin:null});
+      if (typeof result.configured!=="boolean") return fail([403,422].includes(result.status)?result.status:502);
+      if (reset) res.setHeader("Set-Cookie",sessionCookie("",0));
+      return res.status(200).json({configured:result.configured});
+    }
     if (req.method==="POST" && body.action==="login") {
       if (!/^\d{4}$/.test(body.pin || "")) return fail(422);
       const result = await rpc("cp_pin_login",{p_pin:body.pin});

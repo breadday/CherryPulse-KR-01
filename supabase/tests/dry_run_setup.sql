@@ -1,5 +1,6 @@
 -- Disposable CI database only.
 create role anon;
+create role service_role;
 create role authenticated;
 create schema auth;
 create table auth.users(id uuid primary key, created_at timestamptz default now());

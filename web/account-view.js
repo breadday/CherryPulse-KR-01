@@ -42,6 +42,7 @@
     document.querySelector("#account option").textContent = data ? "키움 모의계좌" : "모의계좌 미조회";
   }
   function lock() {
+    window.dispatchEvent(new Event("account-locked"));
     request?.abort();
     field.value = "";
     render(null,"모의계좌 미조회");

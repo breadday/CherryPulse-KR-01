@@ -34,6 +34,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/tests/pin_access.sql
           psql -v ON_ERROR_STOP=1 -f supabase/tests/dry_run_fixtures.sql
           python supabase/tests/reservation_tick_check.py
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/owner_pin_recovery.sql
   offline-rest:
     runs-on: ubuntu-latest
     steps:

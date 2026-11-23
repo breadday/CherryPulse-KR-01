@@ -42,4 +42,4 @@ async function readAccount(send = request, authenticate = token, wait = pause) {
   throw new Error("INCOMPLETE_HOLDINGS");
 }
 
-module.exports = {readAccount};
+module.exports = {readAccount, integer};

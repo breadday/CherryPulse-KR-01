@@ -5,6 +5,13 @@ let tokenRequest;
 let expires = 0;
 
 async function request(path, body, headers = {}) {
+  const allowed = {
+    "/oauth2/token": [undefined],
+    "/api/dostk/acnt": ["kt00001","kt00018","kt00007","ka10076"],
+    "/api/dostk/chart": ["ka10079"],
+    "/api/dostk/stkinfo": ["ka10001"]
+  };
+  if (!Object.hasOwn(allowed,path) || !allowed[path].includes(headers["api-id"])) throw new Error("READ_ONLY_TRANSPORT");
   const response = await fetch(base + path, {
     method: "POST", redirect: "error", signal: AbortSignal.timeout(8000),
     headers: {"Content-Type": "application/json;charset=UTF-8", ...headers},
