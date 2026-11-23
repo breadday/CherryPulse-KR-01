@@ -1,0 +1,46 @@
+const origin = "https://qrrrnxmsbrkqueaabjdr.supabase.co";
+const publicKey = "sb_publishable_AZ1sO52k9n3Uw1dZZYNaOQ_jwSO-Dxp";
+const cookie = "__Host-cp-reservations";
+function sessionCookie(value, seconds) {
+  return cookie+"="+value+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age="+seconds;
+}
+async function rpc(name,args) {
+  const response = await fetch(origin+"/rest/v1/rpc/"+name, {
+    method:"POST", headers:{apikey:publicKey,"Content-Type":"application/json"},
+    body:JSON.stringify(args), redirect:"error",signal:AbortSignal.timeout(12000)
+  });
+  if (!response.ok) throw new Error("STORAGE_UNAVAILABLE");
+  return response.json();
+}
+module.exports = async function reservations(req,res) {
+  res.setHeader("Cache-Control","private, no-store");
+  res.setHeader("Vary","Cookie");
+  const fail = status => res.status(status).json({status});
+  const actions = {GET:"list",POST:"create",PATCH:"update",DELETE:"cancel"};
+  let action = actions[req.method];
+  if (!action) return fail(405);
+  if (req.method !== "GET" && !/^application\/json(?:;|$)/i.test(req.headers["content-type"] || "")) return fail(415);
+  if (req.headers["sec-fetch-site"]==="cross-site") return fail(403);
+  const token = (req.headers.cookie || "").split(/;\s*/).find(c=>c.startsWith(cookie+"="))?.slice(cookie.length+1);
+  const body = req.body || {};
+  try {
+    if (req.method==="POST" && body.action==="login") {
+      if (!/^\d{4}$/.test(body.pin || "")) return fail(422);
+      const result = await rpc("cp_pin_login",{p_pin:body.pin});
+      if (!/^[a-f0-9]{64}$/.test(result.sessionToken || "")) return fail([401,429,503].includes(result.status)?result.status:502);
+      res.setHeader("Set-Cookie",sessionCookie(result.sessionToken,43200));
+      return res.status(200).json({ok:true});
+    }
+    if (!/^[a-f0-9]{64}$/.test(token || "")) return fail(401);
+    if (req.method==="POST" && body.action==="logout") {
+      await rpc("cp_pin_logout",{p_session:token});
+      res.setHeader("Set-Cookie",sessionCookie("",0));
+      return res.status(200).json({ok:true});
+    }
+    if (action!=="list" && !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(body.id || "")) return fail(422);
+    const result = await rpc("cp_reservations",{p_session:token,p_action:action,p_id:body.id??null,
+      p_version:body.version??null,p_details:body.details??null});
+    if (result.status) return fail([401,404,409,422].includes(result.status)?result.status:502);
+    return res.status(200).json(result);
+  } catch {return fail(503);}
+};

@@ -165,18 +165,23 @@ function previewOrder(){
 const draftPrefix = "cherryplus.reservation.v1.";
 let editing = null;
 let reviewed = null;
+let serverEdit = null;
+let createId = crypto.randomUUID();
 function clearReview() {
   reviewed = null;
+  el("confirm-server").hidden = true;
   el("confirm-draft").hidden = true;
 }
 function finishEdit() {
+  serverEdit = null;
   editing = null;
   el("stop-edit").hidden = true;
   clearReview();
 }
 function editDraft(key, original, row) {
   clearReview();
-  editing = {key, original};
+  serverEdit = null;
+  editing = key ? {key, original} : null;
   ++searchVersion;
   ++quoteVersion;
   selectedText = row.name;
@@ -241,7 +246,8 @@ el("orders").addEventListener("change", clearReview);
 el("stop-edit").onclick = () => { finishEdit(); el("feedback").textContent = "초안 수정을 종료했습니다."; };
 el("preview").onclick = () => {
   reviewed = previewOrder();
-  el("confirm-draft").hidden = !reviewed;
+  el("confirm-draft").hidden = !reviewed || Boolean(serverEdit);
+  el("confirm-server").hidden = !reviewed || !reservations.signedIn();
 };
 el("confirm-draft").onclick = () => {
   const current = previewOrder();
@@ -263,6 +269,31 @@ el("confirm-draft").onclick = () => {
     renderDrafts();
     el("feedback").textContent = "이 브라우저에 예약 초안을 저장했습니다. 주문 전송 없음.";
   } catch { el("feedback").textContent = "초안을 저장하지 못했습니다. 브라우저 저장 공간을 확인하세요."; }
+};
+const reservations = CherryReservations.attach({
+  edit(row) {
+    editDraft(null, null, row.details);
+    serverEdit = row;
+    el("feedback").textContent = "서버 예약 수정 중 · 변경 후 미리보기를 확인하세요.";
+  },
+  sessionChanged(active) {
+    if (!active && serverEdit) finishEdit();
+    el("confirm-server").hidden = !active || !reviewed;
+    renderDrafts();
+  }
+});
+el("confirm-server").onclick = async () => {
+  const current = previewOrder();
+  if (!current || JSON.stringify(current) !== JSON.stringify(reviewed)) {
+    clearReview();
+    return;
+  }
+  const id = serverEdit?.id || (editing?.key?.slice(draftPrefix.length)) || createId;
+  if (await reservations.save(id,serverEdit?.version,current)) {
+    createId = crypto.randomUUID();
+    finishEdit();
+    el("feedback").textContent = "서버 예약을 저장했습니다. 실행기는 OFF입니다.";
+  }
 };
 window.addEventListener("holding-selected", ({detail}) => {
   finishEdit();
