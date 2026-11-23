@@ -7,6 +7,7 @@ const MAX_NAME_LENGTH = 100;
 const MAX_NOTE_LENGTH = 1000;
 const MAX_SOURCE_LENGTH = 2048;
 let state;
+const previewPrices = new Map();
 let symbolView = "active";
 let pendingBoardRestore = null;
 let restoreBaseline = null;
@@ -71,26 +72,36 @@ function nextPatternVersion(pattern) {
     .reduce((highest, item) => Math.max(highest, patternVersion(item)), 0) + 1;
 }
 function render() {
+  const picker = $("buy-symbol");
+  if (picker) {
+    const selected = picker.value;
+    const empty = document.createElement("option"); empty.value = ""; empty.textContent = "종목 선택"; picker.replaceChildren(empty);
+    for (const item of state.symbols.filter(item => !item.archived)) {
+      const option = document.createElement("option"); option.value = item.code; option.textContent = item.name + " · " + item.code; picker.append(option);
+    }
+    picker.value = selected;
+    if (selected && !picker.value) picker.dispatchEvent(new Event("change"));
+  }
   const openedCode = state.symbols.find((item) => $("drawer-" + item.code)?.open)?.code;
   const activeCount = state.symbols.filter((item) => item.archived !== true).length;
   const archivedCount = state.symbols.length - activeCount;
-  if (document.getElementById("draft-count")) $("draft-count").textContent = String(activeCount);
-  if (document.getElementById("draft-archived-count")) $("draft-archived-count").textContent = String(archivedCount);
-  const linkedCount = state.symbols.filter((item) => item.archived !== true &&
-    state.patterns.some((pattern) => pattern.id === item.patternId &&
-      pattern.kind !== "BUY_PRICE_AT_OR_BELOW")).length;
+  const stopIds = new Set(state.patterns.filter((pattern) =>
+    pattern.kind !== "BUY_PRICE_AT_OR_BELOW").map((pattern) => pattern.id));
+  const linkedCount = state.symbols.filter((item) =>
+    item.archived !== true && stopIds.has(item.patternId)).length;
   $("overview-active").textContent = String(activeCount);
   $("overview-linked").textContent = String(linkedCount);
   $("overview-unlinked").textContent = String(activeCount - linkedCount);
   $("overview-archived").textContent = String(archivedCount);
   $("overview-next").textContent = activeCount === 0
-    ? "시작하기: 종목 관리에서 외부에서 고른 종목을 추가하세요."
+    ? "시작하기: ‘＋ 종목 등록’에서 관심종목을 추가하세요."
     : activeCount > linkedCount
     ? "다음 설정: 종목 카드에서 손절 패턴 초안을 연결하세요."
     : "초안 연결 완료 · 실제 감시는 엔진 연결·수락 확인 후 가능합니다.";
   const query = $("symbol-search").value.trim().toLowerCase();
   const scopedSymbols = state.symbols.filter((item) =>
-    symbolView === "archived" ? item.archived === true : item.archived !== true
+    symbolView === "archived" ? item.archived === true :
+      item.archived !== true && (symbolView !== "unlinked" || !stopIds.has(item.patternId))
   );
   const visibleSymbols = query
     ? scopedSymbols.filter((item) =>
@@ -103,6 +114,7 @@ function render() {
   $("export-symbols-json").disabled = activeCount === 0;
   $("export-symbols-csv").disabled = activeCount === 0;
   $("active-filter").setAttribute("aria-pressed", String(symbolView === "active"));
+  $("unlinked-filter").setAttribute("aria-pressed", String(symbolView === "unlinked"));
   $("archived-filter").setAttribute("aria-pressed", String(symbolView === "archived"));
   const symbols = $("symbol-list");
   const patterns = $("pattern-list");
@@ -113,6 +125,8 @@ function render() {
       ? "검색 결과가 없습니다. 새 종목은 ‘＋ 종목 등록’에서 종목명으로 찾아 추가하세요."
       : symbolView === "archived"
       ? "보관한 종목이 없습니다. 종목 카드를 보관해 두면 여기에 남습니다."
+      : symbolView === "unlinked"
+      ? "손절 패턴이 미연결된 관심종목이 없습니다."
       : "등록한 종목이 없습니다. 종목명을 검색해 추가하세요.";
     symbols.append(empty);
   }
@@ -210,13 +224,48 @@ function render() {
     const priceLabel = document.createElement("label"); priceLabel.textContent = "가상 현재가 (원)"; priceLabel.htmlFor = `preview-price-${item.code}`;
     const priceInput = document.createElement("input"); priceInput.id = priceLabel.htmlFor;
     priceInput.type = "number"; priceInput.min = "0.000001"; priceInput.step = "any"; priceInput.required = true;
+    const quoteHint = document.createElement("p");
+    quoteHint.className = "hint";
+    quoteHint.setAttribute("role", "status");
+    const savedPrice = previewPrices.get(item.code);
+    if (savedPrice) {
+      priceInput.value = savedPrice.value;
+      quoteHint.textContent = savedPrice.hint;
+    }
+    priceInput.addEventListener("input", () => {
+      quoteHint.textContent = "직접 입력한 가상 가격";
+      previewPrices.set(item.code, {value: priceInput.value, hint: quoteHint.textContent});
+    });
+    let loadingPrice = false;
+    drawer.addEventListener("toggle", async () => {
+      if (!drawer.open || loadingPrice || previewPrices.has(item.code)) return;
+      loadingPrice = true;
+      quoteHint.textContent = "키움 모의 시세 조회 중…";
+      try {
+        const response = await fetch("/api/quote?code=" + encodeURIComponent(item.code),
+          {signal: AbortSignal.timeout(18000)});
+        if (!response.ok) throw new Error();
+        const quote = await response.json();
+        if (quote.code !== item.code || !Number.isSafeInteger(quote.price) || quote.price <= 0 ||
+            !/^\d{14}$/.test(quote.time)) throw new Error();
+        if (!drawer.isConnected || !drawer.open || previewPrices.has(item.code)) return;
+        const t = quote.time;
+        priceInput.value = String(quote.price);
+        quoteHint.textContent = `키움 모의 최근 체결 · ${t.slice(0,4)}-${t.slice(4,6)}-${t.slice(6,8)} ${t.slice(8,10)}:${t.slice(10,12)}:${t.slice(12)} (한국시간) · 수정 가능`;
+        previewPrices.set(item.code, {value: priceInput.value, hint: quoteHint.textContent});
+      } catch {
+        if (!previewPrices.has(item.code)) quoteHint.textContent = "시세를 조회할 수 없습니다. 가상 가격을 직접 입력하거나 상세를 다시 열어 주세요.";
+      } finally {
+        loadingPrice = false;
+      }
+    });
     const avgLabel = document.createElement("label"); avgLabel.textContent = "가상 평균 매수가 (비율 손절용, 선택)"; avgLabel.htmlFor = `preview-average-${item.code}`;
     const avgInput = document.createElement("input"); avgInput.id = avgLabel.htmlFor;
     avgInput.type = "number"; avgInput.min = "0.000001"; avgInput.step = "any";
     const previewButton = document.createElement("button"); previewButton.type = "submit"; previewButton.textContent = "연결한 조건 미리보기";
     const previewResult = document.createElement("p"); previewResult.className = "symbol-preview-result";
     previewResult.setAttribute("role", "status"); previewResult.setAttribute("aria-live", "polite");
-    previewForm.append(priceLabel, priceInput, avgLabel, avgInput, previewButton, previewResult);
+    previewForm.append(priceLabel, priceInput, quoteHint, avgLabel, avgInput, previewButton, previewResult);
     previewForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const result = CherryPulseBuyPreview.previewSymbol(item, state.patterns, priceInput.value, avgInput.value);
@@ -375,6 +424,7 @@ function renderBuyPatterns() {
   }
 }
 $("active-filter").addEventListener("click", () => { symbolView = "active"; render(); });
+$("unlinked-filter").addEventListener("click", () => { symbolView = "unlinked"; render(); });
 $("archived-filter").addEventListener("click", () => { symbolView = "archived"; render(); });
 $("symbol-search").addEventListener("input", render);
 function downloadActiveSymbols(format) {
@@ -650,12 +700,26 @@ $("symbol-form").addEventListener("submit", (event) => {
   if (!name || name.length > MAX_NAME_LENGTH) { notice("종목명은 100자 이내로 직접 입력하세요."); return; }
   if (source && (source.length > MAX_SOURCE_LENGTH || !safeSourceUrl(source))) { notice("참고 링크는 2048자 이내의 http 또는 https 주소만 사용할 수 있습니다."); return; }
   if (note.length > MAX_NOTE_LENGTH) { notice("메모는 1000자 이내로 입력하세요."); return; }
-  if (state.symbols.some((item) => item.code === code)) { notice("이미 등록한 종목입니다."); return; }
-  if (commitDraft((next) => {
-    next.symbols.push({code, name, source, note, patternId: "", archived: false});
-  }, `${name} (${code})을 초안에 추가했습니다. 감시는 시작되지 않았습니다.`)) {
-    event.target.reset(); render();
+  const existing = state.symbols.find((item) => item.code === code);
+  if (existing && !existing.archived) {
+    notice(`${name} (${code})은 이미 관심 목록에 있습니다.`);
+  } else {
+    const saved = commitDraft((next) => {
+      if (existing) next.symbols.find((item) => item.code === code).archived = false;
+      else next.symbols.push({code, name, source, note, patternId: "", archived: false});
+    }, existing ? `${name} (${code})을 관심 목록으로 복원했습니다.` : `${name} (${code})을 초안에 추가했습니다.`);
+    if (!saved) {
+      const result = $("registration-result");
+      if (result) result.textContent = $("notice").textContent;
+      return;
+    }
   }
+  event.target.reset();
+  symbolView = "active";
+  $("symbol-search").value = "";
+  render();
+  const result = $("registration-result");
+  if (result) result.textContent = $("notice").textContent;
 });
 $("pattern-kind").addEventListener("change", () => {
   const ratio = $("pattern-kind").value === "AVERAGE_COST_DROP";
