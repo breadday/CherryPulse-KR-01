@@ -264,6 +264,23 @@ el("confirm-draft").onclick = () => {
     el("feedback").textContent = "이 브라우저에 예약 초안을 저장했습니다. 주문 전송 없음.";
   } catch { el("feedback").textContent = "초안을 저장하지 못했습니다. 브라우저 저장 공간을 확인하세요."; }
 };
+window.addEventListener("holding-selected", ({detail}) => {
+  finishEdit();
+  ++searchVersion;
+  ++quoteVersion;
+  selectedText = detail.name || detail.code;
+  el("stock-name").value = selectedText;
+  el("symbol").value = detail.code;
+  el("stock-options").replaceChildren();
+  el("price").value = "";
+  el("quantity").value = "";
+  el("feedback").textContent = selectedText + " · 거래 구분과 수량을 확인하세요.";
+  el("quote-retry").disabled = false;
+  recalc();
+  location.hash = "orders";
+  fillLimitPrice();
+  requestAnimationFrame(() => el("quantity").focus());
+});
 window.addEventListener("storage", renderDrafts);
 renderDrafts();
 recalc();
