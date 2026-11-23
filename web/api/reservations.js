@@ -20,7 +20,14 @@ module.exports = async function reservations(req,res) {
   let action = actions[req.method];
   if (!action) return fail(405);
   if (req.method !== "GET" && !/^application\/json(?:;|$)/i.test(req.headers["content-type"] || "")) return fail(415);
-  if (req.headers["sec-fetch-site"]==="cross-site") return fail(403);
+  const site = req.headers["sec-fetch-site"];
+  if (site==="cross-site" || (req.method!=="GET" && site==="same-site")) return fail(403);
+  if (req.method!=="GET" && req.headers.origin) {
+    try {
+      const source = new URL(req.headers.origin);
+      if (source.host !== req.headers.host || !["https:","http:"].includes(source.protocol)) return fail(403);
+    } catch { return fail(403); }
+  }
   const token = (req.headers.cookie || "").split(/;\s*/).find(c=>c.startsWith(cookie+"="))?.slice(cookie.length+1);
   const body = req.body || {};
   try {

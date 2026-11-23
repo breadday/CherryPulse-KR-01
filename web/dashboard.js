@@ -292,7 +292,7 @@ el("confirm-server").onclick = async () => {
   if (await reservations.save(id,serverEdit?.version,current)) {
     createId = crypto.randomUUID();
     finishEdit();
-    el("feedback").textContent = "서버 예약을 저장했습니다. 실행기는 OFF입니다.";
+    el("feedback").textContent = "서버 예약을 저장했습니다. 주문 전송 없이 모의 검증합니다.";
   }
 };
 window.addEventListener("holding-selected", ({detail}) => {

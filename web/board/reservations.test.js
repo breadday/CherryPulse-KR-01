@@ -30,3 +30,10 @@ test("reservation updates use only the checked RPC and propagate conflicts",asyn
    {id:"12345678-0000-4000-b000-000000000001",version:2});
  assert.equal(res.code,409);
 });
+
+test("reservation mutations reject a sibling origin before authentication",async t=>{
+ const net=t.mock.method(global,"fetch");
+ const res=await send("PATCH",{"content-type":"application/json",host:"preview.example",origin:"https://other.example"});
+ assert.equal(res.code,403);
+ assert.equal(net.mock.callCount(),0);
+});

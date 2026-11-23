@@ -7,6 +7,33 @@ on:
 permissions:
   contents: read
 jobs:
+  reservation-dry-run:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify PIN controls and reservation dry runs in an isolated database
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/dry_run_setup.sql
+          for migration in supabase/migrations/*.sql; do
+            case "$migration" in *schedule_dry_runs.sql) continue ;; esac
+            psql -v ON_ERROR_STOP=1 -f "$migration"
+          done
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/pin_access.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/dry_run_fixtures.sql
+          python supabase/tests/reservation_tick_check.py
   offline-rest:
     runs-on: ubuntu-latest
     steps:

@@ -31,10 +31,17 @@ const CherryReservations = {
         const item = document.createElement("div");
         item.className = "draft-row";
         const summary = document.createElement("p");
-        const state = {scheduled:"예약 대기",expired:"만료",cancelled:"취소"}[row.status];
-        summary.textContent = [state,d.date,d.time+" KST",d.name,d.code,d.side,d.qty.toLocaleString("ko-KR")+"주",
+        const state = {scheduled:"예약 대기",due:"실행 시각 도달",dry_run:"실행 모의 검증 완료",error:"오류",expired:"만료",cancelled:"취소"}[row.status];
+        summary.textContent = [state,"실행 예정 "+d.date,d.time+" KST",d.name,d.code,d.side,d.qty.toLocaleString("ko-KR")+"주",
           d.type,d.price===null?"":d.price.toLocaleString("ko-KR")+"원"].filter(Boolean).join(" · ");
         item.append(summary);
+        if (row.processedAt) {
+          const processed = document.createElement("p");
+          const time = new Date(row.processedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"});
+          processed.textContent = "처리 시각 "+time+" KST · DRY_RUN · 주문 전송 없음";
+          if (row.errorCode) processed.textContent += " · "+row.errorCode;
+          item.append(processed);
+        }
         if (row.status==="scheduled") {
           const change = document.createElement("button"), cancel = document.createElement("button");
           change.className = cancel.className = "btn secondary";
@@ -48,7 +55,7 @@ const CherryReservations = {
         }
         list.append(item);
       }
-      el("reservation-status").textContent = "서버 예약 "+rows.length+"건 · 실행 OFF";
+      el("reservation-status").textContent = "서버 예약 "+rows.length+"건 · 모의 검증 전용";
     }
     async function refresh() {
       const current = ++generation;
@@ -89,6 +96,9 @@ const CherryReservations = {
       catch(e){error(e);} finally {pending=false;}
     };
     el("reservation-refresh").onclick = refresh;
+    window.setInterval(() => {
+      if (signed && !pending && !document.hidden && location.hash==="#orders") refresh();
+    },15000);
     window.addEventListener("pageshow",refresh);
     document.addEventListener("visibilitychange",()=>{if (!document.hidden && signed) refresh();});
     return {signedIn:()=>signed, save:(id,version,details)=>mutate(version?"PATCH":"POST",{id,version,details})};
