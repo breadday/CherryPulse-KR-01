@@ -15,6 +15,30 @@ const money=n=>n.toLocaleString("ko-KR")+"원";
 const val=id=>el(id).value.trim();
 const validWhole=(id,allowZero=false)=>{const raw=val(id).replace(/,/g,"");if(raw===""||!/^[0-9]+$/.test(raw))return null;const n=Number(raw);return Number.isSafeInteger(n)&&n>=(allowZero?0:1)?n:null;};
 const formatDigits=v=>v.replace(/\D/g,"").replace(/\B(?=(\d{3})+(?!\d))/g,",");
+document.querySelectorAll(".step-field").forEach(group => {
+  const field = group.querySelector("input");
+  function step(delta) {
+    if (field.disabled) return;
+    const current = validWhole(field.id, true);
+    if (current === null && field.value !== "") return;
+    const next = Math.max(1, (current ?? 0) + delta);
+    if (!Number.isSafeInteger(next)) return;
+    field.value = String(next);
+    field.dispatchEvent(new Event("input", {bubbles:true}));
+  }
+  group.querySelectorAll("[data-step]").forEach(button => {
+    button.addEventListener("click", () => step(Number(button.dataset.step)));
+  });
+  field.addEventListener("keydown", event => {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    event.preventDefault();
+    step(event.key === "ArrowUp" ? 1 : -1);
+  });
+});
+function setMarketPriceDisabled(disabled) {
+  el("price").disabled = disabled;
+  document.querySelectorAll("#price + .step-buttons button").forEach(button => {button.disabled = disabled;});
+}
 ["quantity","price","cash","cash-reserve"].forEach(id=>el(id).addEventListener("input",event=>{const field=event.target,caret=field.selectionStart??field.value.length,priorDigits=field.value.slice(0,caret).replace(/\D/g,"").length;field.value=formatDigits(field.value);let pos=0,count=0;while(pos<field.value.length&&count<priorDigits){if(/\d/.test(field.value[pos]))count++;pos++;}try{field.setSelectionRange(pos,pos);}catch(_error){}recalc();}));
 function recalc(){
  const qty=validWhole("quantity"),price=validWhole("price"),cash=validWhole("cash",true),reserve=val("cash-reserve")===""?0:validWhole("cash-reserve",true),market=val("order-type")==="시장가",buy=val("direction")==="매수";
@@ -101,7 +125,7 @@ el("quote-retry").addEventListener("click", fillLimitPrice);
 el("order-type").addEventListener("change", () => {
   ++quoteVersion;
   const market = val("order-type") === "시장가";
-  el("price").disabled = market;
+  setMarketPriceDisabled(market);
   if (val("symbol")) fillLimitPrice();
 });
 ["quantity","price","cash","cash-reserve","order-type","direction"].forEach(id=>el(id).addEventListener("input",recalc));
@@ -190,7 +214,7 @@ function editDraft(key, original, row) {
   el("direction").value = row.side;
   el("quantity").value = formatDigits(String(row.qty));
   el("order-type").value = row.type;
-  el("price").disabled = row.type === "시장가";
+  setMarketPriceDisabled(row.type === "시장가");
   el("price").value = row.price ? formatDigits(String(row.price)) : "";
   el("quote-retry").disabled = false;
   el("quote-status").textContent = "초안 복원 · 현재가 미조회";
