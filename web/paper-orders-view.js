@@ -13,8 +13,8 @@
   el("orders").addEventListener("input",invalidate);
   el("orders").addEventListener("click",event=>{if(event.target.closest("button")?.id!=="paper-check") invalidate();});
   async function read(path,opts) {
-    if (!key.value) throw Error("계좌·보유종목에서 계좌 열람 키를 입력하세요.");
-    const r=await fetch("/api/paper-orders"+path,{...opts,headers:{Authorization:"Bearer "+key.value,"Content-Type":"application/json"},
+    if (!accountDevice.credential()) throw Error("계좌·보유종목에서 계좌 열람 키를 입력하세요.");
+    const r=await fetch("/api/paper-orders"+path,{...opts,headers:{Authorization:"Bearer "+accountDevice.credential(),"Content-Type":"application/json"},
       cache:"no-store",redirect:"error",signal:AbortSignal.timeout(55000)});
     const data=await r.json();
     if (!r.ok) throw Error(data.error || "조회 실패");

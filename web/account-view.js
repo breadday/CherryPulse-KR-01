@@ -56,7 +56,7 @@
     render(null,"모의계좌 조회 중");
     try {
       const response = await fetch("/api/account",{cache:"no-store", redirect:"error",
-        headers:{Authorization:"Bearer " + field.value}, signal:AbortSignal.any([active.signal,AbortSignal.timeout(55000)])});
+        headers:{Authorization:"Bearer " + accountDevice.credential()}, signal:AbortSignal.any([active.signal,AbortSignal.timeout(55000)])});
       if (active.signal.aborted) return;
       if (!response.ok) {
         const message = {401:"열람 키를 확인하세요.",503:"연결 대기 · 서버의 모의 키와 화면 열람 키 설정이 필요합니다.",504:"조회 시간 초과"};

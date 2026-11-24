@@ -31,6 +31,7 @@ jobs:
             case "$migration" in *schedule_dry_runs.sql) continue ;; esac
             psql -v ON_ERROR_STOP=1 -f "$migration"
           done
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/account_device_pairing.sql
           psql -v ON_ERROR_STOP=1 -f supabase/tests/pin_access.sql
           psql -v ON_ERROR_STOP=1 -f supabase/tests/dry_run_fixtures.sql
           python supabase/tests/reservation_tick_check.py
