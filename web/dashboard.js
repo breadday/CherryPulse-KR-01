@@ -304,7 +304,7 @@ window.addEventListener("holding-selected", ({detail}) => {
   el("symbol").value = detail.code;
   el("stock-options").replaceChildren();
   el("price").value = "";
-  el("quantity").value = "";
+  el("quantity").value = el("quantity").defaultValue;
   el("feedback").textContent = selectedText + " · 거래 구분과 수량을 확인하세요.";
   el("quote-retry").disabled = false;
   recalc();
