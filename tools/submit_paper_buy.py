@@ -191,7 +191,14 @@ def main(argv: list[str] | None = None) -> int:
         credentials = paper_credentials_from_env()
         day = datetime.now(KST).strftime("%Y%m%d")
         guard = sentinel_path(ROOT, day)
-        if guard.exists():
+        pacer = RequestPacer()
+        issuer = PaperTokenIssuer(pacer)
+        cache = PaperTokenCache(credentials, issuer.issue)
+        guard.parent.mkdir(exist_ok=True)
+        try:
+            with guard.open("x", encoding="utf-8") as claim:
+                _ = claim.write(json.dumps({"date": day, "status": "PENDING"}))
+        except FileExistsError:
             _ = sys.stdout.write(
                 json.dumps(
                     report(
@@ -205,16 +212,16 @@ def main(argv: list[str] | None = None) -> int:
                 + "\n"
             )
             return 1
-        pacer = RequestPacer()
-        issuer = PaperTokenIssuer(pacer)
-        cache = PaperTokenCache(credentials, issuer.issue)
-        token = cache.get()
+        try:
+            token = cache.get()
+        except Exception:
+            guard.unlink()
+            raise
         try:
             payload = submit_buy_body(
                 build_buy_body(preview), token, pacer, 10, real_opener
             )
         except Exception:  # noqa: BLE001 -- UNKNOWN blocks resubmission; context never echoed.
-            guard.parent.mkdir(exist_ok=True)
             _ = guard.write_text(
                 json.dumps({"date": day, "status": "UNKNOWN"}), encoding="utf-8"
             )
@@ -233,7 +240,6 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         acked, reason = classify_order_response(payload)
         if acked:
-            guard.parent.mkdir(exist_ok=True)
             _ = guard.write_text(
                 json.dumps(
                     {
@@ -246,6 +252,11 @@ def main(argv: list[str] | None = None) -> int:
                 ),
                 encoding="utf-8",
             )
+        else:
+            # An ambiguous reply must keep the claim, even after a restart.
+            code = payload.get("return_code")
+            if type(code) is int and code != 0:
+                guard.unlink()
     except Exception:  # noqa: BLE001 -- Do not echo credentials or auth exception context.
         _ = sys.stdout.write(
             json.dumps(
