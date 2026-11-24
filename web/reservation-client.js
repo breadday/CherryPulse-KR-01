@@ -69,17 +69,24 @@ const CherryReservations = {
       }
       el("reservation-status").textContent = "서버 예약 "+rows.length+"건 · 모의 검증 전용";
     }
-    async function refresh() {
+    async function refresh(afterLogin=false) {
       const current = ++generation;
       try {
         const {rows} = await api("GET");
         if (current!==generation) return;
         session(true);
         render(rows);
+        return true;
       } catch(e) {
         if (current!==generation) return;
         el("reservation-list").replaceChildren();
         error(e);
+        if (afterLogin===true) {
+          el("reservation-status").textContent = e.status===401
+            ? "PIN은 확인됐지만 로그인 세션이 유지되지 않았습니다. 이 사이트의 쿠키를 허용한 뒤 다시 로그인하세요."
+            : "PIN은 확인됐지만 예약 목록 조회에 실패했습니다. 서버 예약 조회를 다시 눌러주세요.";
+        }
+        return false;
       }
     }
     async function mutate(method,body) {
@@ -98,8 +105,26 @@ const CherryReservations = {
     el("reservation-login").onsubmit = async event => {
       event.preventDefault();
       const field = el("reservation-pin"), pin = field.value;
-      field.value = "";
-      await mutate("POST",{action:"login",pin});
+      if (pending) return;
+      pending = true;
+      ++generation;
+      const button = event.currentTarget.querySelector("button");
+      button.disabled = true;
+      el("reservation-status").textContent = "보드 PIN 확인 중…";
+      try {
+        await api("POST",{action:"login",pin});
+        session(true);
+        if (await refresh(true)) field.value = "";
+      } catch(e) {
+        error(e);
+        if (e.status===401) {
+          el("reservation-status").textContent = "예약용 보드 PIN이 일치하지 않습니다. 계좌 기기 PIN과 별도로 설정한 보드 PIN을 입력하세요.";
+          field.focus();
+          field.select();
+        } else if (e.status===422) {
+          el("reservation-status").textContent = "보드 PIN은 숫자 4자리 또는 6자리입니다.";
+        }
+      } finally {pending=false; button.disabled=false;}
     };
     el("reservation-logout").onclick = async () => {
       if (pending) return;
@@ -112,8 +137,8 @@ const CherryReservations = {
     window.setInterval(() => {
       if (signed && !pending && !document.hidden && location.hash==="#orders") refresh();
     },15000);
-    window.addEventListener("pageshow",refresh);
-    document.addEventListener("visibilitychange",()=>{if (!document.hidden && signed) refresh();});
+    window.addEventListener("pageshow",()=>{if (!pending) refresh();});
+    document.addEventListener("visibilitychange",()=>{if (!pending && !document.hidden && signed) refresh();});
     return {signedIn:()=>signed, save:(id,version,details)=>mutate(version?"PATCH":"POST",{id,version,details})};
   }
 };
