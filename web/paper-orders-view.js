@@ -36,7 +36,7 @@
     if (!rows.length) wrap.textContent="조회된 내역이 없습니다.";
     else {
       const t=document.createElement("table");t.className="tbl";
-      const cols={time:"보고 시각",name:"종목",number:"주문번호",side:"구분",qty:"주문수량",executed:"체결수량",remaining:"잔량",price:"주문가",fillPrice:"체결가",state:"상태"};
+      const cols={time:"보고 시각",name:"종목",number:"주문번호",originalNumber:"원주문번호",side:"구분",qty:"주문수량",executed:"체결수량",remaining:"잔량",price:"주문가",fillPrice:"체결가",state:"상태"};
       const head=t.createTHead().insertRow();
       for(const label of Object.values(cols)){const th=document.createElement("th");th.textContent=label;head.append(th);}
       const body=t.createTBody();

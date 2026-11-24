@@ -20,3 +20,13 @@ test("unknown responses never imply acceptance; explicit quantities distinguish 
   assert.equal(historyRow({...row,cntr_qty:"3",ord_remnq:"0"},false).state,"완료");
   assert.equal(historyRow({...row,acpt_tp:"거부"},false).state,"거절");
 });
+test("broker rejection and original order numbers survive history normalization", () => {
+  const rejected = historyRow({ord_no:"0000", acpt_tp:"거절"}, false);
+  assert.equal(rejected.state, "거절");
+  assert.equal(rejected.number, null);
+  for (const fill of [true, false]) {
+    const row = historyRow({ord_no:" 000123 ", [fill ? "orig_ord_no" : "ori_ord"]:"000099"}, fill);
+    assert.equal(row.number, "000123");
+    assert.equal(row.originalNumber, "000099");
+  }
+});

@@ -29,20 +29,26 @@ async function prepare(input) {
   }
   return {apiId:contract.apiId,body:contract.body,checkedAt:account.fetchedAt,transmitted:false};
 }
+function orderNumber(value) {
+  const number = typeof value === "string" ? value.trim() : "";
+  return /^\d+$/.test(number) && /[1-9]/.test(number) ? number : null;
+}
 function historyRow(row,fill) {
   const qty=integer(row.ord_qty), executed=integer(row.cntr_qty),remaining=integer(fill?row.oso_qty:row.ord_remnq);
   const raw=String(row.ord_stt || row.acpt_tp || "").trim();
   let state="결과 불명";
-  if (row.ord_no && !/^0+$/.test(row.ord_no)) {
-    if (["거부","거절"].includes(raw)) state="거절";
-    else if (["취소","취소완료"].includes(raw)) state="취소";
+  const number=orderNumber(row.ord_no);
+  if (["거부","거절"].includes(raw)) state="거절";
+  else if (number) {
+    if (["취소","취소완료"].includes(raw)) state="취소";
     else if (executed>0 && remaining===0 && executed===qty) state="완료";
     else if (executed>0 && remaining>0) state="부분체결";
     else if (executed>0 && fill) state="체결 확인";
     else if (remaining>0 && executed===0) state="미체결";
     else if (raw==="접수") state="접수";
   }
-  return {number:row.ord_no || null,time:row.ord_tm || null,name:row.stk_nm || row.stk_cd || null,
+  return {number,originalNumber:orderNumber(fill ? row.orig_ord_no : row.ori_ord),
+    time:row.ord_tm || null,name:row.stk_nm || row.stk_cd || null,
     side:row.io_tp_nm || null,qty,executed,remaining,price:integer(fill?row.ord_pric:row.ord_uv),
     fillPrice:integer(fill?row.cntr_pric:row.cntr_uv),state};
 }
