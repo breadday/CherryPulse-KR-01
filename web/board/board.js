@@ -774,9 +774,9 @@ if (typeof CherryPulseCloud !== "undefined") {
   };
   const actionIds = ["cloud-login", "cloud-save", "cloud-load", "cloud-retry", "cloud-logout", "cloud-confirm-load", "cloud-cancel-load"];
   const messages = {
-    UNAUTHENTICATED: "접속이 만료됐습니다. 4자리 비밀번호를 다시 입력하세요. 브라우저 초안은 유지됩니다.",
-    PIN_INCORRECT: "비밀번호가 일치하지 않습니다. 숫자 4자리를 확인하세요.",
-    PIN_FORMAT_INVALID: "비밀번호는 숫자 4자리로 입력하세요.",
+    UNAUTHENTICATED: "접속이 만료됐습니다. 4자리 또는 6자리 비밀번호를 다시 입력하세요. 브라우저 초안은 유지됩니다.",
+    PIN_INCORRECT: "비밀번호가 일치하지 않습니다. 숫자 4자리 또는 6자리를 확인하세요.",
+    PIN_FORMAT_INVALID: "비밀번호는 숫자 4자리 또는 6자리로 입력하세요.",
     PIN_LOCKED: "비밀번호를 5회 연속 잘못 입력해 15분간 잠겼습니다. 잠시 후 다시 시도하세요.",
     PIN_NOT_CONFIGURED: "서버 비밀번호 설정이 아직 완료되지 않았습니다.",
     LOAD_REQUIRED: "먼저 서버 초안을 확인하고 불러오세요. 기존 서버 내용을 바로 덮어쓰지 않습니다.",
@@ -816,8 +816,8 @@ if (typeof CherryPulseCloud !== "undefined") {
   $("cloud-login-form").addEventListener("submit", event => {
     event.preventDefault();
     if (busy) return;
-    if (!/^[0-9]{4}$/.test($("cloud-pin").value)) {
-      setStatus("비밀번호는 숫자 4자리로 입력하세요."); $("cloud-pin").focus(); return;
+    if (!/^[0-9]{4}([0-9]{2})?$/.test($("cloud-pin").value)) {
+      setStatus("비밀번호는 숫자 4자리 또는 6자리로 입력하세요."); $("cloud-pin").focus(); return;
     }
     return run(login);
   });
@@ -867,5 +867,5 @@ if (typeof CherryPulseCloud !== "undefined") {
   });
   controls();
   $("cloud-login-form").setAttribute("data-cloud-ready", "true");
-  setStatus("숫자 4자리 비밀번호를 입력하고 ‘보드 열기’를 누르세요.");
+  setStatus("숫자 4자리 또는 6자리 비밀번호를 입력하고 ‘보드 열기’를 누르세요.");
 }

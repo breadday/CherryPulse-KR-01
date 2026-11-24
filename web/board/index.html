@@ -181,10 +181,10 @@
     </div>
     <section class="panel" aria-labelledby="cloud-heading">
       <h2 id="cloud-heading">내 보드 서버 저장</h2>
-      <p class="hint">개인용 보드입니다. 4자리 숫자 비밀번호만 입력하세요. 5회 연속 틀리면 15분간 잠깁니다.</p>
+      <p class="hint">개인용 보드입니다. 4자리 또는 6자리 숫자 비밀번호만 입력하세요. 5회 연속 틀리면 15분간 잠깁니다.</p>
       <form id="cloud-login-form" class="stack-form" novalidate>
-        <label for="cloud-pin">4자리 비밀번호</label>
-        <input id="cloud-pin" type="password" inputmode="numeric" pattern="[0-9]{4}" autocomplete="current-password" minlength="4" maxlength="4" placeholder="숫자 4자리" required>
+        <label for="cloud-pin">4자리 또는 6자리 비밀번호</label>
+        <input id="cloud-pin" type="password" inputmode="numeric" pattern="[0-9]{4}([0-9]{2})?" autocomplete="current-password" minlength="4" maxlength="6" placeholder="숫자 4자리 또는 6자리" required>
         <button id="cloud-login" type="submit">보드 열기</button>
       </form>
       <div class="symbol-filters" role="group" aria-label="서버 초안 작업">

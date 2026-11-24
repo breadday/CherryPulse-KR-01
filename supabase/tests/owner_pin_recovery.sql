@@ -14,14 +14,14 @@ begin
  assert public.cp_owner_pin_settings(challenge,'4372')='{"configured":true}'::jsonb;
  previous:=public.cp_pin_login('4372')->>'sessionToken';
  assert previous is not null;
- assert public.cp_owner_pin_settings(challenge,'5936')->>'status'='403';
+ assert public.cp_owner_pin_settings(challenge,'059362')->>'status'='403';
  challenge:=cherrypulse_private.issue_owner_pin_recovery();
  update cherrypulse_private.pin_recovery set expires_at=now();
- assert public.cp_owner_pin_settings(challenge,'5936')->>'status'='403';
+ assert public.cp_owner_pin_settings(challenge,'059362')->>'status'='403';
  challenge:=cherrypulse_private.issue_owner_pin_recovery();
- assert public.cp_owner_pin_settings(challenge,'5936')='{"configured":true}'::jsonb;
+ assert public.cp_owner_pin_settings(challenge,'059362')='{"configured":true}'::jsonb;
  assert cherrypulse_private.pin_owner(previous) is null;
- assert cherrypulse_private.pin_owner(public.cp_pin_login('5936')->>'sessionToken')=existing_owner;
+ assert cherrypulse_private.pin_owner(public.cp_pin_login('059362')->>'sessionToken')=existing_owner;
  select (select jsonb_agg(to_jsonb(r) order by id) from cherrypulse_private.reservations r) as reservations,
  (select jsonb_agg(to_jsonb(b)) from cherrypulse_private.board_snapshots b) as board into after_reset;
  assert saved is not distinct from after_reset;

@@ -28,7 +28,7 @@
         const body=await r.json().catch(()=>({}));
         const messages={
           403:body.error==="RECOVERY_CODE_INVALID"?"복구 코드가 일치하지 않거나 만료·사용됐습니다. 가장 최근 코드를 확인하세요.":"요청 출처를 확인하지 못했습니다. 고정 주소에서 다시 시도하세요.",
-          422:"64자리 복구 코드와 숫자 4자리 PIN을 확인하세요.",
+          422:"64자리 또는 6자리 복구 코드와 숫자 4자리 또는 6자리 PIN을 확인하세요.",
           503:"서버에서 저장을 확인하지 못했습니다. 잠시 후 다시 시도하세요."
         };
         el("pin-result").textContent=messages[r.status] || "저장 응답 오류 (HTTP "+r.status+").";
