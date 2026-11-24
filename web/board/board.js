@@ -766,7 +766,8 @@ render();
 
 // Cloud persistence is an explicit action; local edits continue to use commitDraft.
 if (typeof CherryPulseCloud !== "undefined") {
-  const cloud = CherryPulseCloud.createClient(fetch, () => crypto.randomUUID(), CherryPulseBoardBackup);
+  const unified = typeof location!=="undefined" && location.search?.includes("embedded=1");
+  const cloud = CherryPulseCloud.createClient(fetch, () => crypto.randomUUID(), CherryPulseBoardBackup, unified);
   let busy = false, candidate = null, baseline = null;
   const setStatus = text => {
     $("cloud-status").textContent = text;
@@ -808,6 +809,7 @@ if (typeof CherryPulseCloud !== "undefined") {
     setStatus("비밀번호 확인 중입니다… 잠시 기다려 주세요."); $("cloud-login").textContent = "확인 중…";
     try {
       await cloud.auth(pin);
+      if (unified) parent.postMessage("cp-board-unlocked",location.origin);
       setStatus("보드 접속 완료 · 서버 초안 확인 중…");
       const remote = await cloud.inspect();
       setStatus(remote.revision === 0 ? "보드 접속 완료 · 서버 초안 없음. 현재 초안을 서버에 저장할 수 있습니다." : `보드 접속 완료 · 서버 버전 ${remote.revision}. ‘서버 초안 확인’ 후 불러오세요.`);
@@ -823,7 +825,7 @@ if (typeof CherryPulseCloud !== "undefined") {
   });
   $("cloud-logout").addEventListener("click", () => run(async () => {
     candidate = null; baseline = null; $("cloud-load-confirmation").hidden = true;
-    try { await cloud.logout(); }
+    try { await cloud.logout(); if (unified) parent.postMessage("cp-board-locked",location.origin); }
     finally { setStatus("이 페이지에서 로그아웃했습니다. 브라우저 초안은 유지됩니다."); }
   }));
   $("cloud-save").addEventListener("click", () => run(async () => {
@@ -865,7 +867,20 @@ if (typeof CherryPulseCloud !== "undefined") {
     candidate = null; baseline = null; $("cloud-load-confirmation").hidden = true;
     setStatus("불러오기를 취소했습니다. 브라우저 초안은 유지됩니다.");
   });
+  if (unified) {
+    const resume=()=>run(async()=>{await cloud.resume(); setStatus("통합 PIN 로그인 완료 · 서버 초안을 조회하거나 저장할 수 있습니다.");});
+    window.addEventListener("message",e=>{if(e.origin===location.origin && e.source===parent && e.data==="cp-board-refresh") resume();});
+    resume();
+  }
   controls();
   $("cloud-login-form").setAttribute("data-cloud-ready", "true");
   setStatus("숫자 4자리 또는 6자리 비밀번호를 입력하고 ‘보드 열기’를 누르세요.");
+}
+
+if (typeof location!=="undefined" && location.search?.includes("embedded=1")) {
+  const label=document.querySelector('label[for="cloud-pin"]');
+  label.textContent="등록 기기 통합 PIN";
+  $("cloud-pin").pattern="[0-9]{6}";
+  $("cloud-pin").placeholder="숫자 6자리";
+  $("cloud-login-form").closest("section")?.querySelector(".hint")?.replaceChildren("등록한 기기의 6자리 통합 PIN으로 보드를 엽니다.");
 }

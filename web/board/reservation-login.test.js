@@ -10,7 +10,7 @@ function loginFixture(responses) {
     if (!elements.has(id)) elements.set(id, {querySelector:()=>button,replaceChildren(){},focus(){},select(){}});
     return elements.get(id);
   }
-  const context = {document:{getElementById:el,addEventListener(){}},window:{setInterval(){},addEventListener(){}},
+  const context = {document:{getElementById:el,addEventListener(){}},window:{setInterval(){},addEventListener(){},dispatchEvent(){}},CustomEvent:class {},
     AbortSignal, fetch:async (url,options)=>{
       calls.push(options.method);
       const [status,body] = responses.shift();

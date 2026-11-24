@@ -5,8 +5,8 @@ const CherryReservations = {
     const messages = {401:"보드 PIN 로그인이 필요합니다.",403:"요청 출처를 확인하세요.",404:"예약을 찾을 수 없습니다.",
       409:"같은 예약이 있거나 상태가 변경됐습니다. 목록에서 최신 예약을 선택하세요.",
       422:"종목·수량·가격과 미래 KRX 영업일을 확인하세요.",429:"로그인 시도가 많습니다. 잠시 후 다시 시도하세요."};
-    async function api(method,body) {
-      const response = await fetch("/api/reservations",{method,credentials:"same-origin",cache:"no-store",
+    async function api(method,body,path="/api/reservations") {
+      const response = await fetch(path,{method,credentials:"same-origin",cache:"no-store",
         headers:body?{"Content-Type":"application/json"}:{},body:body?JSON.stringify(body):undefined,
         redirect:"error",signal:AbortSignal.timeout(18000)});
       if (!response.ok) throw Object.assign(new Error(),{status:response.status});
@@ -112,26 +112,31 @@ const CherryReservations = {
       button.disabled = true;
       el("reservation-status").textContent = "보드 PIN 확인 중…";
       try {
-        await api("POST",{action:"login",pin});
+        const data = await api("POST",{action:"unlock",pin},"/api/device-pin");
+        window.dispatchEvent(new CustomEvent("device-unlocked",{detail:data.ticket}));
         session(true);
         if (await refresh(true)) field.value = "";
       } catch(e) {
         error(e);
         if (e.status===401) {
-          el("reservation-status").textContent = "예약용 보드 PIN이 일치하지 않습니다. 계좌 기기 PIN과 별도로 설정한 보드 PIN을 입력하세요.";
+          el("reservation-status").textContent = "등록된 기기의 6자리 PIN이 일치하지 않거나 이 브라우저가 미등록 상태입니다. 계좌·보유종목에서 기기를 연결하세요.";
           field.focus();
           field.select();
+        } else if (e.status===429) {
+          el("reservation-status").textContent="이 기기의 PIN 인증이 잠겼습니다. 계좌·보유종목에서 기기를 다시 등록하세요.";
         } else if (e.status===422) {
-          el("reservation-status").textContent = "보드 PIN은 숫자 4자리 또는 6자리입니다.";
+          el("reservation-status").textContent = "등록 기기의 PIN은 숫자 6자리입니다.";
         }
       } finally {pending=false; button.disabled=false;}
     };
     el("reservation-logout").onclick = async () => {
       if (pending) return;
       pending=true;
-      try {await api("POST",{action:"logout"}); ++generation; session(false); el("reservation-status").textContent="로그아웃했습니다.";}
+      try {await api("POST",{action:"logout"}); ++generation; session(false); window.dispatchEvent(new Event("unified-locked")); el("reservation-status").textContent="로그아웃했습니다.";}
       catch(e){error(e);} finally {pending=false;}
     };
+    window.addEventListener("device-unlocked",()=>{if(!pending) refresh();});
+    window.addEventListener("unified-locked",()=>{++generation;session(false);});
     window.addEventListener("pin-rotated",()=>{++generation;session(false);el("reservation-status").textContent="새 PIN으로 로그인하세요.";});
     el("reservation-refresh").onclick = refresh;
     window.setInterval(() => {

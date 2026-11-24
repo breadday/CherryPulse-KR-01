@@ -20,11 +20,14 @@ begin
   assert public.cp_pair_account_device(test_auth,false,code,verifier,phone,verifier)=201;
   assert public.cp_pair_account_device(test_auth,false,code,verifier,repeat('e',64),verifier)=401;
   assert public.cp_account_device(test_auth,phone,verifier,false)=200;
+  assert cherrypulse_private.pin_owner(public.cp_device_owner_session(test_auth,phone,verifier)->>'sessionToken') is not null;
+  assert public.cp_device_owner_session('wrong',phone,verifier)->>'status'='403';
   for n in 1..4 loop
     assert public.cp_account_device(test_auth,phone,code,false)=401;
   end loop;
   assert public.cp_account_device(test_auth,phone,code,false)=429;
   assert public.cp_account_device(test_auth,phone,verifier,false)=429;
+  assert public.cp_device_owner_session(test_auth,phone,verifier)->>'status'='429';
   assert public.cp_account_device(test_auth,pc,verifier,false)=200;
   assert public.cp_pair_account_device(test_auth,true,code,verifier,pc,verifier)=201;
   update cherrypulse_private.account_pairings set expires_at=now() where code_hash=code;

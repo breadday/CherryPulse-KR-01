@@ -23,14 +23,26 @@ module.exports = async function devicePin(req,res) {
   if (!device) return fail(401);
   try {
     const args = {p_auth:process.env.CHERRYPLUS_DEVICE_RPC_KEY.trim(),p_device:sign("device",device),p_verifier:sign("pin",device,pin)};
-    const response = await fetch(pairing ? endpoint.replace("cp_account_device","cp_pair_account_device") : endpoint,{method:"POST",redirect:"error",signal:AbortSignal.timeout(8000),
+    async function call(name,params) {
+      const response = await fetch(endpoint.replace("cp_account_device",name),{method:"POST",redirect:"error",signal:AbortSignal.timeout(8000),
       headers:{apikey:publishable,"Content-Type":"application/json"},
-      body:JSON.stringify(pairing ? {...args,p_issue:action==="issue",p_code:sign("code",code),p_pin:sign("pair-pin",code,pin)} : {...args,p_register:register})});
-    if (!response.ok) return fail(503);
-    const result = await response.json();
-    if (result !== (action==="unlock" ? 200 : 201)) return fail([401,429].includes(result)?result:503);
-    if (action==="issue") return res.status(200).json({code});
-    if (enroll) res.setHeader("Set-Cookie",cookieName+"="+device+"; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=7776000");
+      body:JSON.stringify(params)});
+      if (!response.ok) throw Error("STORAGE_UNAVAILABLE");
+      return response.json();
+    }
+    if (action!=="unlock") {
+      const result = pairing ? await call("cp_pair_account_device",{...args,p_issue:action==="issue",p_code:sign("code",code),p_pin:sign("pair-pin",code,pin)})
+        : await call("cp_account_device",{...args,p_register:true});
+      if (result!==201) return fail([401,429].includes(result)?result:503);
+      if (action==="issue") return res.status(200).json({code});
+    }
+    const owner = await call("cp_device_owner_session",args);
+    if (!/^[a-f0-9]{64}$/.test(owner.sessionToken || "")) return fail([401,429].includes(owner.status)?owner.status:503);
+    const attributes="; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=";
+    const cookies=["__Host-cp-reservations="+owner.sessionToken+attributes+"900"];
+    cookies.push("__Host-cp-view="+ticket(device)+attributes+"900");
+    if (enroll) cookies.push(cookieName+"="+device+attributes+"7776000");
+    res.setHeader("Set-Cookie",cookies);
     return res.status(200).json({ticket:ticket(device)});
   } catch { return fail(503); }
 };

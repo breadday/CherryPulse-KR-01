@@ -47,7 +47,15 @@
     field.value = "";
     render(null,"모의계좌 미조회");
   }
-  document.querySelector("#account-lock").onclick = lock;
+  window.addEventListener("unified-locked",lock);
+  document.querySelector("#account-lock").onclick = async () => {
+    lock();
+    try {
+      const response=await fetch("/api/reservations",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"logout"}),redirect:"error"});
+      if (!response.ok && response.status!==401) throw Error();
+      window.dispatchEvent(new Event("unified-locked"));
+    } catch {render(null,"서버 로그아웃 확인 실패 · 다시 잠그기를 누르세요.");}
+  };
   window.addEventListener("pagehide",lock);
   form.onsubmit = async event => {
     event.preventDefault();
@@ -71,7 +79,8 @@
   };
   lock();
   fetch("/api/account", {cache:"no-store", redirect:"error", signal:AbortSignal.timeout(8000)})
-    .then(response => {
+    .then(async response => {
+      if (response.ok) {const data=await response.json(); if(!request){field.required=false;render(data,"키움 모의계좌 조회 완료");}}
       if (!request && response.status === 503) render(null,"연결 대기 · 서버에 모의 키와 계좌 화면 열람 키가 필요합니다.");
     }).catch(() => {});
 })();

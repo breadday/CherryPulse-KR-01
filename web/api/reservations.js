@@ -16,7 +16,7 @@ module.exports = async function reservations(req,res) {
   res.setHeader("Cache-Control","private, no-store");
   res.setHeader("Vary","Cookie");
   const fail = status => res.status(status).json({status});
-  const actions = {GET:"list",POST:"create",PATCH:"update",DELETE:"cancel"};
+  const actions = {GET:"list",POST:"create",PATCH:"update",DELETE:"cancel",PUT:"board-save"};
   let action = actions[req.method];
   if (!action) return fail(405);
   if (req.method !== "GET" && !/^application\/json(?:;|$)/i.test(req.headers["content-type"] || "")) return fail(415);
@@ -50,9 +50,22 @@ module.exports = async function reservations(req,res) {
     if (!/^[a-f0-9]{64}$/.test(token || "")) return fail(401);
     if (req.method==="POST" && body.action==="logout") {
       await rpc("cp_pin_logout",{p_session:token});
-      res.setHeader("Set-Cookie",sessionCookie("",0));
+      res.setHeader("Set-Cookie",[sessionCookie("",0),"__Host-cp-view=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0"]);
       return res.status(200).json({ok:true});
     }
+    if (req.query?.view==="board" && ["GET","PUT"].includes(req.method)) {
+      let result;
+      if (req.method==="PUT") {
+        if (!Number.isSafeInteger(body.expectedRevision) || body.expectedRevision<0 ||
+            !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(body.requestKey || "")) return fail(422);
+        try {require("../board/board-backup").parseBoardBackup(JSON.stringify(body.snapshot));}
+        catch {return fail(422);}
+        result=await rpc("cp_pin_save_board",{p_session:token,p_expected_revision:body.expectedRevision,p_request_key:body.requestKey,p_snapshot:body.snapshot});
+      } else result=await rpc("cp_pin_load_board",{p_session:token});
+      if (result.status) return res.status(result.status).json({error:{code:result.code}});
+      return res.status(200).json(result);
+    }
+    if (req.method==="PUT") return fail(405);
     if (action!=="list" && !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(body.id || "")) return fail(422);
     const result = await rpc("cp_reservations",{p_session:token,p_action:action,p_id:body.id??null,
       p_version:body.version??null,p_details:body.details??null});

@@ -49,18 +49,34 @@ const accountDevice = (() => {
         hideCode=setTimeout(()=>{if(revision===version) note.textContent="연결 코드가 만료되었습니다.";},180000);
         return;
       }
-      session=data.ticket;
+      window.dispatchEvent(new CustomEvent("device-unlocked",{detail:data.ticket}));
       key.value="";
       key.required=false;
       mode.value="unlock";
       layout();
       note.textContent="PIN 인증 완료 · 15분간 조회 가능";
-      clearTimeout(expiry);
-      expiry=setTimeout(()=>el("account-lock").click(),15*60*1000);
-      el("account-access").requestSubmit();
+
     } catch { if(revision===version) note.textContent="연결을 확인하고 다시 시도하세요."; }
     finally {button.disabled=false; pin.value=confirm.value=code.value="";}
   };
+  window.addEventListener("device-unlocked",event=>{
+    session=event.detail; key.value=""; key.required=false; clearTimeout(expiry);
+    expiry=setTimeout(()=>el("account-lock").click(),15*60*1000);
+    el("account-access").requestSubmit();
+  });
+  const board=document.querySelector("#watchlist iframe");
+  const notifyBoard=()=>board?.contentWindow?.postMessage("cp-board-refresh",location.origin);
+  window.addEventListener("device-unlocked",notifyBoard);
+  window.addEventListener("unified-locked",notifyBoard);
+  window.addEventListener("message",event=>{
+    if(event.origin!==location.origin || event.source!==board?.contentWindow) return;
+    if(event.data==="cp-board-unlocked") {
+      key.required=false;
+      el("account-access").requestSubmit();
+      el("reservation-refresh").click();
+    }
+    if(event.data==="cp-board-locked") window.dispatchEvent(new Event("unified-locked"));
+  });
   layout();
   return {credential:()=>key.value || session};
 })();
