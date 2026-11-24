@@ -35,6 +35,7 @@ module.exports = async function reservations(req,res) {
       const reset = req.method==="POST";
       if (reset && (!/^[a-f0-9]{64}$/.test(body.code || "") || typeof body.pin!=="string" || !/^\d{4}$/.test(body.pin))) return fail(422);
       const result = await rpc("cp_owner_pin_settings",{p_code:reset?body.code:null,p_pin:reset?body.pin:null});
+      if (reset && result.status===403) return res.status(403).json({error:"RECOVERY_CODE_INVALID"});
       if (typeof result.configured!=="boolean") return fail([403,422].includes(result.status)?result.status:502);
       if (reset) res.setHeader("Set-Cookie",sessionCookie("",0));
       return res.status(200).json({configured:result.configured});
