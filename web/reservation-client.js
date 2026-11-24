@@ -29,12 +29,24 @@ const CherryReservations = {
       for (const row of rows) {
         const d = row.details;
         const item = document.createElement("div");
-        item.className = "draft-row";
-        const summary = document.createElement("p");
-        const state = {scheduled:"예약 대기",due:"실행 시각 도달",dry_run:"실행 모의 검증 완료",error:"오류",expired:"만료",cancelled:"취소"}[row.status];
-        summary.textContent = [state,"실행 예정 "+d.date,d.time+" KST",d.name,d.code,d.side,d.qty.toLocaleString("ko-KR")+"주",
-          d.type,d.price===null?"":d.price.toLocaleString("ko-KR")+"원"].filter(Boolean).join(" · ");
-        item.append(summary);
+        item.className = "draft-row reservation-card";
+        item.dataset.status = row.status;
+        const header = document.createElement("div");
+        header.className = "reservation-header";
+        const name = document.createElement("strong");
+        name.textContent = d.name;
+        const code = document.createElement("small");
+        code.textContent = d.code;
+        const badge = document.createElement("span");
+        badge.className = "reservation-state";
+        badge.textContent = {scheduled:"예약 대기",due:"실행 시각 도달",dry_run:"실행 모의 검증 완료",error:"오류",expired:"만료",cancelled:"취소"}[row.status] || "상태 미확인";
+        header.append(name,code,badge);
+        const schedule = document.createElement("p");
+        schedule.className = "reservation-time";
+        schedule.textContent = "실행 예정 "+d.date+" "+d.time+" KST";
+        const terms = document.createElement("p");
+        terms.textContent = [d.side+" "+d.qty.toLocaleString("ko-KR")+"주",d.type+(d.price===null?"":" "+d.price.toLocaleString("ko-KR")+"원")].join(" · ");
+        item.append(header,schedule,terms);
         if (row.processedAt) {
           const processed = document.createElement("p");
           const time = new Date(row.processedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"});
@@ -49,7 +61,7 @@ const CherryReservations = {
           change.onclick = () => edit(row);
           cancel.textContent = "서버 예약 취소";
           cancel.onclick = () => {
-            if (confirm(summary.textContent+"\n예약을 취소할까요?")) mutate("DELETE",{id:row.id,version:row.version});
+            if (confirm([name.textContent,code.textContent,schedule.textContent,terms.textContent].join(" · ")+"\n예약을 취소할까요?")) mutate("DELETE",{id:row.id,version:row.version});
           };
           item.append(change," ",cancel);
         }
