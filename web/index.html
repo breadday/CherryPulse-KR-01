@@ -15,6 +15,9 @@
 .step-buttons{display:grid;width:42px;gap:2px}
 .step-buttons button{min-height:24px;border:1px solid #adbed1;border-radius:4px;background:#f3f7fc;color:#193e68;cursor:pointer}
 .step-buttons button:disabled{opacity:.45;cursor:default}
+.reservation-side{display:inline-block;flex:none;padding:4px 9px;border-radius:5px;background:#505b68;color:#fff;font-size:1rem;line-height:1.25;font-weight:800}
+.reservation-side[data-side="매수"]{background:#aa2334}
+.reservation-side[data-side="매도"]{background:#16549b}
 </style></head><body>
 <div class="shell"><aside class="side"><div class="brand">🍒 CherryPlus</div><div class="sub">통합 자동매매 플랫폼 · UI 시안</div><div class="menu" id="menu">
 <button class="nav active" data-page="home">▦ 통합 홈</button><button class="nav" data-page="watchlist">☆ 관심종목</button><button class="nav" data-page="accounts">▤ 계좌·보유종목</button><button class="nav" data-page="orders">⇄ 주문·예약</button><button class="nav" data-page="fills">☷ 주문·체결 내역</button><button class="nav" data-page="auto">⚙ 자동매매</button><button class="nav" data-page="ops">◷ 운영·설정</button>

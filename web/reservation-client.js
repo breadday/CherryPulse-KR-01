@@ -40,7 +40,11 @@ const CherryReservations = {
         const badge = document.createElement("span");
         badge.className = "reservation-state";
         badge.textContent = {scheduled:"예약 대기",due:"실행 시각 도달",dry_run:"실행 모의 검증 완료",error:"오류",expired:"만료",cancelled:"취소"}[row.status] || "상태 미확인";
-        header.append(name,code,badge);
+        const side = document.createElement("span");
+        side.className = "reservation-side";
+        side.dataset.side = d.side;
+        side.textContent = d.side === "매수" || d.side === "매도" ? d.side : "구분 미확인";
+        header.append(side,name,code,badge);
         const schedule = document.createElement("p");
         schedule.className = "reservation-time";
         schedule.textContent = "실행 예정 "+d.date+" "+d.time+" KST";
