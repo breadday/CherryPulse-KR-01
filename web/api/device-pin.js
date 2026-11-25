@@ -20,7 +20,7 @@ module.exports = async function devicePin(req,res) {
   const code = action==="issue" ? String(randomInt(1000000000000)).padStart(12,"0") : req.body.code;
   if (pairing && (typeof code!=="string" || !/^\d{12}$/.test(code))) return fail(422);
   const device = enroll ? randomBytes(32).toString("hex") : deviceId(req);
-  if (!device) return fail(401);
+  if (!device) return res.status(401).json({status:401,reason:"device_cookie_missing"});
   try {
     const args = {p_auth:process.env.CHERRYPLUS_DEVICE_RPC_KEY.trim(),p_device:sign("device",device),p_verifier:sign("pin",device,pin)};
     async function call(name,params) {

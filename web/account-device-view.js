@@ -39,8 +39,20 @@ const accountDevice = (() => {
       const data = await response.json();
       if (revision!==version) return;
       if (!response.ok) {
+        if (response.status===401 && data.reason==="device_cookie_missing") {
+          mode.value="register";
+          layout();
+          note.textContent="이 브라우저에 기기 등록 정보가 없습니다. PC에서는 위에 계좌 화면 열람 키를 입력한 뒤 아래에 사용할 PIN을 두 번 입력하고 확인을 누르세요. 휴대폰에서는 ‘휴대폰 연결’을 선택하세요.";
+          key.focus();
+          return;
+        }
         note.textContent = response.status===429 ? "시도 한도에 도달했습니다. PC는 열람 키로 다시 등록하고, 휴대폰은 PC에서 새 연결 코드를 발급하세요." :
-          response.status===401 ? "등록 상태와 입력값을 확인하세요." : "처리하지 못했습니다. 잠시 뒤 다시 시도하세요.";
+          response.status===401 ? ({
+            register:"계좌 화면 열람 키를 확인하고 PIN을 다시 입력하세요.",
+            pair:"연결 코드와 PIN을 확인하세요. 코드가 만료됐다면 새 코드를 발급하세요.",
+            unlock:"이 브라우저에 등록한 PIN을 확인하세요. PIN을 잊었다면 PC에서는 ‘PC에 PIN 등록’으로 다시 등록하세요.",
+            issue:"연결 코드를 발급하려면 이 PC에 등록한 PIN을 입력하세요."
+          })[action] : "처리하지 못했습니다. 잠시 뒤 다시 시도하세요.";
         return;
       }
       if (action==="issue") {
