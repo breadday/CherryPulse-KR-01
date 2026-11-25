@@ -164,7 +164,10 @@ const todayKST = koreaNow();
 el("schedule-date").value = nextTradingDay([todayKST.year,todayKST.month,todayKST.day].join("-"));
 function updateSchedule() {
  const warning = val("schedule")==="reserved" ? reservationWarning(val("schedule-date")) : "";
- el("schedule-fields").hidden = val("schedule") !== "reserved";
+ const immediate = val("schedule") !== "reserved";
+ el("schedule-fields").hidden = immediate;
+ el("schedule-date").disabled = immediate;
+ el("schedule-time").disabled = immediate;
  const help = el("schedule-help");
  help.textContent = warning || (val("schedule")==="reserved" ? "한국시간 기준 · 예약 미리보기" : "즉시 실행 미리보기");
  help.style.color = warning ? "#ad3a3a" : "";
@@ -183,7 +186,7 @@ function previewOrder(){
  if(!/^\d{6}$/.test(code)||qty===null||(type==="지정가"&&price===null)){
    dst.textContent="종목명 선택, 수량, 지정가를 확인하세요.";return;
  }
- dst.textContent="입력 확인: "+code+" · "+val("direction")+" "+qty+"주 · "+type+(type==="지정가"?" "+money(price)+" · 예상 주문금액 "+money(qty*price):" (금액 미확정)")+" · "+(reserved?"예약 "+date+" "+time+" KST (거래일 확인)":"즉시 (모의 UI)")+" — 주문 전송 없음.";
+ dst.textContent="입력 확인: "+code+" · "+val("direction")+" "+qty+"주 · "+type+(type==="지정가"?" "+money(price)+" · 예상 주문금액 "+money(qty*price):" (금액 미확정)")+" · "+(reserved?"예약 "+date+" "+time+" KST (거래일 확인)":"즉시 주문")+" — 주문 전송 없음.";
  if(reserved) return {code,name:val("stock-name"),qty,type,price:type==="지정가"?price:null,side:val("direction"),date,time};
 }
 const draftPrefix = "cherryplus.reservation.v1.";
@@ -323,6 +326,8 @@ window.addEventListener("holding-selected", ({detail}) => {
   finishEdit();
   ++searchVersion;
   ++quoteVersion;
+  el("schedule").value = "now";
+  updateSchedule();
   selectedText = detail.name || detail.code;
   el("stock-name").value = selectedText;
   el("symbol").value = detail.code;
