@@ -108,6 +108,12 @@ async function updateStockSelection() {
     selectedText = query;
     el("symbol").value = code;
     el("feedback").textContent = name + " · " + code;
+    const originalCode = serverEdit?.details.code ?? editing?.code;
+    if (originalCode && originalCode !== code) {
+      createId = crypto.randomUUID();
+      finishEdit({keepInputs:true});
+      el("feedback").textContent = name + " · 새 예약으로 전환했습니다. 기존 예약은 유지됩니다.";
+    }
     el("quote-retry").disabled = false;
     await fillLimitPrice();
   } catch {
@@ -200,8 +206,8 @@ function clearReview() {
   el("confirm-server").hidden = true;
   el("confirm-draft").hidden = true;
 }
-function finishEdit() {
-  if (editing || serverEdit) {
+function finishEdit({keepInputs = false} = {}) {
+  if (!keepInputs && (editing || serverEdit)) {
     ++searchVersion;
     ++quoteVersion;
     selectedText = "";
@@ -230,7 +236,7 @@ function finishEdit() {
 function editDraft(key, original, row, serverRow = null) {
   clearReview();
   serverEdit = serverRow;
-  editing = key ? {key, original} : null;
+  editing = key ? {key, original, code:row.code} : null;
   ++searchVersion;
   ++quoteVersion;
   selectedText = row.name;
