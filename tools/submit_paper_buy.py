@@ -14,6 +14,7 @@ account numbers, or broker order numbers.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
@@ -137,10 +138,20 @@ def report(  # noqa: PLR0913 -- Explicit chat-safe report fields; no kwargs bund
     summary = broker if broker is not None else BrokerSummary()
     return {
         "mode": "PAPER",
+        "side": "BUY",
         "network": network,
         "order_submitted": submitted,
         "acked": acked,
         "reason": reason,
+        "next_action": "CHECK_ORDER_HISTORY"
+        if reason
+        in {
+            "TRANSPORT_UNKNOWN",
+            "ORDER_NUMBER_MISSING",
+            "SECOND_ORDER_BLOCKED",
+            "API_SUCCESS_UNCONFIRMED",
+        }
+        else None,
         "symbol": preview.symbol if preview else None,
         "qty": DEMO_QUANTITY if preview else None,
         "trade_type": "LIMIT" if preview else None,
@@ -248,6 +259,9 @@ def main(argv: list[str] | None = None) -> int:
                         "qty": DEMO_QUANTITY,
                         "price": preview.price,
                         "status": "ACKED",
+                        "order_digest": hashlib.sha256(
+                            str(payload["ord_no"]).strip().encode("utf-8")
+                        ).hexdigest(),
                     }
                 ),
                 encoding="utf-8",
