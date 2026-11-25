@@ -163,6 +163,7 @@ function reservationWarning(date) {
 const todayKST = koreaNow();
 el("schedule-date").value = nextTradingDay([todayKST.year,todayKST.month,todayKST.day].join("-"));
 function updateSchedule() {
+ if (!el("schedule").disabled) el("order-heading").textContent = val("schedule")==="reserved" ? "새 예약 등록" : "새 주문 입력";
  const warning = val("schedule")==="reserved" ? reservationWarning(val("schedule-date")) : "";
  const immediate = val("schedule") !== "reserved";
  el("schedule-fields").hidden = immediate;
@@ -200,14 +201,35 @@ function clearReview() {
   el("confirm-draft").hidden = true;
 }
 function finishEdit() {
+  if (editing || serverEdit) {
+    ++searchVersion;
+    ++quoteVersion;
+    selectedText = "";
+    for (const id of ["stock-name","symbol","price"]) el(id).value = "";
+    el("stock-options").replaceChildren();
+    el("direction").selectedIndex = el("order-type").selectedIndex = 0;
+    setMarketPriceDisabled(false);
+    el("quantity").value = el("quantity").defaultValue;
+    el("schedule-time").value = el("schedule-time").defaultValue;
+    const today = koreaNow();
+    el("schedule-date").value = nextTradingDay([today.year,today.month,today.day].join("-"));
+    el("quote-retry").disabled = true;
+    el("quote-status").textContent = "종목 선택 대기";
+    recalc();
+  }
   serverEdit = null;
   editing = null;
+  el("schedule").disabled = false;
+  updateSchedule();
+  el("preview").textContent = "입력 내용 미리보기";
+  el("confirm-server").textContent = "새 서버 예약 등록";
+  el("confirm-draft").textContent = "새 예약 초안 저장";
   el("stop-edit").hidden = true;
   clearReview();
 }
-function editDraft(key, original, row) {
+function editDraft(key, original, row, serverRow = null) {
   clearReview();
-  serverEdit = null;
+  serverEdit = serverRow;
   editing = key ? {key, original} : null;
   ++searchVersion;
   ++quoteVersion;
@@ -222,13 +244,18 @@ function editDraft(key, original, row) {
   el("quote-retry").disabled = false;
   el("quote-status").textContent = "초안 복원 · 현재가 미조회";
   el("schedule").value = "reserved";
+  el("schedule").disabled = true;
   el("schedule-date").value = row.date;
   el("schedule-time").value = row.time;
   updateSchedule();
   recalc();
   el("stop-edit").hidden = false;
-  el("feedback").textContent = "예약 초안 수정 중 · 변경 후 미리보기를 확인하세요.";
-  el("quantity").focus();
+  const target = serverRow ? "서버 예약" : "예약 초안";
+  el("order-heading").textContent = target + " 수정 · " + row.name + " · " + row.date + " " + row.time;
+  el("preview").textContent = "수정 내용 미리보기";
+  el("confirm-server").textContent = serverRow ? "서버 예약 변경사항 저장" : "초안으로 서버 예약 등록";
+  el("confirm-draft").textContent = "초안 변경사항 저장";
+  el("order-heading").focus();
 }
 function renderDrafts() {
   const list = el("draft-list");
@@ -270,7 +297,7 @@ function renderDrafts() {
 }
 el("orders").addEventListener("input", clearReview);
 el("orders").addEventListener("change", clearReview);
-el("stop-edit").onclick = () => { finishEdit(); el("feedback").textContent = "초안 수정을 종료했습니다."; };
+el("stop-edit").onclick = () => { finishEdit(); el("order-heading").focus(); };
 el("preview").onclick = () => {
   reviewed = previewOrder();
   el("confirm-draft").hidden = !reviewed || Boolean(serverEdit);
@@ -299,9 +326,7 @@ el("confirm-draft").onclick = () => {
 };
 const reservations = CherryReservations.attach({
   edit(row) {
-    editDraft(null, null, row.details);
-    serverEdit = row;
-    el("feedback").textContent = "서버 예약 수정 중 · 변경 후 미리보기를 확인하세요.";
+    editDraft(null, null, row.details, row);
   },
   sessionChanged(active) {
     if (!active && serverEdit) finishEdit();
