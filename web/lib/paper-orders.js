@@ -47,7 +47,7 @@ function historyRow(row,fill) {
     else if (remaining>0 && executed===0) state="미체결";
     else if (raw==="접수") state="접수";
   }
-  return {number,originalNumber:orderNumber(fill ? row.orig_ord_no : row.ori_ord),
+  return {number,code:String(row.stk_cd || "").trim().replace(/^A(?=[0-9]{6}$)/,""),originalNumber:orderNumber(fill ? row.orig_ord_no : row.ori_ord),
     time:row.ord_tm || null,name:row.stk_nm || row.stk_cd || null,
     side:row.io_tp_nm || null,qty,executed,remaining,price:integer(fill?row.ord_pric:row.ord_uv),
     fillPrice:integer(fill?row.cntr_pric:row.cntr_uv),state};

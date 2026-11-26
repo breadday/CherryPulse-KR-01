@@ -58,6 +58,38 @@
     } catch(e) {if(id===review) out.textContent=e.message+" · 재전송 전에 주문·체결 내역을 확인하세요.";}
     finally {sending=false;}
   };
+  function changeControls(cell,row) {
+    const price=document.createElement("input");
+    price.type="text";price.inputMode="numeric";price.placeholder="새 지정가 (원)";
+    price.setAttribute("aria-label",row.name+" 새 지정가 (원)");
+    if (row.price>0) cell.append(price);
+    const status=document.createElement("p");
+    status.setAttribute("role","status");
+    const buttons=[];
+    for (const action of row.price>0?["amend","cancel"]:["cancel"]) {
+      const button=document.createElement("button");
+      button.type="button";button.className="btn secondary";
+      button.textContent=action==="amend"?"가격 정정":"잔량 취소";
+      buttons.push(button);cell.append(button);
+      button.onclick=async ()=>{
+        const amend=action==="amend", newPrice=Number(price.value.trim());
+        if (amend && (!/^\d+$/.test(price.value.trim()) || !Number.isSafeInteger(newPrice) || newPrice<=0 || newPrice===row.price)) {
+          status.textContent="기존 주문가와 다른 새 지정가를 원 단위로 입력하세요.";price.focus();return;
+        }
+        const terms=row.name+" · "+row.side+" · 주문번호 "+row.number+" · 잔량 "+row.remaining+"주";
+        const summary=amend?row.price.toLocaleString()+"원 → "+newPrice.toLocaleString()+"원으로 정정":"잔량 전부 취소";
+        if (!window.confirm("키움 모의계좌\n"+terms+"\n"+summary+" 요청을 전송할까요?")) return;
+        for (const b of buttons) b.disabled=true;
+        price.disabled=true;status.textContent="미체결 잔량 확인 중…";
+        try {
+          const result=await read("?action=change",{method:"POST",body:JSON.stringify({action,newPrice:amend?newPrice:null,
+            number:row.number,code:row.code,remaining:row.remaining,price:row.price,approval:row.changeApproval})});
+          status.textContent=button.textContent+" 요청 접수 · 주문번호 "+result.number+" · 오늘의 주문·체결을 다시 조회하세요.";
+        } catch(e) {status.textContent=e.message+" · 오늘의 주문·체결을 다시 조회하세요.";}
+      };
+    }
+    cell.append(status);
+  }
   function table(title,rows) {
     const heading=document.createElement("h3");heading.textContent=title;
     const wrap=document.createElement("div");wrap.className="scroll";
@@ -67,6 +99,8 @@
       const cols={time:"보고 시각",name:"종목",number:"주문번호",originalNumber:"원주문번호",side:"구분",qty:"주문수량",executed:"체결수량",remaining:"잔량",price:"주문가",fillPrice:"체결가",state:"상태"};
       const head=t.createTHead().insertRow();
       for(const label of Object.values(cols)){const th=document.createElement("th");th.textContent=label;head.append(th);}
+      const editable=rows.some(row=>row.changeApproval);
+      if (editable) {const th=document.createElement("th");th.textContent="주문 변경";head.append(th);}
       const body=t.createTBody();
       for(const row of rows){
         const tr=body.insertRow();
@@ -75,6 +109,10 @@
           cell.dataset.label=label;
           const value=row[col];
           cell.textContent=typeof value==="number"?value.toLocaleString("ko-KR"):value??"—";
+        }
+        if (editable) {
+          const cell=tr.insertCell();
+          if (row.changeApproval) {cell.dataset.label="주문 변경";changeControls(cell,row);}
         }
       }
       wrap.append(t);

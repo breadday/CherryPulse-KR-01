@@ -7,7 +7,7 @@ let expires = 0;
 async function request(path, body, headers = {}) {
   const allowed = {
     "/oauth2/token": [undefined],
-    "/api/dostk/acnt": ["kt00001","kt00018","kt00007","ka10076"],
+    "/api/dostk/acnt": ["kt00001","kt00018","kt00007","ka10076","ka10075"],
     "/api/dostk/chart": ["ka10079"],
     "/api/dostk/stkinfo": ["ka10001"]
   };
