@@ -130,6 +130,33 @@
       const quotes=new Map();
       for(const row of rows){
         const tr=body.insertRow();
+        if (title==="주문내역") {
+          const card=tr.insertCell();
+          card.className="order-card";
+          const amount=(n,unit)=>Number.isSafeInteger(n)?n.toLocaleString("ko-KR")+unit:"—";
+          const header=document.createElement("header"),name=document.createElement("strong"),state=document.createElement("span");
+          name.textContent=row.name;state.textContent=row.state;
+          header.append(name,state);
+          const terms=document.createElement("p"),balance=document.createElement("p");
+          terms.textContent=[row.side,amount(row.qty,"주"),row.price>0?amount(row.price,"원"):"주문가 —"].join(" · ");
+          balance.textContent="잔량 "+amount(row.remaining,"주")+"  ·  체결 "+amount(row.executed,"주");
+          const details=document.createElement("details"),summary=document.createElement("summary"),info=document.createElement("dl");
+          summary.textContent="주문 상세";
+          for (const key of ["time","number","originalNumber","fillPrice"]) {
+            const label=document.createElement("dt"),value=document.createElement("dd");
+            label.textContent=cols[key];value.textContent=key==="fillPrice"?(row.executed>0?amount(row.fillPrice,"원"):"—"):row[key]??"—";
+            info.append(label,value);
+          }
+          details.append(summary,info);card.append(header,terms,balance,details);
+          if (row.changeApproval) {
+            const actions=document.createElement("details"),toggle=document.createElement("summary");
+            toggle.textContent=row.price>0?"가격 정정 · 잔량 취소":"잔량 취소";
+            actions.append(toggle);card.append(actions);
+            actions.addEventListener("toggle",()=>{
+              if (actions.open && actions.children.length===1) changeControls(actions,row,quotes);
+            });
+          }
+        }
         for (const [col,label] of Object.entries(cols)) {
           const cell=tr.insertCell();
           cell.dataset.label=label;
