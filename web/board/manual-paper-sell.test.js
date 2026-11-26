@@ -15,7 +15,8 @@ test("manual sell binds the reviewed terms and blocks retries after an unknown b
   assert.equal(confirmation({headers:{}},input),null);
   input.confirmation=confirmation(req,input);
   assert.equal((await submit(req,{...input,side:"매수"})).status,409);
-  let claimed=false, buyClaimed=false, posts=0;
+  const claims=new Set();
+  let buyClaimed=false, posts=0;
   t.mock.method(global,"fetch",async (url,opts)=>{
     const id=opts.headers["api-id"];
     if(url.endsWith("/oauth2/token")) return Response.json({return_code:0,token:"fake"});
@@ -24,8 +25,10 @@ test("manual sell binds the reviewed terms and blocks retries after an unknown b
     if(url.endsWith("/cp_claim_manual_paper_buy")) {
       const result=buyClaimed?409:201;buyClaimed=true;return Response.json(result);
     }
-    if(url.endsWith("/cp_claim_manual_paper_sell")) {
-      const result=claimed?409:201;claimed=true;return Response.json(result);
+    if(url.endsWith("/cp_claim_manual_sell_request")) {
+      const request=JSON.parse(opts.body).p_request;
+      if (claims.has(request)) return Response.json(409);
+      claims.add(request);return Response.json(201);
     }
     assert.equal(url,"https://mockapi.kiwoom.com/api/dostk/ordr");
     if (id==="kt10000") {
@@ -34,17 +37,18 @@ test("manual sell binds the reviewed terms and blocks retries after an unknown b
     }
     assert.equal(id,"kt10001");
     posts++;
-    if (JSON.parse(opts.body).ord_qty==="2") return Response.json({return_code:0,ord_no:"000123"});
+    if (posts>1) return Response.json({return_code:0,ord_no:"000123"});
     throw Error("simulated lost response");
   });
   assert.equal((await submit(req,{...input,qty:2})).status,409);
   assert.equal((await submit(req,input)).status,502);
   assert.equal((await submit(req,input)).status,409);
   assert.equal(posts,1);
-  claimed=false;
-  const next={...input,qty:2};
+  const next={...input};
   next.confirmation=confirmation(req,next);
   assert.deepEqual(await submit(req,next),{status:200,body:{number:"000123"}});
+  assert.equal((await submit(req,next)).status,409);
+  assert.equal(posts,2);
   const buy={...input,side:"매수",code:"093370",price:7980};
   buy.confirmation=confirmation(req,buy);
   assert.deepEqual(await submit(req,buy),{status:200,body:{number:"000789"}});

@@ -1,3 +1,4 @@
+const {randomUUID} = require("node:crypto");
 const {deviceId, sign, validTicket} = require("./account-device");
 const {prepare} = require("./paper-orders");
 const {token} = require("./paper");
@@ -10,13 +11,14 @@ function eligible(req, input) {
     validTicket(req,cookie(req,"__Host-cp-view") || "") &&
     /^[a-f0-9]{64}$/.test(cookie(req,"__Host-cp-reservations") || "");
 }
-function proof(req, input, expiry) {
-  return sign(input.side==="매수" ? "manual-paper-buy" : "manual-paper-sell",deviceId(req),cookie(req,"__Host-cp-reservations"),input.code,input.qty,input.price,expiry);
+function proof(req, input, expiry, requestId) {
+  return sign(input.side==="매수" ? "manual-paper-buy" : "manual-paper-sell",deviceId(req),cookie(req,"__Host-cp-reservations"),input.code,input.qty,input.price,expiry,...(input.side==="매도" ? [requestId] : []));
 }
 function confirmation(req,input) {
   if (!eligible(req,input)) return null;
   const expiry = Date.now()+120000;
-  return {expiry, signature:proof(req,input,expiry)};
+  const requestId = input.side==="매도" ? randomUUID() : undefined;
+  return {expiry, requestId, signature:proof(req,input,expiry,requestId)};
 }
 async function submit(req, input) {
   const fail = (status,error) => ({status,body:{error}});
@@ -24,19 +26,20 @@ async function submit(req, input) {
       !/^application\/json(?:;|$)/i.test(req.headers["content-type"] || "")) return fail(403,"등록 기기 PIN으로 로그인하세요.");
   const approval=input.confirmation;
   if (!Number.isSafeInteger(approval?.expiry) || approval.expiry <= Date.now() ||
-      approval.signature !== proof(req,input,approval.expiry)) return fail(409,"주문 조건을 다시 사전검증하세요.");
+      (input.side==="매도" && typeof approval.requestId!=="string") ||
+      approval.signature !== proof(req,input,approval.expiry,approval.requestId)) return fail(409,"주문 조건을 다시 사전검증하세요.");
   const {body,apiId} = await prepare(input);
   const bearer = await token();
-  const claimName = input.side==="매수" ? "cp_claim_manual_paper_buy" : "cp_claim_manual_paper_sell";
+  const claimName = input.side==="매수" ? "cp_claim_manual_paper_buy" : "cp_claim_manual_sell_request";
   const claim = await fetch("https://qrrrnxmsbrkqueaabjdr.supabase.co/rest/v1/rpc/"+claimName,{
     method:"POST",redirect:"error",signal:AbortSignal.timeout(8000),
     headers:{apikey:"sb_publishable_AZ1sO52k9n3Uw1dZZYNaOQ_jwSO-Dxp","Content-Type":"application/json"},
     body:JSON.stringify({p_session:cookie(req,"__Host-cp-reservations"),p_auth:process.env.CHERRYPLUS_DEVICE_RPC_KEY.trim(),
-      p_symbol:input.code,p_qty:input.qty,p_price:input.price})
+      p_request:input.side==="매도" ? approval.requestId : undefined,p_symbol:input.code,p_qty:input.qty,p_price:input.price})
   });
   if (!claim.ok) return fail(503,"전송 기록을 확인할 수 없습니다.");
   const result = await claim.json();
-  if (result === 409) return fail(409,"오늘 같은 조건의 전송 기록이 있습니다. 주문·체결 내역을 확인하세요.");
+  if (result === 409) return fail(409,input.side==="매도" ? "이미 처리한 매도 요청입니다." : "오늘 같은 조건의 전송 기록이 있습니다. 주문·체결 내역을 확인하세요.");
   if (result !== 201) return fail(403,"전송 권한을 확인할 수 없습니다. PIN으로 다시 로그인하세요.");
   try {
     const response = await fetch("https://mockapi.kiwoom.com/api/dostk/ordr",{
