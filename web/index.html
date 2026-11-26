@@ -18,6 +18,22 @@
 .reservation-side{display:inline-block;flex:none;padding:4px 9px;border-radius:5px;background:#505b68;color:#fff;font-size:1rem;line-height:1.25;font-weight:800}
 .reservation-side[data-side="매수"]{background:#aa2334}
 .reservation-side[data-side="매도"]{background:#16549b}
+.fills-mobile { display:none; }
+@media (max-width: 700px) {
+  #history-tables table.fills-desktop { display:none; }
+  #history-tables .fills-mobile { display:table; border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:14px; }
+  #history-tables .fills-mobile thead { position:static; width:auto; height:auto; overflow:visible; clip-path:none; }
+  #history-tables .fills-mobile tbody { display:table-row-group; }
+  #history-tables .fills-mobile tr { display:table-row; }
+  #history-tables .fills-mobile :is(td,th) { padding:5px 10px; border:solid #dce3ec; border-width:0 1px 1px 0; white-space:nowrap; text-align:right; background:white; }
+  #history-tables .fills-mobile td::before { content:none; }
+  #history-tables .fills-mobile th { background:#f3f5f8; font-weight:500; }
+  #history-tables .fills-mobile tbody tr:nth-child(even) td { background:#f8f9fb; }
+  #history-tables .fills-mobile :is(td,th):first-child { position:sticky; left:0; z-index:1; text-align:left; box-shadow:2px 0 4px #15263a18; }
+  .fills-mobile span { display:block; line-height:1.5; }
+  .fills-mobile .buy { color:#ac3034; }
+  .fills-mobile .sell { color:#205ab0; }
+}
 @media (max-width: 700px) {
   #history-tables .tbl, #history-tables tbody { display: block; width: 100%; white-space: normal; }
   #history-tables thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }

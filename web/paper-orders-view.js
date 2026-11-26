@@ -142,6 +142,31 @@
         }
       }
       wrap.append(t);
+      if (title==="체결조회") {
+        t.classList.add("fills-desktop");
+        const list=document.createElement("table");
+        list.className="fills-mobile";
+        list.setAttribute("aria-label","체결조회");
+        const pairs=[["name","side"],["fillPrice","price"],["executed","remaining"],["time","state"],["number","originalNumber"],["qty"]];
+        function pairedCells(tr,row) {
+          for (const pair of pairs) {
+            const cell=document.createElement(row?"td":"th");
+            if (!row) cell.scope="col";
+            for (const key of pair) {
+              const line=document.createElement("span");
+              const value=row?.[key];
+              line.textContent=row?(typeof value==="number"?value.toLocaleString("ko-KR"):value??"—"):cols[key];
+              if (row && key==="side") line.className=String(value).includes("매수")?"buy":String(value).includes("매도")?"sell":"";
+              cell.append(line);
+            }
+            tr.append(cell);
+          }
+        }
+        pairedCells(list.createTHead().insertRow(),null);
+        const entries=list.createTBody();
+        for (const row of rows) pairedCells(entries.insertRow(),row);
+        wrap.append(list);
+      }
     }
     el("history-tables").append(heading,wrap);
   }
