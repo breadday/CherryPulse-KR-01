@@ -21,9 +21,11 @@ document.querySelectorAll(".step-field").forEach(group => {
     if (field.disabled) return;
     const current = validWhole(field.id, true);
     if (current === null && field.value !== "") return;
-    const increment = field.id === "price" && val("schedule") === "reserved" ? 10 : 1;
-    const next = (current ?? 0) + delta * increment;
-    if (increment === 10 && next < 1) return;
+    const increment = field.id === "price" ? 10 : 1;
+    const value = current ?? 0;
+    const remainder = value % increment;
+    const next = value - remainder + (delta < 0 && remainder ? 0 : delta * increment);
+    if (field.id === "price" && next < 1) return;
     if (!Number.isSafeInteger(next)) return;
     field.value = String(Math.max(1, next));
     field.dispatchEvent(new Event("input", {bubbles:true}));
