@@ -49,13 +49,17 @@
 }
 .holding-actions { display: flex; gap: .4rem; margin-top: .35rem; }
 .holding-actions button { min-height: 44px; min-width: 54px; }
+[data-holdings] .holdings-paired { display:none; }
 @media (max-width: 700px) {
-  [data-holdings] .tbl, [data-holdings] tbody { display: block; width: 100%; white-space: normal; }
-  [data-holdings] thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  [data-holdings] tbody tr { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .6rem; padding: .75rem; margin: .5rem 0; border: 1px solid #8795a6; border-radius: .65rem; }
-  [data-holdings] td { padding: 0; border: 0; text-align: start; overflow-wrap: anywhere; }
-  [data-holdings] td:first-child { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .35rem; }
-  [data-holdings] td[data-label]::before { display: block; content: attr(data-label); font-size: .8em; }
+  [data-holdings] .holdings-wide { display:none; }
+  [data-holdings] .holdings-paired { display:table; width:max-content; min-width:100%; border-collapse:separate; border-spacing:0; font-size:14px; }
+  .holdings-paired :is(th,td) { padding:5px 10px; text-align:right; white-space:nowrap; border:solid #dce3ec; border-width:0 1px 1px 0; background:white; }
+  .holdings-paired th { background:#f3f5f8; }
+  .holdings-paired tr:nth-child(even) td { background:#f8f9fb; }
+  .holdings-paired :is(th,td):first-child { position:sticky; left:0; z-index:1; text-align:left; box-shadow:2px 0 4px #15263a18; }
+  .holdings-paired span, .holdings-paired small { display:block; line-height:1.5; }
+  .holdings-paired td:first-child button { background:transparent; color:inherit; text-align:left; font-size:inherit; padding:0; min-height:44px; }
+  .holdings-paired .holding-actions { margin:0; }
 }
 #history-tables td[data-label="주문 변경"] {grid-column:1 / -1;white-space:normal} #history-tables td[data-label="주문 변경"] input {width:9em;max-width:100%} #history-tables td[data-label="주문 변경"] button {margin:.2em;min-height:44px}.login-heading{display:grid;grid-template-columns:1fr auto;align-items:center;gap:.35rem 1rem}.login-heading .muted{grid-column:1/-1}#pin-dialog{width:min(90vw,22rem);padding:1.4rem;border:1px solid #8795a6;border-radius:1rem}#pin-dialog::backdrop{background:rgba(0,0,0,.5)}#pin-setup-link{display:inline-block;margin-top:1rem}</style></head><body>
 <div class="shell"><aside class="side"><div class="brand">🍒 CherryPlus</div><div class="sub">통합 자동매매 플랫폼 · UI 시안</div><div class="menu" id="menu">

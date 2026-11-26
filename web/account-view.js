@@ -12,12 +12,24 @@
       container.textContent = rows ? "보유종목 없음" : "보유종목 미조회";
       return;
     }
+    container.className = "scroll";
+    container.append(holdingsTable(rows,false),holdingsTable(rows,true));
+  }
+  function holdingsTable(rows,mobile) {
     const table = document.createElement("table");
-    table.className = "tbl";
+    table.className = mobile ? "tbl holdings-paired" : "tbl holdings-wide";
     const header = table.createTHead().insertRow();
-    for (const [label] of columns) {
+    const groups = mobile
+      ? [[["종목명"],["코드"]],[columns[5],columns[4]],[columns[1],columns[6]],[columns[2],columns[3]],[["주문"]]]
+      : columns.map(column => [column]);
+    for (const group of groups) {
       const th = document.createElement("th");
-      th.textContent = label;
+      th.scope = "col";
+      for (const [label] of group) {
+        const line = document.createElement("span");
+        line.textContent = label;
+        th.append(line);
+      }
       header.append(th);
     }
     const body = table.createTBody();
@@ -26,7 +38,12 @@
       const identity = tr.insertCell();
       const button = document.createElement("button");
       button.className = "btn secondary";
-      button.textContent = [row.name,row.code].filter(Boolean).join(" · ");
+      if (mobile) {
+        button.textContent = row.name || "—";
+        const code = document.createElement("small");
+        code.textContent = row.code;
+        button.append(code);
+      } else button.textContent = [row.name,row.code].filter(Boolean).join(" · ");
       button.onclick = () => window.dispatchEvent(new CustomEvent("holding-selected", {detail: row}));
       identity.append(button);
       const actions = document.createElement("div");
@@ -41,15 +58,17 @@
         action.onclick = () => window.dispatchEvent(new CustomEvent("holding-selected",{detail:{...row,side}}));
         actions.append(action);
       }
-      identity.append(actions);
-      for (const [label,key,unit] of columns.slice(1)) {
+      for (const group of groups.slice(1,mobile ? -1 : undefined)) {
         const cell = tr.insertCell();
-        cell.dataset.label = label;
-        cell.textContent = format(row[key], unit);
+        for (const [,key,unit] of group) {
+          const line = document.createElement("span");
+          line.textContent = format(row[key],unit);
+          cell.append(line);
+        }
       }
+      (mobile ? tr.insertCell() : identity).append(actions);
     }
-    container.className = "scroll";
-    container.append(table);
+    return table;
   }
   function render(data, status) {
     for (const el of all("[data-account-status]")) el.textContent = status;
