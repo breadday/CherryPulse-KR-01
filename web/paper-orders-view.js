@@ -130,33 +130,6 @@
       const quotes=new Map();
       for(const row of rows){
         const tr=body.insertRow();
-        if (title==="주문내역") {
-          const card=tr.insertCell();
-          card.className="order-card";
-          const amount=(n,unit)=>Number.isSafeInteger(n)?n.toLocaleString("ko-KR")+unit:"—";
-          const header=document.createElement("header"),name=document.createElement("strong"),state=document.createElement("span");
-          name.textContent=row.name;state.textContent=row.state;
-          header.append(name,state);
-          const terms=document.createElement("p"),balance=document.createElement("p");
-          terms.textContent=[row.side,amount(row.qty,"주"),row.price>0?amount(row.price,"원"):"주문가 —"].join(" · ");
-          balance.textContent="잔량 "+amount(row.remaining,"주")+"  ·  체결 "+amount(row.executed,"주");
-          const details=document.createElement("details"),summary=document.createElement("summary"),info=document.createElement("dl");
-          summary.textContent="주문 상세";
-          for (const key of ["time","number","originalNumber","fillPrice"]) {
-            const label=document.createElement("dt"),value=document.createElement("dd");
-            label.textContent=cols[key];value.textContent=key==="fillPrice"?(row.executed>0?amount(row.fillPrice,"원"):"—"):row[key]??"—";
-            info.append(label,value);
-          }
-          details.append(summary,info);card.append(header,terms,balance,details);
-          if (row.changeApproval) {
-            const actions=document.createElement("details"),toggle=document.createElement("summary");
-            toggle.textContent=row.price>0?"가격 정정 · 잔량 취소":"잔량 취소";
-            actions.append(toggle);card.append(actions);
-            actions.addEventListener("toggle",()=>{
-              if (actions.open && actions.children.length===1) changeControls(actions,row,quotes);
-            });
-          }
-        }
         for (const [col,label] of Object.entries(cols)) {
           const cell=tr.insertCell();
           cell.dataset.label=label;
@@ -169,31 +142,46 @@
         }
       }
       wrap.append(t);
-      if (title==="체결조회") {
-        t.classList.add("fills-desktop");
-        const list=document.createElement("table");
-        list.className="fills-mobile";
-        list.setAttribute("aria-label","체결조회");
-        const pairs=[["name","side"],["fillPrice","price"],["executed","remaining"],["time","state"],["number","originalNumber"],["qty"]];
-        function pairedCells(tr,row) {
-          for (const pair of pairs) {
-            const cell=document.createElement(row?"td":"th");
-            if (!row) cell.scope="col";
-            for (const key of pair) {
-              const line=document.createElement("span");
-              const value=row?.[key];
-              line.textContent=row?(typeof value==="number"?value.toLocaleString("ko-KR"):value??"—"):cols[key];
-              if (row && key==="side") line.className=String(value).includes("매수")?"buy":String(value).includes("매도")?"sell":"";
-              cell.append(line);
-            }
-            tr.append(cell);
+      t.classList.add("fills-desktop");
+      const list=document.createElement("table");
+      list.className="fills-mobile";
+      list.setAttribute("aria-label",title);
+      const orders=title==="주문내역";
+      const pairs=orders
+        ? [["name","side"],["price","remaining"],["state","executed"],["time","qty"],["number","originalNumber"],["fillPrice"]]
+        : [["name","side"],["fillPrice","price"],["executed","remaining"],["time","state"],["number","originalNumber"],["qty"]];
+      function pairedCells(tr,row) {
+        for (const pair of pairs) {
+          const cell=document.createElement(row?"td":"th");
+          if (!row) cell.scope="col";
+          for (const key of pair) {
+            const line=document.createElement("span");
+            const value=row?.[key];
+            line.textContent=row?(typeof value==="number"?value.toLocaleString("ko-KR"):value??"—"):cols[key];
+            if (row && key==="side") line.className=String(value).includes("매수")?"buy":String(value).includes("매도")?"sell":"";
+            cell.append(line);
           }
+          tr.append(cell);
         }
-        pairedCells(list.createTHead().insertRow(),null);
-        const entries=list.createTBody();
-        for (const row of rows) pairedCells(entries.insertRow(),row);
-        wrap.append(list);
       }
+      pairedCells(list.createTHead().insertRow(),null);
+      const entries=list.createTBody();
+      for (const row of rows) {
+        pairedCells(entries.insertRow(),row);
+        if (orders && row.changeApproval) {
+          const cell=entries.insertRow().insertCell();
+          cell.colSpan=pairs.length;
+          cell.className="mobile-order-actions";
+          const details=document.createElement("details"),summary=document.createElement("summary");
+          summary.textContent=row.price>0?"가격 정정 · 잔량 취소":"잔량 취소";
+          summary.setAttribute("aria-label",row.name+" "+summary.textContent);
+          details.append(summary);cell.append(details);
+          details.addEventListener("toggle",()=>{
+            if (details.open && details.children.length===1) changeControls(details,row,quotes);
+          });
+        }
+      }
+      wrap.append(list);
     }
     el("history-tables").append(heading,wrap);
   }
