@@ -58,11 +58,36 @@
     } catch(e) {if(id===review) out.textContent=e.message+" · 재전송 전에 주문·체결 내역을 확인하세요.";}
     finally {sending=false;}
   };
-  function changeControls(cell,row) {
+  function priceComparison(cell,row,quotes) {
+    const summary=document.createElement("p"), time=document.createElement("small");
+    const refresh=document.createElement("button");
+    refresh.type="button";refresh.className="btn secondary";refresh.textContent="현재가 새로고침";
+    summary.setAttribute("role","status");
+    const orderPrice="주문가 "+row.price.toLocaleString("ko-KR")+"원";
+    async function load() {
+      refresh.disabled=true;
+      summary.textContent=orderPrice+" · 현재가 조회 중…";time.textContent="";
+      try {
+        if (!quotes.has(row.code)) quotes.set(row.code,CherryPlusMarket.quote(row.code).finally(()=>quotes.delete(row.code)));
+        const tick=await quotes.get(row.code);
+        if (tick.code!==row.code || !Number.isSafeInteger(tick.price) || tick.price<=0 || !/^\d{14}$/.test(tick.time)) throw Error();
+        const diff=tick.price-row.price;
+        const comparison=diff===0?"주문가와 동일":"주문가보다 "+Math.abs(diff).toLocaleString("ko-KR")+"원 "+(diff>0?"높음":"낮음");
+        summary.textContent=orderPrice+" · 현재가 "+tick.price.toLocaleString("ko-KR")+"원 ("+comparison+")";
+        time.textContent=tick.time.replace(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/,"최근 체결 $1-$2-$3 $4:$5:$6 KST");
+      } catch {summary.textContent=orderPrice+" · 현재가 조회 실패";}
+      finally {refresh.disabled=false;}
+    }
+    refresh.onclick=load;
+    const controls=document.createElement("div");
+    controls.append(time,refresh);cell.append(summary,controls);
+    load();
+  }
+  function changeControls(cell,row,quotes) {
     const price=document.createElement("input");
     price.type="text";price.inputMode="numeric";price.placeholder="새 지정가 (원)";
     price.setAttribute("aria-label",row.name+" 새 지정가 (원)");
-    if (row.price>0) cell.append(price);
+    if (row.price>0) {priceComparison(cell,row,quotes);cell.append(price);}
     const status=document.createElement("p");
     status.setAttribute("role","status");
     const buttons=[];
@@ -102,6 +127,7 @@
       const editable=rows.some(row=>row.changeApproval);
       if (editable) {const th=document.createElement("th");th.textContent="주문 변경";head.append(th);}
       const body=t.createTBody();
+      const quotes=new Map();
       for(const row of rows){
         const tr=body.insertRow();
         for (const [col,label] of Object.entries(cols)) {
@@ -112,7 +138,7 @@
         }
         if (editable) {
           const cell=tr.insertCell();
-          if (row.changeApproval) {cell.dataset.label="주문 변경";changeControls(cell,row);}
+          if (row.changeApproval) {cell.dataset.label="주문 변경";changeControls(cell,row,quotes);}
         }
       }
       wrap.append(t);
