@@ -22,16 +22,34 @@ const accountDevice = (() => {
   mode.onchange = layout;
   key.addEventListener("input", clear);
   window.addEventListener("account-locked", clear);
-  form.onsubmit = async event => {
+  const dialog = el("pin-dialog"), globalForm = el("global-pin-form");
+  const globalPin = el("global-pin"), globalNote = el("global-pin-note");
+  const openLogin = el("open-pin-login");
+  openLogin.onclick = () => {
+    globalPin.value = globalNote.textContent = "";
+    dialog.showModal();
+    globalPin.focus();
+  };
+  el("close-pin-login").onclick = () => dialog.close();
+  dialog.addEventListener("close", () => {globalPin.value = "";});
+  el("pin-setup-link").onclick = () => {
+    dialog.close();
+    requestAnimationFrame(() => mode.focus());
+  };
+  async function authenticate(event) {
     event.preventDefault();
-    const action = mode.value;
+    const activeForm = event.currentTarget;
+    const global = activeForm===globalForm;
+    const action = global ? "unlock" : mode.value;
+    const input = global ? globalPin : pin;
+    const note = global ? globalNote : el("device-note");
     if (action==="register" && !key.value) { note.textContent="PC의 계좌 열람 키를 위 입력칸에 먼저 입력하세요."; return; }
     if (action==="register" && pin.value!==confirm.value) { note.textContent="두 PIN이 일치하지 않습니다."; return; }
     const revision = ++version;
-    const body = JSON.stringify({action,pin:pin.value,code:code.value.replace(/[ -]/g,"")});
+    const body = JSON.stringify({action,pin:input.value,code:code.value.replace(/[ -]/g,"")});
     const headers = {"Content-Type":"application/json"};
     if (action==="register") headers.Authorization = "Bearer "+key.value;
-    const button = form.querySelector("button");
+    const button = activeForm.querySelector("button");
     button.disabled = true;
     note.textContent="확인 중…";
     try {
@@ -40,6 +58,11 @@ const accountDevice = (() => {
       if (revision!==version) return;
       if (!response.ok) {
         if (response.status===401 && data.reason==="device_cookie_missing") {
+          if (global) {
+            note.textContent="이 브라우저는 먼저 기기 등록·연결이 필요합니다.";
+            el("pin-setup-link").focus();
+            return;
+          }
           mode.value="register";
           layout();
           note.textContent="이 브라우저에 기기 등록 정보가 없습니다. PC에서는 위에 계좌 화면 열람 키를 입력한 뒤 아래에 사용할 PIN을 두 번 입력하고 확인을 누르세요. 휴대폰에서는 ‘휴대폰 연결’을 선택하세요.";
@@ -67,10 +90,14 @@ const accountDevice = (() => {
       mode.value="unlock";
       layout();
       note.textContent="PIN 인증 완료 · 15분간 조회 가능";
+      if (global && dialog.open) dialog.close();
 
     } catch { if(revision===version) note.textContent="연결을 확인하고 다시 시도하세요."; }
-    finally {button.disabled=false; pin.value=confirm.value=code.value="";}
-  };
+    finally {button.disabled=false; input.value=""; if (!global) confirm.value=code.value="";}
+  }
+  form.onsubmit = globalForm.onsubmit = authenticate;
+  window.addEventListener("device-unlocked",()=>{openLogin.textContent="PIN 재인증";});
+  window.addEventListener("account-locked",()=>{openLogin.textContent="PIN 로그인";});
   window.addEventListener("device-unlocked",event=>{
     session=event.detail; key.value=""; key.required=false; clearTimeout(expiry);
     expiry=setTimeout(()=>el("account-lock").click(),15*60*1000);
