@@ -2,10 +2,12 @@ const accessStatus = require("../lib/account-access");
 const {prepare,history} = require("../lib/paper-orders");
 const manualOrder = require("../lib/manual-paper-order");
 const orderChange = require("../lib/paper-order-change");
+const {reservationOrder}=require("../lib/reservation-paper-order");
+const reservationActions=["reservation-preview","reservation-submit","reservation-refresh"];
 module.exports = async function paperOrders(req,res) {
   res.setHeader("Cache-Control","private, no-store");
   res.setHeader("Vary","Authorization");
-  if (req.method!=="GET" && !(req.method==="POST" && ["prepare","manual-sell","manual-buy","change"].includes(req.query?.action))) return res.status(405).end();
+  if (req.method!=="GET" && !(req.method==="POST" && ["prepare","manual-sell","manual-buy","change",...reservationActions].includes(req.query?.action))) return res.status(405).end();
   const status=accessStatus(req);
   if (status!==200) return res.status(status).json({error:"모의계좌 열람 권한이 필요합니다."});
   try {
@@ -15,6 +17,10 @@ module.exports = async function paperOrders(req,res) {
       return res.status(200).json(tables);
     }
     const input=req.body || {};
+    if (reservationActions.includes(req.query.action)) {
+      const result=await reservationOrder(req,input,req.query.action);
+      return res.status(result.status).json(result.body);
+    }
     if (req.query.action==="change") {
       const result=await orderChange.change(req,input);
       return res.status(result.status).json(result.body);

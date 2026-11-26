@@ -142,7 +142,9 @@ def test_submit_ack_writes_sentinel_without_identifiers(
     assert '"acked": true' in output
     assert "00001234" not in output
     assert "private-key" not in output
-    assert len(list((tmp_path / "results").glob("*"))) == 1
+    (guard,) = (tmp_path / "results").glob("*")
+    record = json.loads(guard.read_text(encoding="utf-8"))
+    assert record["started_at"] <= record["sent_at"] <= record["received_at"]
 
 
 def test_sentinel_blocks_second_submit(

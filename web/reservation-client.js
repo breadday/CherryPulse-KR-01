@@ -9,7 +9,10 @@ const CherryReservations = {
       const response = await fetch(path,{method,credentials:"same-origin",cache:"no-store",
         headers:body?{"Content-Type":"application/json"}:{},body:body?JSON.stringify(body):undefined,
         redirect:"error",signal:AbortSignal.timeout(18000)});
-      if (!response.ok) throw Object.assign(new Error(),{status:response.status});
+      if (!response.ok) {
+        const result = await response.json().catch(()=>({}));
+        throw Object.assign(new Error(result.error),{status:response.status});
+      }
       return response.json();
     }
     function session(active) {
@@ -22,6 +25,58 @@ const CherryReservations = {
     function error(e) {
       if (e.status===401) session(false);
       el("reservation-status").textContent = messages[e.status] || "서버 응답을 확인하지 못했습니다. 다시 조회하세요.";
+    }
+    function paperSection(item,row) {
+      const order=row.paperOrder, d=row.details;
+      const age=Date.now()-Date.parse(d.date+"T"+d.time+"+09:00");
+      const eligible=["dry_run","due"].includes(row.status) && d.type==="지정가" && age>=0 && age<120000;
+      if (!order && !eligible) return;
+      const states={accepted:"접수",unfilled:"미체결",partial:"부분체결",filled:"완전체결",rejected:"거절",unknown:"접수 확인 필요"};
+      const time=value=>value?new Date(value).toLocaleString("ko-KR",{timeZone:"Asia/Seoul",hour12:false})+" KST":"미확인";
+      if (order) {
+        for (const text of ["키움 모의주문 · "+(states[order.state] || "접수 확인 필요"),
+          "작업 시작 "+time(order.startedAt)+" · 전송 "+time(order.sentAt),
+          "응답 수신 "+time(order.receivedAt)+" · 키움 접수 "+time(order.acceptedAt),
+          "주문번호 "+(order.number || "미확인")+" · 체결 "+(order.executed==null?"미확인":order.executed+"주")+" · 잔량 "+(order.remaining==null?"미확인":order.remaining+"주")]) {
+          const p=document.createElement("p");p.textContent=text;item.append(p);
+        }
+        if (["filled","rejected"].includes(order.state)) return;
+      }
+      const button=document.createElement("button");
+      button.type="button";button.className="btn secondary";
+      button.textContent=order?"키움 주문내역 대조":"이 예약 모의전송 사전확인";
+      item.append(button);
+      const call=(action,extra={})=>api("POST",{id:row.id,version:row.version,...extra},"/api/paper-orders?action=reservation-"+action);
+      button.onclick=async ()=>{
+        if (pending) return;
+        pending=true;button.disabled=true;
+        try {
+          if (order) {
+            const result=await call("refresh");
+            if (result.candidates?.length) {
+              const choices=result.candidates.map(c=>c.number+" ("+c.time+")").join("\n");
+              const number=window.prompt("키움 주문내역과 대조한 주문번호를 입력하세요.\n"+choices);
+              if (!result.candidates.some(c=>c.number===number)) return;
+              const saved=await call("refresh",{number});
+              if (!saved.matched) {
+                el("reservation-status").textContent="대조할 주문내역이 변경됐습니다. 다시 조회하세요.";
+                return;
+              }
+            } else if (!result.matched) {
+              el("reservation-status").textContent="키움 내역에서 일치하는 주문을 찾지 못했습니다. 기존 상태를 유지합니다.";
+              return;
+            }
+          } else {
+            const {confirmation}=await call("preview");
+            if (!confirmation || !window.confirm([d.name,d.code,d.side,d.qty+"주",d.price+"원",d.date,d.time+" KST"].join(" · ")+"\n이 예약 한 건을 키움 모의계좌에 전송할까요?")) return;
+            await call("submit",{confirmation});
+          }
+          await refresh();
+        } catch(e) {
+          await refresh();
+          el("reservation-status").textContent=e.message || "응답 미확인 · 예약 목록에서 주문 상태를 확인하세요.";
+        } finally {pending=false;button.disabled=false;}
+      };
     }
     function render(rows) {
       const list = el("reservation-list");
@@ -54,7 +109,7 @@ const CherryReservations = {
         if (row.processedAt) {
           const processed = document.createElement("p");
           const time = new Date(row.processedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"});
-          processed.textContent = "처리 시각 "+time+" KST · DRY_RUN · 주문 전송 없음";
+          processed.textContent = "처리 시각 "+time+" KST · DRY_RUN"+(row.paperOrder?"":" · 주문 전송 없음");
           if (row.errorCode) processed.textContent += " · "+row.errorCode;
           item.append(processed);
         }
@@ -69,9 +124,10 @@ const CherryReservations = {
           };
           item.append(change," ",cancel);
         }
+        paperSection(item,row);
         list.append(item);
       }
-      el("reservation-status").textContent = "서버 예약 "+rows.length+"건 · 모의 검증 전용";
+      el("reservation-status").textContent = "서버 예약 "+rows.length+"건";
     }
     async function refresh(afterLogin=false) {
       const current = ++generation;

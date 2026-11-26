@@ -62,6 +62,8 @@ def submit_buy_body(
     pacer: RequestPacer,
     timeout: float,
     opener_factory: Callable[[], object],
+    *,
+    record_time: Callable[[str], None] | None = None,
 ) -> dict[str, object]:
     """POST exactly once to the mock order endpoint; no redirects or retries."""
     if not math.isfinite(timeout) or not 0 < timeout <= 30:  # noqa: PLR2004 -- Upper bound for a single demo call.
@@ -83,11 +85,15 @@ def submit_buy_body(
 
     pacer.acquire()
     opener = opener_factory()
+    if record_time:
+        record_time("sent_at")
     with cast(
         "HTTPResponse",
         opener.open(request, timeout=timeout),  # type: ignore[union-attr] -- Injected opener follows the urllib shape.
     ) as response:
         raw = response.read(MAX_RESPONSE_BYTES + 1)
+        if record_time:
+            record_time("received_at")
         if len(raw) > MAX_RESPONSE_BYTES:
             raise ValueError("RESPONSE_TOO_LARGE")
         payload = cast("object", json.loads(raw))
@@ -163,6 +169,7 @@ def report(  # noqa: PLR0913 -- Explicit chat-safe report fields; no kwargs bund
 
 def main(argv: list[str] | None = None) -> int:
     """Preview by default; submit only with explicit confirmation."""
+    started_at = datetime.now(KST).isoformat(timespec="milliseconds")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--symbol", default="005930")
     parser.add_argument("--price", required=True)
@@ -206,9 +213,15 @@ def main(argv: list[str] | None = None) -> int:
         issuer = PaperTokenIssuer(pacer)
         cache = PaperTokenCache(credentials, issuer.issue)
         guard.parent.mkdir(exist_ok=True)
+        claim_data = {"date": day, "status": "PENDING", "started_at": started_at}
+
+        def record_time(field: str) -> None:
+            claim_data[field] = datetime.now(KST).isoformat(timespec="milliseconds")
+            _ = guard.write_text(json.dumps(claim_data), encoding="utf-8")
+
         try:
             with guard.open("x", encoding="utf-8") as claim:
-                _ = claim.write(json.dumps({"date": day, "status": "PENDING"}))
+                _ = claim.write(json.dumps(claim_data))
         except FileExistsError:
             _ = sys.stdout.write(
                 json.dumps(
@@ -230,11 +243,16 @@ def main(argv: list[str] | None = None) -> int:
             raise
         try:
             payload = submit_buy_body(
-                build_buy_body(preview), token, pacer, 10, real_opener
+                build_buy_body(preview),
+                token,
+                pacer,
+                10,
+                real_opener,
+                record_time=record_time,
             )
         except Exception:  # noqa: BLE001 -- UNKNOWN blocks resubmission; context never echoed.
             _ = guard.write_text(
-                json.dumps({"date": day, "status": "UNKNOWN"}), encoding="utf-8"
+                json.dumps({**claim_data, "status": "UNKNOWN"}), encoding="utf-8"
             )
             _ = sys.stdout.write(
                 json.dumps(
@@ -254,7 +272,7 @@ def main(argv: list[str] | None = None) -> int:
             _ = guard.write_text(
                 json.dumps(
                     {
-                        "date": day,
+                        **claim_data,
                         "symbol": preview.symbol,
                         "qty": DEMO_QUANTITY,
                         "price": preview.price,

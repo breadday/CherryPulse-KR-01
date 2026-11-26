@@ -33,6 +33,7 @@ jobs:
           done
           psql -v ON_ERROR_STOP=1 -f supabase/tests/account_device_pairing.sql
           psql -v ON_ERROR_STOP=1 -f supabase/tests/pin_access.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/reservation_paper.sql
           psql -v ON_ERROR_STOP=1 -f supabase/tests/dry_run_fixtures.sql
           python supabase/tests/reservation_tick_check.py
           psql -v ON_ERROR_STOP=1 -f supabase/tests/owner_pin_recovery.sql

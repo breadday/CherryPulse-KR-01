@@ -48,15 +48,18 @@ async function claimRpc(req,claimName,args) {
   if (!claim.ok) throw Error("CLAIM_UNAVAILABLE");
   return claim.json();
 }
-async function sendOrder(apiId,body,bearer) {
+async function sendOrder(apiId,body,bearer,timing={}) {
   const fail = (status,error) => ({status,body:{error}});
   try {
+    timing.sentAt=new Date().toISOString();
     const response = await fetch("https://mockapi.kiwoom.com/api/dostk/ordr",{
       method:"POST",redirect:"error",signal:AbortSignal.timeout(8000),
       headers:{"Content-Type":"application/json;charset=UTF-8","api-id":apiId,authorization:"Bearer "+bearer},
       body:JSON.stringify(body)
     });
+    timing.receivedAt=new Date().toISOString();
     const data = await response.json();
+    if (/^-?\d{1,9}$/.test(String(data.return_code))) timing.responseCode=Number(data.return_code);
     if (response.ok && [0,"0"].includes(data.return_code) && typeof data.ord_no==="string" &&
         /^\d+$/.test(data.ord_no.trim()) && /[1-9]/.test(data.ord_no)) {
       return {status:200,body:{number:data.ord_no.trim()}};
