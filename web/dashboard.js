@@ -359,13 +359,20 @@ window.addEventListener("holding-selected", ({detail}) => {
   ++quoteVersion;
   el("schedule").value = "now";
   updateSchedule();
+  if (detail.side) {
+    el("direction").value = detail.side;
+    el("order-type").value = "지정가";
+    setMarketPriceDisabled(false);
+  }
   selectedText = detail.name || detail.code;
   el("stock-name").value = selectedText;
   el("symbol").value = detail.code;
   el("stock-options").replaceChildren();
   el("price").value = "";
   el("quantity").value = el("quantity").defaultValue;
-  el("feedback").textContent = selectedText + " · 거래 구분과 수량을 확인하세요.";
+  el("feedback").textContent = detail.side
+    ? selectedText+" · "+detail.side+" · 지정가와 수량을 확인하세요."
+    : selectedText+" · 거래 구분과 수량을 확인하세요.";
   el("quote-retry").disabled = false;
   recalc();
   location.hash = "orders";

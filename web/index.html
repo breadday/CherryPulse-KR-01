@@ -26,6 +26,16 @@
   #history-tables td::before { display: block; content: attr(data-label); font-size: .8em; }
   #history-tables td[data-label="종목"], #history-tables td[data-label="상태"] { order: -1; font-weight: 700; }
 }
+.holding-actions { display: flex; gap: .4rem; margin-top: .35rem; }
+.holding-actions button { min-height: 44px; min-width: 54px; }
+@media (max-width: 700px) {
+  [data-holdings] .tbl, [data-holdings] tbody { display: block; width: 100%; white-space: normal; }
+  [data-holdings] thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  [data-holdings] tbody tr { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .6rem; padding: .75rem; margin: .5rem 0; border: 1px solid #8795a6; border-radius: .65rem; }
+  [data-holdings] td { padding: 0; border: 0; text-align: start; overflow-wrap: anywhere; }
+  [data-holdings] td:first-child { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .35rem; }
+  [data-holdings] td[data-label]::before { display: block; content: attr(data-label); font-size: .8em; }
+}
 </style></head><body>
 <div class="shell"><aside class="side"><div class="brand">🍒 CherryPlus</div><div class="sub">통합 자동매매 플랫폼 · UI 시안</div><div class="menu" id="menu">
 <button class="nav active" data-page="home">▦ 통합 홈</button><button class="nav" data-page="watchlist">☆ 관심종목</button><button class="nav" data-page="accounts">▤ 계좌·보유종목</button><button class="nav" data-page="orders">⇄ 주문·예약</button><button class="nav" data-page="fills">☷ 주문·체결 내역</button><button class="nav" data-page="auto">⚙ 자동매매</button><button class="nav" data-page="ops">◷ 운영·설정</button>

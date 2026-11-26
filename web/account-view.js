@@ -23,12 +23,30 @@
     const body = table.createTBody();
     for (const row of rows) {
       const tr = body.insertRow();
+      const identity = tr.insertCell();
       const button = document.createElement("button");
       button.className = "btn secondary";
       button.textContent = [row.name,row.code].filter(Boolean).join(" · ");
       button.onclick = () => window.dispatchEvent(new CustomEvent("holding-selected", {detail: row}));
-      tr.insertCell().append(button);
-      for (const [,key,unit] of columns.slice(1)) tr.insertCell().textContent = format(row[key], unit);
+      identity.append(button);
+      const actions = document.createElement("div");
+      actions.className = "holding-actions";
+      for (const side of ["매수","매도"]) {
+        const action = document.createElement("button");
+        action.type = "button";
+        action.className = "btn secondary";
+        action.textContent = side;
+        action.setAttribute("aria-label", (row.name || row.code)+" "+side);
+        action.disabled = side==="매도" && row.sellable===0;
+        action.onclick = () => window.dispatchEvent(new CustomEvent("holding-selected",{detail:{...row,side}}));
+        actions.append(action);
+      }
+      identity.append(actions);
+      for (const [label,key,unit] of columns.slice(1)) {
+        const cell = tr.insertCell();
+        cell.dataset.label = label;
+        cell.textContent = format(row[key], unit);
+      }
     }
     container.className = "scroll";
     container.append(table);
