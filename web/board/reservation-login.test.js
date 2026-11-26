@@ -47,13 +47,17 @@ test("reservation cards keep the dry run separate from paper order quantities an
   const row={status:"dry_run",processedAt:"2026-11-26T00:05:00Z",details:{date:"2026-11-26",time:"09:05",qty:1,price:18080,name:"태광",side:"매수",type:"지정가"}};
   const document={createElement:element,getElementById:el,addEventListener(){}};
   const context={document,window:{addEventListener(){},setInterval(){}},AbortSignal,
-    fetch:async()=>({ok:true,json:async()=>({rows:[row]})})};
-  vm.runInNewContext(client+"; CherryReservations.attach({sessionChanged(){}});",context);
+    fetch:async(url,options)=>options.method==="POST"
+      ? {ok:false,status:409,json:async()=>({status:409})}
+      : {ok:true,json:async()=>({rows:[row]})}};
+  const reservations=vm.runInNewContext(client+"; CherryReservations.attach({sessionChanged(){}});",context);
   async function card() {
     await el("reservation-refresh").onclick();
     return el("reservation-list").children[0].children.map(c=>c.textContent).join("\n");
   }
   assert.match(await card(),/DRY_RUN · 주문 전송 없음/);
+  assert.equal(await reservations.save("test-id",null,row.details),false);
+  assert.match(el("reservation-status").textContent,/같은 조건의 예약이 이미 서버 예약 목록에/);
   row.paperOrder={state:"unknown",executed:null,remaining:null};
   assert.match(await card(),/접수 확인 필요[\s\S]*키움 접수 미확인[\s\S]*잔량 미확인/);
   for (const [state,label,executed,remaining] of [

@@ -136,7 +136,7 @@ const CherryReservations = {
         if (current!==generation) return;
         session(true);
         render(rows);
-        return true;
+        return rows;
       } catch(e) {
         if (current!==generation) return;
         el("reservation-list").replaceChildren();
@@ -150,14 +150,27 @@ const CherryReservations = {
       }
     }
     async function mutate(method,body) {
-      if (pending) return false;
+      if (pending) {
+        el("reservation-status").textContent="이전 요청을 처리 중입니다. 잠시 후 다시 시도하세요.";
+        return false;
+      }
       pending = true;
       try {
         await api(method,body);
         await refresh();
         return true;
       } catch(e) {
-        if (e.status===409) await refresh();
+        if (e.status===409) {
+          const rows=await refresh();
+          if (method==="POST" && Array.isArray(rows)) {
+            const fields=["code","side","qty","type","price","date","time"];
+            const match=rows.find(row=>row.status!=="cancelled" && fields.every(k=>row.details[k]===body.details[k]));
+            if (match) {
+              el("reservation-status").textContent="같은 조건의 예약이 이미 서버 예약 목록에 있습니다. 수량이나 가격을 바꾸려면 해당 예약의 수정을 누르세요.";
+              return false;
+            }
+          }
+        }
         error(e);
         return false;
       } finally {pending=false;}

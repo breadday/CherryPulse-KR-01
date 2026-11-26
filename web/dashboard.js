@@ -205,6 +205,7 @@ let editing = null;
 let reviewed = null;
 let serverEdit = null;
 let createId = crypto.randomUUID();
+let createDetails = null;
 function clearReview() {
   reviewed = null;
   el("confirm-server").hidden = true;
@@ -348,14 +349,27 @@ el("confirm-server").onclick = async () => {
   const current = previewOrder();
   if (!current || JSON.stringify(current) !== JSON.stringify(reviewed)) {
     clearReview();
+    if (current) el("feedback").textContent += " · 입력 내용을 다시 미리보기 하세요.";
     return;
   }
-  const id = serverEdit?.id || (editing?.key?.slice(draftPrefix.length)) || createId;
-  if (await reservations.save(id,serverEdit?.version,current)) {
+  const detailsKey = JSON.stringify(current);
+  if (!serverEdit && createDetails !== detailsKey) {
+    createId = crypto.randomUUID();
+    createDetails = detailsKey;
+  }
+  const id = serverEdit?.id || createId;
+  const saveButton = el("confirm-server");
+  saveButton.disabled = true;
+  el("feedback").textContent = "서버 예약을 저장하는 중입니다.";
+  try {
+    if (!await reservations.save(id,serverEdit?.version,current)) {
+      el("feedback").textContent = el("reservation-status").textContent;
+      return;
+    }
     createId = crypto.randomUUID();
     finishEdit();
     el("feedback").textContent = "서버 예약을 저장했습니다. 주문 전송 없이 모의 검증합니다.";
-  }
+  } finally {saveButton.disabled = false;}
 };
 window.addEventListener("holding-selected", ({detail}) => {
   finishEdit();
