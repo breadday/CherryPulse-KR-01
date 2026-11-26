@@ -41,7 +41,12 @@
       const body=t.createTBody();
       for(const row of rows){
         const tr=body.insertRow();
-        for(const col of Object.keys(cols)) {const v=row[col];tr.insertCell().textContent=typeof v==="number"?v.toLocaleString("ko-KR"):v??"—";}
+        for (const [col,label] of Object.entries(cols)) {
+          const cell=tr.insertCell();
+          cell.dataset.label=label;
+          const value=row[col];
+          cell.textContent=typeof value==="number"?value.toLocaleString("ko-KR"):value??"—";
+        }
       }
       wrap.append(t);
     }
