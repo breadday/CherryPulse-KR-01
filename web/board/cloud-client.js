@@ -5,12 +5,12 @@
   else root.CherryPulseCloud = api;
 })(globalThis, () => {
   class CloudError extends Error { constructor(code) { super(code); this.code = code; } }
-  function createClient(fetcher, uuid, backup) {
+  function createClient(fetcher, uuid, backup, unified=false) {
     let session = null, revision = null, pending = null;
     async function request(url, options = {}) {
       let response, body;
       try {
-        response = await fetcher(url, {...options, cache: "no-store", credentials: "omit", signal: AbortSignal.timeout(12000), redirect: "error"});
+        response = await fetcher(url, {...options, cache: "no-store", credentials: unified ? "same-origin" : "omit", signal: AbortSignal.timeout(12000), redirect: "error"});
         body = response.status === 204 ? {} : await response.json();
       } catch { throw new CloudError("NETWORK_ERROR"); }
       if (!response.ok) {
@@ -20,6 +20,7 @@
       return body;
     }
     async function auth(pin) {
+      if (unified) { await request("/api/device-pin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"unlock",pin})}); session={}; return {signedIn:true}; }
       session = null; revision = null; pending = null;
       const body = await request("/api/pin-login", {
         method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({pin}),
@@ -30,10 +31,11 @@
     }
     function headers() {
       if (!session) throw new CloudError("UNAUTHENTICATED");
+      if(unified) return {"Content-Type":"application/json"};
       return {Authorization: `Bearer ${session.token}`, "Content-Type": "application/json"};
     }
     async function read() {
-      const body = await request("/api/board", {headers: headers()});
+      const body = await request(unified ? "/api/reservations?view=board" : "/api/board", {headers: headers()});
       if (!Number.isInteger(body.revision) || body.revision < 0 || (body.revision > 0 && !body.snapshot) ||
           (body.revision === 0 && body.snapshot !== null)) throw new CloudError("INVALID_RESPONSE");
       if (body.snapshot) backup.parseBoardBackup(JSON.stringify(body.snapshot));
@@ -57,7 +59,7 @@
       if (pending && JSON.stringify(pending.snapshot) !== JSON.stringify(snapshot)) throw new CloudError("SAVE_UNCONFIRMED");
       if (!pending) pending = {snapshot, expectedRevision: revision, requestKey: uuid()};
       let body;
-      try { body = await request("/api/board", {method: "PUT", headers: headers(), body: JSON.stringify(pending)}); }
+      try { body = await request(unified ? "/api/reservations?view=board" : "/api/board", {method: "PUT", headers: headers(), body: JSON.stringify(pending)}); }
       catch (e) {
         if (["VERSION_CONFLICT", "VALIDATION_FAILED", "IDEMPOTENCY_MISMATCH"].includes(e.code)) { pending = null; revision = null; }
         throw e;
@@ -69,11 +71,12 @@
     async function logout() {
       const old = session;
       session = null; revision = null; pending = null;
+      if (unified && old) { await request("/api/reservations",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"logout"})}); return; }
       if (old) await request("/api/pin-logout", {
         method: "POST", headers: {Authorization: `Bearer ${old.token}`},
       });
     }
-    return {auth, inspect, load, acceptLoaded, save, retry: () => save(null, true), logout, signedIn: () => !!session};
+    return {resume:async()=>{if(!unified)return; session={};try {return await inspect();} catch(e){session=null;throw e;}}, auth, inspect, load, acceptLoaded, save, retry: () => save(null, true), logout, signedIn: () => !!session};
   }
   return {CloudError, createClient};
 });

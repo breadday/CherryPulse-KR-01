@@ -62,7 +62,7 @@ export async function handleRequest(request, env, fetcher = fetch) {
     let body;
     try { body = await boundedJson(request); }
     catch { return error("PIN_FORMAT_INVALID", 422); }
-    if (!body || Object.keys(body).length !== 1 || typeof body.pin !== "string" || !/^[0-9]{4}$/.test(body.pin)) return error("PIN_FORMAT_INVALID", 422);
+    if (!body || Object.keys(body).length !== 1 || typeof body.pin !== "string" || !/^[0-9]{4}([0-9]{2})?$/.test(body.pin)) return error("PIN_FORMAT_INVALID", 422);
     name = "cp_pin_login"; args = {p_pin: body.pin};
   } else if (pinLogout) { name = "cp_pin_logout"; }
   if (request.method === "PUT") {

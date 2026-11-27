@@ -4,18 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CherryPulse · 메인 보드</title>
-  <link rel="stylesheet" href="styles.css?v=20261026-search-timer-fix">
+  <link rel="stylesheet" href="styles.css?v=20261123-board">
   <script defer src="cloud-setup.js?v=20261026-search-timer-fix"></script>
   <script defer src="draft-import.js?v=20261026-search-timer-fix"></script>
   <script defer src="board-backup.js?v=20261026-search-timer-fix"></script>
   <script defer src="log-view.js?v=20261026-search-timer-fix"></script>
   <script defer src="buy-preview.js?v=20261026-search-timer-fix"></script>
   <script defer src="cloud-client.js?v=20261026-search-timer-fix"></script>
-  <script defer src="board.js?v=20261026-search-timer-fix"></script>
-  <script defer src="symbol-lookup.js?v=20261026-search-timer-fix"></script>
+  <script defer src="board.js?v=20261123-restore"></script>
+  <script defer src="symbol-lookup.js?v=registration-quote"></script>
   <script defer src="cloud-health.js?v=20261026-search-timer-fix"></script>
 </head>
 <body>
+  <script>if (window.parent !== window && new URLSearchParams(location.search).has("embedded")) document.body.classList.add("embedded");</script>
   <header class="topbar">
     <div class="brand"><span class="brand-mark" aria-hidden="true">●</span> CherryPulse <span class="brand-sub">메인 보드</span></div>
     <span class="mode">초안 모드</span>
@@ -23,20 +24,18 @@
   <main class="layout">
     <section class="intro" aria-labelledby="board-heading">
       <div>
-        <p class="eyebrow">종목과 보호 규칙</p>
         <h1 id="board-heading">트레이딩 메인 보드</h1>
-        <p>직접 고른 종목에 손절 패턴을 연결해 두세요. 초안은 브라우저에 저장됩니다. 로그인 후 서버 저장·불러오기를 선택할 수 있습니다.</p>
+        <p>관심종목을 등록하고 매수 조건과 손절 기준을 설정하세요.</p>
       </div>
       <div class="engine-warning" role="status"><span class="state-dot" aria-hidden="true">●</span><strong>초안 모드 — 실제 감시·주문 미동작</strong><span>마지막 수신: 연결된 적 없음</span></div>
     </section>
     <nav class="board-nav" aria-label="보드 메뉴">
-      <a href="#symbols-heading">메인 보드</a><a href="#overview">운영 현황</a>
-      <a href="#patterns-heading">손절 패턴</a><a href="#entry-patterns-heading">매수 패턴</a><a href="#log-view-heading">실측 로그</a>
+      <a href="#symbols-heading">관심종목</a><a href="#overview">초안 현황</a>
+      <a href="#patterns-heading">손절 패턴</a><a href="#entry-patterns-heading">매수 패턴</a><a href="#cloud-heading">서버 저장</a><a href="#log-view-heading">실측 로그</a>
     </nav>
     <section id="overview" class="overview" aria-labelledby="overview-heading">
       <h2 id="overview-heading">초안 현황 <span class="badge">브라우저 초안</span></h2>
-      <div class="draft-summary"><article><span>등록된 초안</span><strong id="draft-count">0</strong></article><article><span>보관</span><strong id="draft-archived-count">0</strong></article></div>
-      <div class="summary-grid" aria-live="polite" hidden>
+      <div class="summary-grid" aria-live="polite">
         <article><span>관심종목</span><strong id="overview-active">0</strong></article>
         <article><span>손절 패턴 연결</span><strong id="overview-linked">0</strong></article>
         <article><span>손절 패턴 미연결</span><strong id="overview-unlinked">0</strong></article>
@@ -47,47 +46,17 @@
         <article><h3>시세·계좌</h3><p>미연결 · 최근 시세 미수신</p><p>보유 수량·주문·체결: 미조회</p></article>
         <article><h3>자동 실행</h3><p>감시·주문 비활성</p><p>REST 원장·보호 연결과 PC 무인 운영 검증 대기</p></article>
       </div>
-      <details class="cloud-setup">
-        <summary>클라우드 연결 준비 상태</summary>
-        <p>서버 저장과 로그인 기능을 연결하기 위한 설정을 확인합니다.</p>
-        <button id="check-cloud-setup" type="button">연결 설정 확인</button>
-        <p id="cloud-setup-result" role="status" aria-live="polite">아직 확인하지 않았습니다. 초안은 현재 브라우저에 저장됩니다.</p>
-      </details>
       <p id="overview-next" class="next-step"></p>
     </section>
     <noscript>로그인·종목 검색을 사용하려면 브라우저에서 JavaScript를 허용해야 합니다.</noscript>
-    <section class="panel" aria-labelledby="cloud-heading">
-      <h2 id="cloud-heading">내 보드 서버 저장</h2>
-      <p class="hint">개인용 보드입니다. 4자리 숫자 비밀번호만 입력하세요. 5회 연속 틀리면 15분간 잠깁니다.</p>
-      <form id="cloud-login-form" class="stack-form" novalidate>
-        <label for="cloud-pin">4자리 비밀번호</label>
-        <input id="cloud-pin" type="password" inputmode="numeric" pattern="[0-9]{4}" autocomplete="current-password" minlength="4" maxlength="4" placeholder="숫자 4자리" required>
-        <button id="cloud-login" type="submit">보드 열기</button>
-      </form>
-      <div class="symbol-filters" role="group" aria-label="서버 초안 작업">
-        <button id="cloud-save" type="button" disabled>서버에 저장</button>
-        <button id="cloud-load" type="button" disabled>서버 초안 확인</button>
-        <button id="cloud-retry" type="button" disabled>미확인 저장 재시도</button>
-        <button id="cloud-logout" type="button" disabled>로그아웃</button>
-      </div>
-      <p id="cloud-status" class="cloud-status" role="status" aria-live="polite">비밀번호 화면 준비 중… 이 문구가 계속 보이면 Ctrl+F5로 새로고침하세요.</p>
-      <div id="cloud-load-confirmation" hidden>
-        <p id="cloud-load-summary"></p>
-        <p>불러오면 현재 브라우저 초안을 교체합니다. 필요한 초안은 먼저 전체 보드 백업으로 보관하세요.</p>
-        <button id="cloud-confirm-load" type="button">이 초안으로 교체</button>
-        <button id="cloud-cancel-load" type="button">취소</button>
-      </div>
-    </section>
     <div id="notice" role="status" aria-live="polite"></div>
-    <nav class="mobile-status-tabs" aria-label="모바일 보드 상태">
-      <button type="button" aria-current="page">등록·설정</button><button type="button" disabled>감시·보유</button><button type="button" disabled>주문중</button><button type="button" disabled>종료·보관</button>
-    </nav>
     <div class="columns">
       <section class="panel trading-board" aria-labelledby="symbols-heading">
         <div class="panel-heading symbol-heading">
           <div><h2 id="symbols-heading">종목 보드</h2><span id="symbol-count">0개 관심 · 0개 보관</span></div>
           <div class="symbol-filters" role="group" aria-label="종목 목록 보기">
             <button id="active-filter" class="filter-button" type="button" aria-pressed="true" aria-controls="symbol-list">관심</button>
+            <button id="unlinked-filter" class="filter-button" type="button" aria-pressed="false" aria-controls="symbol-list">손절 미연결</button>
             <button id="archived-filter" class="filter-button" type="button" aria-pressed="false" aria-controls="symbol-list">보관</button>
           </div>
         </div>
@@ -103,11 +72,13 @@
           <div id="symbol-lookup-results" class="symbol-lookup-results" role="group" aria-label="종목 검색 결과"></div>
           <label for="symbol-input">종목코드</label>
           <input id="symbol-input" name="symbol" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="검색 결과 선택 시 자동 입력 (직접 입력도 가능)" required>
+          <output id="registration-quote" aria-live="polite"></output>
           <label for="symbol-source">찾은 곳 링크 <span class="optional">선택</span></label>
           <input id="symbol-source" name="source" type="url" maxlength="2048" placeholder="https://…">
           <label for="symbol-note">메모 <span class="optional">선택</span></label>
           <textarea id="symbol-note" name="note" maxlength="1000" rows="3" placeholder="등록 이유나 참고 내용을 적어 두세요."></textarea>
           <button type="submit">종목 추가</button>
+          <span id="registration-result" role="status"></span>
         </form>
         </details>
         <div class="board-lanes">
@@ -190,6 +161,9 @@
         <form id="buy-pattern-form" class="stack-form">
           <label for="buy-pattern-name">패턴 이름</label>
           <input id="buy-pattern-name" name="name" maxlength="100" placeholder="예: 돌파 매수" required>
+          <label for="buy-symbol">매수 종목 (관심종목)</label>
+          <select id="buy-symbol"><option value="">종목 선택</option></select>
+          <output id="buy-quote" aria-live="polite"></output>
           <label for="buy-target-price">매수 목표가 (원)</label>
           <input id="buy-target-price" name="targetPrice" type="number" min="0.000001" step="any" placeholder="예: 70000" required>
           <p class="hint">조건: 최근 체결가 ≤ 목표가, 틱 즉시 1회 발동. 지정가·1주 고정, 보호는 체결된 평균가 대비 -3%(체결 후 확정). 09:00~15:20·당일 만료. 목표가 10만원 초과는 저장할 수 없습니다.</p>
@@ -205,6 +179,34 @@
         <div id="buy-preview-result" class="pattern-list" role="status" aria-live="polite"></div>
       </section>
     </div>
+    <section class="panel" aria-labelledby="cloud-heading">
+      <h2 id="cloud-heading">내 보드 서버 저장</h2>
+      <p class="hint">개인용 보드입니다. 4자리 또는 6자리 숫자 비밀번호만 입력하세요. 5회 연속 틀리면 15분간 잠깁니다.</p>
+      <form id="cloud-login-form" class="stack-form" novalidate>
+        <label for="cloud-pin">4자리 또는 6자리 비밀번호</label>
+        <input id="cloud-pin" type="password" inputmode="numeric" pattern="[0-9]{4}([0-9]{2})?" autocomplete="current-password" minlength="4" maxlength="6" placeholder="숫자 4자리 또는 6자리" required>
+        <button id="cloud-login" type="submit">보드 열기</button>
+      </form>
+      <div class="symbol-filters" role="group" aria-label="서버 초안 작업">
+        <button id="cloud-save" type="button" disabled>서버에 저장</button>
+        <button id="cloud-load" type="button" disabled>서버 초안 확인</button>
+        <button id="cloud-retry" type="button" disabled>미확인 저장 재시도</button>
+        <button id="cloud-logout" type="button" disabled>로그아웃</button>
+      </div>
+      <p id="cloud-status" class="cloud-status" role="status" aria-live="polite">비밀번호 화면 준비 중… 이 문구가 계속 보이면 Ctrl+F5로 새로고침하세요.</p>
+      <details class="cloud-setup">
+        <summary>클라우드 연결 준비 상태</summary>
+        <p>서버 저장과 로그인 기능을 연결하기 위한 설정을 확인합니다.</p>
+        <button id="check-cloud-setup" type="button">연결 설정 확인</button>
+        <p id="cloud-setup-result" role="status" aria-live="polite">아직 확인하지 않았습니다. 초안은 현재 브라우저에 저장됩니다.</p>
+      </details>
+      <div id="cloud-load-confirmation" hidden>
+        <p id="cloud-load-summary"></p>
+        <p>불러오면 현재 브라우저 초안을 교체합니다. 필요한 초안은 먼저 전체 보드 백업으로 보관하세요.</p>
+        <button id="cloud-confirm-load" type="button">이 초안으로 교체</button>
+        <button id="cloud-cancel-load" type="button">취소</button>
+      </div>
+    </section>
     <p class="footnote">이 화면은 입력·연결 기능을 확인하는 초안입니다. Windows 엔진의 적용 설정은 연결되지 않았으며, 여기서 주문이 생성되지 않습니다.</p>
     <section class="panel" aria-labelledby="log-view-heading">
       <div class="panel-heading"><h2 id="log-view-heading">실측 로그 확인</h2><span>복사 없이 보기</span></div>

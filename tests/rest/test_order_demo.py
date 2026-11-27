@@ -114,7 +114,7 @@ def test_submit_posts_once_to_mock(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     opener = arm_submit(
-        monkeypatch, tmp_path, canned({"return_code": 0, "ord_no": "private-ord"})
+        monkeypatch, tmp_path, canned({"return_code": 0, "ord_no": "00001234"})
     )
     payload = submit_buy_body(
         build_buy_body(BuyPreview("005930", "70000")),
@@ -134,15 +134,17 @@ def test_submit_ack_writes_sentinel_without_identifiers(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     opener = arm_submit(
-        monkeypatch, tmp_path, canned({"return_code": 0, "ord_no": "private-ord"})
+        monkeypatch, tmp_path, canned({"return_code": 0, "ord_no": "00001234"})
     )
     assert submit_paper_buy.main(submit_argv()) == 0
     assert len(opener.requests) == 1
     output = capsys.readouterr().out
     assert '"acked": true' in output
-    assert "private-ord" not in output
+    assert "00001234" not in output
     assert "private-key" not in output
-    assert len(list((tmp_path / "results").glob("*"))) == 1
+    (guard,) = (tmp_path / "results").glob("*")
+    record = json.loads(guard.read_text(encoding="utf-8"))
+    assert record["started_at"] <= record["sent_at"] <= record["received_at"]
 
 
 def test_sentinel_blocks_second_submit(
@@ -151,11 +153,23 @@ def test_sentinel_blocks_second_submit(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     opener = arm_submit(
-        monkeypatch, tmp_path, canned({"return_code": 0, "ord_no": "private-ord"})
+        monkeypatch, tmp_path, canned({"return_code": 0, "ord_no": "00001234"})
     )
     assert submit_paper_buy.main(submit_argv()) == 0
     assert submit_paper_buy.main(submit_argv()) == 1
     assert "SECOND_ORDER_BLOCKED" in capsys.readouterr().out
+    assert len(opener.requests) == 1
+
+
+@pytest.mark.parametrize("number", ["", "000000", "invalid-order"])
+def test_missing_ack_identity_keeps_claim(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, number: str
+) -> None:
+    opener = arm_submit(
+        monkeypatch, tmp_path, canned({"return_code": 0, "ord_no": number})
+    )
+    assert submit_paper_buy.main(submit_argv()) == 1
+    assert submit_paper_buy.main(submit_argv()) == 1
     assert len(opener.requests) == 1
 
 
@@ -176,7 +190,7 @@ def test_rejection_allows_retry_without_sentinel(
     assert "12345" not in output
     assert "<digits>" in output
     assert len(opener.requests) == 1
-    assert not (tmp_path / "results").exists()
+    assert not list((tmp_path / "results").iterdir())
 
 
 def test_unknown_outcome_blocks_resubmission(
@@ -212,7 +226,7 @@ def linkage_rows() -> dict[str, list[dict[str, object]]]:
     """One synthetic open order visible in three queries, unfilled."""
     row = {
         "stk_cd": "005930",
-        "ord_no": "private-ord",
+        "ord_no": "00001234",
         "ori_ord": "",
         "orig_ord_no": "",
     }
@@ -250,7 +264,7 @@ def test_linkage_consistent_without_identifiers(
     assert verify_paper_linkage.main(["--execute-read-only"]) == 0
     output = capsys.readouterr().out
     assert "LINKAGE_CONSISTENT" in output
-    assert "private-ord" not in output
+    assert "00001234" not in output
     assert "private-key" not in output
 
 
@@ -283,5 +297,5 @@ def test_linkage_mismatch_is_not_consistent(
     assert verify_paper_linkage.main(["--execute-read-only"]) == 1
     output = capsys.readouterr().out
     assert "LINKAGE_UNCONFIRMED" in output
-    assert "private-ord" not in output
+    assert "00001234" not in output
     assert "other-ord" not in output

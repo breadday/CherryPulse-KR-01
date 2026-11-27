@@ -29,6 +29,38 @@
     const button = doc.getElementById("symbol-lookup-button"), status = doc.getElementById("symbol-lookup-status"), list = doc.getElementById("symbol-lookup-results");
     if (!name || !code || !button || !status || !list) return;
     let cached = null, pending = null, sequence = 0, timer, composing = false, selection = null;
+    function quoteLoader(quote, target) {
+    let quoteSequence = 0;
+    return async function showPrice(symbol) {
+      if (!quote) return;
+      const id = ++quoteSequence;
+      quote.textContent = "";
+      if (!/^[0-9]{6}$/.test(symbol)) return;
+      quote.textContent = "현재가 조회 중…";
+      try {
+        const response = await fetcher("/api/quote?code=" + symbol, {signal: AbortSignal.timeout(18000)});
+        if (!response.ok) throw new Error();
+        const tick = await response.json();
+        if (id !== quoteSequence) return;
+        if (tick.code !== symbol || !Number.isSafeInteger(tick.price) || tick.price <= 0 || !/^[0-9]{14}$/.test(tick.time)) throw new Error();
+        if (target && !target.value) target.value = String(tick.price);
+        const t = tick.time;
+        quote.textContent = "현재가 " + tick.price.toLocaleString("ko-KR") + "원 · 키움 모의 최근 체결 " +
+          t.slice(0,4) + "-" + t.slice(4,6) + "-" + t.slice(6,8) + " " + t.slice(8,10) + ":" + t.slice(10,12) + " (한국시간)";
+      } catch {
+        if (id === quoteSequence) quote.textContent = "현재가 조회 실패 · 종목은 등록할 수 있습니다.";
+      }
+    }
+    }
+    const showPrice = quoteLoader(doc.getElementById("registration-quote"));
+    const picker = doc.getElementById("buy-symbol");
+    const target = doc.getElementById("buy-target-price");
+    const showBuyPrice = quoteLoader(doc.getElementById("buy-quote"), target);
+    picker?.addEventListener("change", () => {
+      target.value = "";
+      showBuyPrice(picker.value);
+    });
+    doc.getElementById("buy-pattern-form")?.addEventListener("reset", () => showBuyPrice(""));
     function invalidateSelection() {
       if (selection && name.value !== selection[1]) {
         if (code.value === selection[0]) code.value = "";
@@ -36,7 +68,7 @@
       }
     }
     function choose(row) {
-      sequence++; name.value = row[1]; code.value = row[0]; selection = row;
+      sequence++; name.value = row[1]; code.value = row[0]; selection = row; showPrice(code.value);
       list.replaceChildren(); status.textContent = `${row[1]} · ${row[0]} · ${row[2]} · ${row[3]} 선택 완료. 종목 추가를 누르세요.`;
     }
     async function directory() {
@@ -60,7 +92,7 @@
         const result = searchDirectory(data, query);
         if (!result.total) { status.textContent = "검색 결과가 없습니다. 숫자 6자리 KOSPI·KOSDAQ 주식/ETF만 지원합니다. 이름을 확인하거나 코드를 직접 입력하세요."; return; }
         const exact = result.exact.length === 1 ? result.exact[0] : null;
-        if (exact) { code.value = exact[0]; selection = exact; }
+        if (exact) { code.value = exact[0]; selection = exact; showPrice(code.value); }
         status.textContent = `${result.total}개 검색${result.total > 20 ? ' · 앞 20개 표시' : ''}${exact ? ' · 일치 종목 코드 자동 입력' : ' · 목록에서 선택하세요'} · 자료 수집 ${data.fetchedAt.slice(0, 10)}`;
         for (const row of result.matches) {
           const option = doc.createElement("button"); option.type = "button";
@@ -72,15 +104,17 @@
       }
     }
     function changed() {
+      showPrice('');
       sequence++; invalidateSelection(); list.replaceChildren(); timers.clear(timer);
       if (!composing) timer = timers.set(lookup, 300);
     }
     name.addEventListener("input", changed);
     name.addEventListener("compositionstart", () => { composing = true; sequence++; timers.clear(timer); });
     name.addEventListener("compositionend", () => { composing = false; changed(); });
-    code.addEventListener("input", () => { selection = null; sequence++; list.replaceChildren(); timers.clear(timer); });
+    code.addEventListener("input", () => { showPrice(code.value); selection = null; sequence++; list.replaceChildren(); timers.clear(timer); });
     button.addEventListener("click", () => { timers.clear(timer); return lookup(); });
     doc.getElementById("symbol-form")?.addEventListener("reset", () => {
+      showPrice("");
       sequence++; timers.clear(timer); selection = null; list.replaceChildren(); status.textContent = "종목명을 입력하면 코드를 검색합니다.";
     });
     return {lookup};

@@ -7,6 +7,7 @@ const MAX_NAME_LENGTH = 100;
 const MAX_NOTE_LENGTH = 1000;
 const MAX_SOURCE_LENGTH = 2048;
 let state;
+const previewPrices = new Map();
 let symbolView = "active";
 let pendingBoardRestore = null;
 let restoreBaseline = null;
@@ -71,26 +72,36 @@ function nextPatternVersion(pattern) {
     .reduce((highest, item) => Math.max(highest, patternVersion(item)), 0) + 1;
 }
 function render() {
+  const picker = $("buy-symbol");
+  if (picker) {
+    const selected = picker.value;
+    const empty = document.createElement("option"); empty.value = ""; empty.textContent = "종목 선택"; picker.replaceChildren(empty);
+    for (const item of state.symbols.filter(item => !item.archived)) {
+      const option = document.createElement("option"); option.value = item.code; option.textContent = item.name + " · " + item.code; picker.append(option);
+    }
+    picker.value = selected;
+    if (selected && !picker.value) picker.dispatchEvent(new Event("change"));
+  }
   const openedCode = state.symbols.find((item) => $("drawer-" + item.code)?.open)?.code;
   const activeCount = state.symbols.filter((item) => item.archived !== true).length;
   const archivedCount = state.symbols.length - activeCount;
-  if (document.getElementById("draft-count")) $("draft-count").textContent = String(activeCount);
-  if (document.getElementById("draft-archived-count")) $("draft-archived-count").textContent = String(archivedCount);
-  const linkedCount = state.symbols.filter((item) => item.archived !== true &&
-    state.patterns.some((pattern) => pattern.id === item.patternId &&
-      pattern.kind !== "BUY_PRICE_AT_OR_BELOW")).length;
+  const stopIds = new Set(state.patterns.filter((pattern) =>
+    pattern.kind !== "BUY_PRICE_AT_OR_BELOW").map((pattern) => pattern.id));
+  const linkedCount = state.symbols.filter((item) =>
+    item.archived !== true && stopIds.has(item.patternId)).length;
   $("overview-active").textContent = String(activeCount);
   $("overview-linked").textContent = String(linkedCount);
   $("overview-unlinked").textContent = String(activeCount - linkedCount);
   $("overview-archived").textContent = String(archivedCount);
   $("overview-next").textContent = activeCount === 0
-    ? "시작하기: 종목 관리에서 외부에서 고른 종목을 추가하세요."
+    ? "시작하기: ‘＋ 종목 등록’에서 관심종목을 추가하세요."
     : activeCount > linkedCount
     ? "다음 설정: 종목 카드에서 손절 패턴 초안을 연결하세요."
     : "초안 연결 완료 · 실제 감시는 엔진 연결·수락 확인 후 가능합니다.";
   const query = $("symbol-search").value.trim().toLowerCase();
   const scopedSymbols = state.symbols.filter((item) =>
-    symbolView === "archived" ? item.archived === true : item.archived !== true
+    symbolView === "archived" ? item.archived === true :
+      item.archived !== true && (symbolView !== "unlinked" || !stopIds.has(item.patternId))
   );
   const visibleSymbols = query
     ? scopedSymbols.filter((item) =>
@@ -103,6 +114,7 @@ function render() {
   $("export-symbols-json").disabled = activeCount === 0;
   $("export-symbols-csv").disabled = activeCount === 0;
   $("active-filter").setAttribute("aria-pressed", String(symbolView === "active"));
+  $("unlinked-filter").setAttribute("aria-pressed", String(symbolView === "unlinked"));
   $("archived-filter").setAttribute("aria-pressed", String(symbolView === "archived"));
   const symbols = $("symbol-list");
   const patterns = $("pattern-list");
@@ -113,6 +125,8 @@ function render() {
       ? "검색 결과가 없습니다. 새 종목은 ‘＋ 종목 등록’에서 종목명으로 찾아 추가하세요."
       : symbolView === "archived"
       ? "보관한 종목이 없습니다. 종목 카드를 보관해 두면 여기에 남습니다."
+      : symbolView === "unlinked"
+      ? "손절 패턴이 미연결된 관심종목이 없습니다."
       : "등록한 종목이 없습니다. 종목명을 검색해 추가하세요.";
     symbols.append(empty);
   }
@@ -210,13 +224,48 @@ function render() {
     const priceLabel = document.createElement("label"); priceLabel.textContent = "가상 현재가 (원)"; priceLabel.htmlFor = `preview-price-${item.code}`;
     const priceInput = document.createElement("input"); priceInput.id = priceLabel.htmlFor;
     priceInput.type = "number"; priceInput.min = "0.000001"; priceInput.step = "any"; priceInput.required = true;
+    const quoteHint = document.createElement("p");
+    quoteHint.className = "hint";
+    quoteHint.setAttribute("role", "status");
+    const savedPrice = previewPrices.get(item.code);
+    if (savedPrice) {
+      priceInput.value = savedPrice.value;
+      quoteHint.textContent = savedPrice.hint;
+    }
+    priceInput.addEventListener("input", () => {
+      quoteHint.textContent = "직접 입력한 가상 가격";
+      previewPrices.set(item.code, {value: priceInput.value, hint: quoteHint.textContent});
+    });
+    let loadingPrice = false;
+    drawer.addEventListener("toggle", async () => {
+      if (!drawer.open || loadingPrice || previewPrices.has(item.code)) return;
+      loadingPrice = true;
+      quoteHint.textContent = "키움 모의 시세 조회 중…";
+      try {
+        const response = await fetch("/api/quote?code=" + encodeURIComponent(item.code),
+          {signal: AbortSignal.timeout(18000)});
+        if (!response.ok) throw new Error();
+        const quote = await response.json();
+        if (quote.code !== item.code || !Number.isSafeInteger(quote.price) || quote.price <= 0 ||
+            !/^\d{14}$/.test(quote.time)) throw new Error();
+        if (!drawer.isConnected || !drawer.open || previewPrices.has(item.code)) return;
+        const t = quote.time;
+        priceInput.value = String(quote.price);
+        quoteHint.textContent = `키움 모의 최근 체결 · ${t.slice(0,4)}-${t.slice(4,6)}-${t.slice(6,8)} ${t.slice(8,10)}:${t.slice(10,12)}:${t.slice(12)} (한국시간) · 수정 가능`;
+        previewPrices.set(item.code, {value: priceInput.value, hint: quoteHint.textContent});
+      } catch {
+        if (!previewPrices.has(item.code)) quoteHint.textContent = "시세를 조회할 수 없습니다. 가상 가격을 직접 입력하거나 상세를 다시 열어 주세요.";
+      } finally {
+        loadingPrice = false;
+      }
+    });
     const avgLabel = document.createElement("label"); avgLabel.textContent = "가상 평균 매수가 (비율 손절용, 선택)"; avgLabel.htmlFor = `preview-average-${item.code}`;
     const avgInput = document.createElement("input"); avgInput.id = avgLabel.htmlFor;
     avgInput.type = "number"; avgInput.min = "0.000001"; avgInput.step = "any";
     const previewButton = document.createElement("button"); previewButton.type = "submit"; previewButton.textContent = "연결한 조건 미리보기";
     const previewResult = document.createElement("p"); previewResult.className = "symbol-preview-result";
     previewResult.setAttribute("role", "status"); previewResult.setAttribute("aria-live", "polite");
-    previewForm.append(priceLabel, priceInput, avgLabel, avgInput, previewButton, previewResult);
+    previewForm.append(priceLabel, priceInput, quoteHint, avgLabel, avgInput, previewButton, previewResult);
     previewForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const result = CherryPulseBuyPreview.previewSymbol(item, state.patterns, priceInput.value, avgInput.value);
@@ -375,6 +424,7 @@ function renderBuyPatterns() {
   }
 }
 $("active-filter").addEventListener("click", () => { symbolView = "active"; render(); });
+$("unlinked-filter").addEventListener("click", () => { symbolView = "unlinked"; render(); });
 $("archived-filter").addEventListener("click", () => { symbolView = "archived"; render(); });
 $("symbol-search").addEventListener("input", render);
 function downloadActiveSymbols(format) {
@@ -650,12 +700,26 @@ $("symbol-form").addEventListener("submit", (event) => {
   if (!name || name.length > MAX_NAME_LENGTH) { notice("종목명은 100자 이내로 직접 입력하세요."); return; }
   if (source && (source.length > MAX_SOURCE_LENGTH || !safeSourceUrl(source))) { notice("참고 링크는 2048자 이내의 http 또는 https 주소만 사용할 수 있습니다."); return; }
   if (note.length > MAX_NOTE_LENGTH) { notice("메모는 1000자 이내로 입력하세요."); return; }
-  if (state.symbols.some((item) => item.code === code)) { notice("이미 등록한 종목입니다."); return; }
-  if (commitDraft((next) => {
-    next.symbols.push({code, name, source, note, patternId: "", archived: false});
-  }, `${name} (${code})을 초안에 추가했습니다. 감시는 시작되지 않았습니다.`)) {
-    event.target.reset(); render();
+  const existing = state.symbols.find((item) => item.code === code);
+  if (existing && !existing.archived) {
+    notice(`${name} (${code})은 이미 관심 목록에 있습니다.`);
+  } else {
+    const saved = commitDraft((next) => {
+      if (existing) next.symbols.find((item) => item.code === code).archived = false;
+      else next.symbols.push({code, name, source, note, patternId: "", archived: false});
+    }, existing ? `${name} (${code})을 관심 목록으로 복원했습니다.` : `${name} (${code})을 초안에 추가했습니다.`);
+    if (!saved) {
+      const result = $("registration-result");
+      if (result) result.textContent = $("notice").textContent;
+      return;
+    }
   }
+  event.target.reset();
+  symbolView = "active";
+  $("symbol-search").value = "";
+  render();
+  const result = $("registration-result");
+  if (result) result.textContent = $("notice").textContent;
 });
 $("pattern-kind").addEventListener("change", () => {
   const ratio = $("pattern-kind").value === "AVERAGE_COST_DROP";
@@ -702,7 +766,8 @@ render();
 
 // Cloud persistence is an explicit action; local edits continue to use commitDraft.
 if (typeof CherryPulseCloud !== "undefined") {
-  const cloud = CherryPulseCloud.createClient(fetch, () => crypto.randomUUID(), CherryPulseBoardBackup);
+  const unified = typeof location!=="undefined" && location.search?.includes("embedded=1");
+  const cloud = CherryPulseCloud.createClient(fetch, () => crypto.randomUUID(), CherryPulseBoardBackup, unified);
   let busy = false, candidate = null, baseline = null;
   const setStatus = text => {
     $("cloud-status").textContent = text;
@@ -710,9 +775,9 @@ if (typeof CherryPulseCloud !== "undefined") {
   };
   const actionIds = ["cloud-login", "cloud-save", "cloud-load", "cloud-retry", "cloud-logout", "cloud-confirm-load", "cloud-cancel-load"];
   const messages = {
-    UNAUTHENTICATED: "접속이 만료됐습니다. 4자리 비밀번호를 다시 입력하세요. 브라우저 초안은 유지됩니다.",
-    PIN_INCORRECT: "비밀번호가 일치하지 않습니다. 숫자 4자리를 확인하세요.",
-    PIN_FORMAT_INVALID: "비밀번호는 숫자 4자리로 입력하세요.",
+    UNAUTHENTICATED: "접속이 만료됐습니다. 4자리 또는 6자리 비밀번호를 다시 입력하세요. 브라우저 초안은 유지됩니다.",
+    PIN_INCORRECT: "비밀번호가 일치하지 않습니다. 숫자 4자리 또는 6자리를 확인하세요.",
+    PIN_FORMAT_INVALID: "비밀번호는 숫자 4자리 또는 6자리로 입력하세요.",
     PIN_LOCKED: "비밀번호를 5회 연속 잘못 입력해 15분간 잠겼습니다. 잠시 후 다시 시도하세요.",
     PIN_NOT_CONFIGURED: "서버 비밀번호 설정이 아직 완료되지 않았습니다.",
     LOAD_REQUIRED: "먼저 서버 초안을 확인하고 불러오세요. 기존 서버 내용을 바로 덮어쓰지 않습니다.",
@@ -744,6 +809,7 @@ if (typeof CherryPulseCloud !== "undefined") {
     setStatus("비밀번호 확인 중입니다… 잠시 기다려 주세요."); $("cloud-login").textContent = "확인 중…";
     try {
       await cloud.auth(pin);
+      if (unified) parent.postMessage("cp-board-unlocked",location.origin);
       setStatus("보드 접속 완료 · 서버 초안 확인 중…");
       const remote = await cloud.inspect();
       setStatus(remote.revision === 0 ? "보드 접속 완료 · 서버 초안 없음. 현재 초안을 서버에 저장할 수 있습니다." : `보드 접속 완료 · 서버 버전 ${remote.revision}. ‘서버 초안 확인’ 후 불러오세요.`);
@@ -752,14 +818,14 @@ if (typeof CherryPulseCloud !== "undefined") {
   $("cloud-login-form").addEventListener("submit", event => {
     event.preventDefault();
     if (busy) return;
-    if (!/^[0-9]{4}$/.test($("cloud-pin").value)) {
-      setStatus("비밀번호는 숫자 4자리로 입력하세요."); $("cloud-pin").focus(); return;
+    if (!/^[0-9]{4}([0-9]{2})?$/.test($("cloud-pin").value)) {
+      setStatus("비밀번호는 숫자 4자리 또는 6자리로 입력하세요."); $("cloud-pin").focus(); return;
     }
     return run(login);
   });
   $("cloud-logout").addEventListener("click", () => run(async () => {
     candidate = null; baseline = null; $("cloud-load-confirmation").hidden = true;
-    try { await cloud.logout(); }
+    try { await cloud.logout(); if (unified) parent.postMessage("cp-board-locked",location.origin); }
     finally { setStatus("이 페이지에서 로그아웃했습니다. 브라우저 초안은 유지됩니다."); }
   }));
   $("cloud-save").addEventListener("click", () => run(async () => {
@@ -801,7 +867,20 @@ if (typeof CherryPulseCloud !== "undefined") {
     candidate = null; baseline = null; $("cloud-load-confirmation").hidden = true;
     setStatus("불러오기를 취소했습니다. 브라우저 초안은 유지됩니다.");
   });
+  if (unified) {
+    const resume=()=>run(async()=>{await cloud.resume(); setStatus("통합 PIN 로그인 완료 · 서버 초안을 조회하거나 저장할 수 있습니다.");});
+    window.addEventListener("message",e=>{if(e.origin===location.origin && e.source===parent && e.data==="cp-board-refresh") resume();});
+    resume();
+  }
   controls();
   $("cloud-login-form").setAttribute("data-cloud-ready", "true");
-  setStatus("숫자 4자리 비밀번호를 입력하고 ‘보드 열기’를 누르세요.");
+  setStatus("숫자 4자리 또는 6자리 비밀번호를 입력하고 ‘보드 열기’를 누르세요.");
+}
+
+if (typeof location!=="undefined" && location.search?.includes("embedded=1")) {
+  const label=document.querySelector('label[for="cloud-pin"]');
+  label.textContent="등록 기기 통합 PIN";
+  $("cloud-pin").pattern="[0-9]{6}";
+  $("cloud-pin").placeholder="숫자 6자리";
+  $("cloud-login-form").closest("section")?.querySelector(".hint")?.replaceChildren("등록한 기기의 6자리 통합 PIN으로 보드를 엽니다.");
 }

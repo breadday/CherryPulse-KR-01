@@ -65,6 +65,10 @@ def classify_order_response(payload: object) -> tuple[bool, str]:
     if type(code) not in (int, str) or code not in (0, "0"):
         return False, "API_SUCCESS_UNCONFIRMED"
     order_number = table.get("ord_no")
-    if not isinstance(order_number, str) or not order_number.strip():
+    if (
+        not isinstance(order_number, str)
+        or re.fullmatch(r"[0-9]+", order_number.strip()) is None
+        or not order_number.strip().strip("0")
+    ):
         return False, "ORDER_NUMBER_MISSING"
     return True, "ORDER_ACKED"

@@ -63,7 +63,7 @@ function descendants(element) {
 
 function boardWithDraft(draft, options = {}) {
   const ids = [
-    "notice", "symbol-count", "active-filter", "archived-filter", "symbol-search", "symbol-list",
+    "notice", "symbol-count", "active-filter", "unlinked-filter", "archived-filter", "symbol-search", "symbol-list",
     "bulk-import-form", "symbol-import-file", "export-symbols-json", "export-symbols-csv",
     "export-board-backup", "restore-board-backup-form", "board-backup-file",
     "restore-confirmation", "restore-summary", "confirm-board-restore", "cancel-board-restore",
@@ -776,6 +776,10 @@ test("overview counts draft bindings independently of list filters and updates o
   assert.equal(board.getElement("overview-linked").textContent, "1");
   assert.equal(board.getElement("overview-unlinked").textContent, "1");
   assert.equal(board.getElement("overview-archived").textContent, "1");
+  board.getElement("unlinked-filter").click();
+  const cards = board.getElement("symbol-list").children;
+  assert.equal(cards.length, 1);
+  assert.ok(descendants(cards[0]).some((item) => item.textContent === "SK하이닉스"));
   board.getElement("archived-filter").click();
   assert.equal(board.getElement("overview-active").textContent, "2");
   const restore = descendants(board.getElement("symbol-list")).find((item) => item.textContent === "관심 목록으로 복원");
@@ -915,4 +919,17 @@ test('incorrect PIN displays an actionable failure and unlocks the input', async
   await board.getElement('cloud-login-form').dispatchAsync('submit');
   assert.match(board.getElement('cloud-status').textContent, /비밀번호가 일치하지 않습니다/);
   assert.equal(board.getElement('cloud-login').disabled, false);
+});
+
+test("registering archived preferred shares restores their draft alongside common shares", () => {
+  const preferred = {code: "005935", name: "삼성전자우", archived: true, note: "기존 메모", patternId: "stop"};
+  const board = boardWithDraft({symbols: [{code: "005930", name: "삼성전자"}, preferred], patterns: []});
+  board.getElement("archived-filter").click();
+  board.getElement("symbol-search").value = "다른 종목";
+  board.getElement("symbol-name").value = preferred.name;
+  board.getElement("symbol-input").value = preferred.code;
+  board.getElement("symbol-form").dispatch("submit");
+  assert.deepEqual(board.getDraft().symbols[1], {...preferred, archived: false});
+  assert.equal(board.getElement("symbol-list").children.length, 2);
+  assert.match(board.getElement("notice").textContent, /복원/);
 });
