@@ -308,8 +308,11 @@ function renderDrafts() {
     el("home-drafts").textContent = "예약 초안 조회 실패";
   }
 }
-el("orders").addEventListener("input", clearReview);
-el("orders").addEventListener("change", clearReview);
+function orderInputChanged(event) {
+  if (event.target.id !== "scheduled-paper-approval") clearReview();
+}
+el("orders").addEventListener("input", orderInputChanged);
+el("orders").addEventListener("change", orderInputChanged);
 el("stop-edit").onclick = () => { finishEdit(); el("order-heading").focus(); };
 el("preview").onclick = () => {
   reviewed = previewOrder();
