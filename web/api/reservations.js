@@ -67,6 +67,15 @@ module.exports = async function reservations(req,res) {
     }
     if (req.method==="PUT") return fail(405);
     if (action!=="list" && !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(body.id || "")) return fail(422);
+    if (body.approvePaper===true) {
+      const {validTicket}=require("../lib/account-device");
+      const {cookie,claimRpc}=require("../lib/manual-paper-order");
+      if (!["create","update"].includes(action) || req.headers.origin!=="https://"+req.headers.host ||
+          !validTicket(req,cookie(req,"__Host-cp-view") || "")) return fail(403);
+      const saved=await claimRpc(req,"cp_save_scheduled_paper",{p_action:action,p_id:body.id,
+        p_version:body.version??null,p_details:body.details});
+      return saved.status?fail(saved.status):res.status(200).json(saved);
+    }
     const result = await rpc("cp_reservations",{p_session:token,p_action:action,p_id:body.id??null,
       p_version:body.version??null,p_details:body.details??null});
     if (result.status) return fail([401,404,409,422].includes(result.status)?result.status:502);

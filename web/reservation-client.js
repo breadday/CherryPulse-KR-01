@@ -2,6 +2,7 @@ const CherryReservations = {
   attach({edit,sessionChanged}) {
     const el = id => document.getElementById(id);
     let signed = false, pending = false, generation = 0;
+    let scheduledPaperAvailable=false;
     const messages = {401:"보드 PIN 로그인이 필요합니다.",403:"요청 출처를 확인하세요.",404:"예약을 찾을 수 없습니다.",
       409:"같은 예약이 있거나 상태가 변경됐습니다. 목록에서 최신 예약을 선택하세요.",
       422:"종목·수량·가격과 미래 KRX 영업일을 확인하세요.",429:"로그인 시도가 많습니다. 잠시 후 다시 시도하세요."};
@@ -30,7 +31,7 @@ const CherryReservations = {
       const order=row.paperOrder, d=row.details;
       const age=Date.now()-Date.parse(d.date+"T"+d.time+"+09:00");
       const eligible=["dry_run","due"].includes(row.status) && d.type==="지정가" && age>=0 && age<120000;
-      if (!order && !eligible) return;
+      if (!order && (!eligible || row.autoApproved)) return;
       const states={accepted:"접수",unfilled:"미체결",partial:"부분체결",filled:"완전체결",rejected:"거절",unknown:"접수 확인 필요"};
       const time=value=>value?new Date(value).toLocaleString("ko-KR",{timeZone:"Asia/Seoul",hour12:false})+" KST":"미확인";
       if (order) {
@@ -106,6 +107,11 @@ const CherryReservations = {
         const terms = document.createElement("p");
         terms.textContent = [d.side+" "+d.qty.toLocaleString("ko-KR")+"주",d.type+(d.price===null?"":" "+d.price.toLocaleString("ko-KR")+"원")].join(" · ");
         item.append(header,schedule,terms);
+        if (row.autoApproved) {
+          const approval=document.createElement("p");
+          approval.textContent="키움 모의계좌 · 예약 시각 자동 전송 승인";
+          item.append(approval);
+        }
         if (row.processedAt) {
           const processed = document.createElement("p");
           const time = new Date(row.processedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"});
@@ -132,8 +138,9 @@ const CherryReservations = {
     async function refresh(afterLogin=false) {
       const current = ++generation;
       try {
-        const {rows} = await api("GET");
+        const {rows,scheduledPaperAvailable:available} = await api("GET");
         if (current!==generation) return;
+        scheduledPaperAvailable=available===true;
         session(true);
         render(rows);
         return rows;
@@ -217,6 +224,6 @@ const CherryReservations = {
     },15000);
     window.addEventListener("pageshow",()=>{if (!pending) refresh();});
     document.addEventListener("visibilitychange",()=>{if (!pending && !document.hidden && signed) refresh();});
-    return {signedIn:()=>signed, save:(id,version,details)=>mutate(version?"PATCH":"POST",{id,version,details})};
+    return {signedIn:()=>signed, canSchedulePaper:()=>signed && scheduledPaperAvailable, save:(id,version,details,approvePaper=false)=>mutate(version?"PATCH":"POST",{id,version,details,...(approvePaper?{approvePaper:true}:{})})};
   }
 };

@@ -208,6 +208,8 @@ let createId = crypto.randomUUID();
 let createDetails = null;
 function clearReview() {
   reviewed = null;
+  el("scheduled-paper-approval").checked=false;
+  el("scheduled-paper-option").hidden=true;
   el("confirm-server").hidden = true;
   el("confirm-draft").hidden = true;
 }
@@ -313,6 +315,7 @@ el("preview").onclick = () => {
   reviewed = previewOrder();
   el("confirm-draft").hidden = !reviewed || Boolean(serverEdit);
   el("confirm-server").hidden = !reviewed || !reservations.signedIn();
+    el("scheduled-paper-option").hidden=el("confirm-server").hidden || reviewed?.type!=="지정가" || !reservations.canSchedulePaper();
 };
 el("confirm-draft").onclick = () => {
   const current = previewOrder();
@@ -342,6 +345,7 @@ const reservations = CherryReservations.attach({
   sessionChanged(active) {
     if (!active && serverEdit) finishEdit();
     el("confirm-server").hidden = !active || !reviewed;
+    el("scheduled-paper-option").hidden=el("confirm-server").hidden || reviewed?.type!=="지정가" || !reservations.canSchedulePaper();
     renderDrafts();
   }
 });
@@ -352,7 +356,9 @@ el("confirm-server").onclick = async () => {
     if (current) el("feedback").textContent += " · 입력 내용을 다시 미리보기 하세요.";
     return;
   }
-  const detailsKey = JSON.stringify(current);
+  const approvePaper=!el("scheduled-paper-option").hidden && el("scheduled-paper-approval").checked;
+  if (approvePaper && !confirm(current.name+" ("+current.code+") · "+current.side+" "+current.qty+"주 · 지정가 "+current.price+"원 · "+current.date+" "+current.time+" KST에 키움 모의계좌로 한 번 자동 전송할까요?")) return;
+  const detailsKey = JSON.stringify([current,approvePaper]);
   if (!serverEdit && createDetails !== detailsKey) {
     createId = crypto.randomUUID();
     createDetails = detailsKey;
@@ -362,13 +368,13 @@ el("confirm-server").onclick = async () => {
   saveButton.disabled = true;
   el("feedback").textContent = "서버 예약을 저장하는 중입니다.";
   try {
-    if (!await reservations.save(id,serverEdit?.version,current)) {
+    if (!await reservations.save(id,serverEdit?.version,current,approvePaper)) {
       el("feedback").textContent = el("reservation-status").textContent;
       return;
     }
     createId = crypto.randomUUID();
     finishEdit();
-    el("feedback").textContent = "서버 예약을 저장했습니다. 주문 전송 없이 모의 검증합니다.";
+    el("feedback").textContent = approvePaper?"예약 시각 자동 전송을 승인하고 저장했습니다.":"서버 예약을 저장했습니다. 주문 전송 없이 모의 검증합니다.";
   } finally {saveButton.disabled = false;}
 };
 window.addEventListener("holding-selected", ({detail}) => {
